@@ -13,7 +13,7 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Welcome to The Manzanita Tribe.
+          Welcome to The Manzanita Tribe!
         </h1>
       </main>
     </div>
