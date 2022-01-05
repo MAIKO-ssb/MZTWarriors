@@ -20,11 +20,24 @@ export default function Home() {
               
             </div>
           </div>
-          <div className='u-flex u-flex1'>
+          <div className='u-flex u-flex1' style={{padding: "1.5em", paddingRight: "5em"}}>
             <div>
-              <h1>MZT Warrior Badge</h1>
-              <p>Lorem Ipsum Dolor Sit Amet Consecetur...</p>
-              <button>Mint a `Warrior Badge`</button>
+              <h1>The MZT Warrior Badge</h1>
+              <p>
+                The `Manzanita Tribe Warriors` is a small esports team located in Southern California. We compete in `Super Smash Bros. Ultimate` and want to continue our journey as a team, pushing our limits into 2022 &amp; beyond🔥! 
+              </p>
+              <p>As a fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` priced at .1 solana each. </p>
+              <p>
+                We`d like to give special thanks to the competitive Smash Bros. community and everyone that follows us, the Manzanita Tribe Warriors.
+              </p>
+              <button>Mint a `Warrior Badge`*</button>
+              <br/>
+              <small>
+                * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player salaries, event entries, transportation, hotel, food, etc. 
+                All re-sales include a 10% royalty fee that directly supports the team.
+                This team badge serves as a representation of your support.   
+                Thank you.
+              </small>
             </div>
           </div>
           
