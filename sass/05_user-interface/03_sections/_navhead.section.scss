@@ -1,0 +1,16 @@
+body{
+    padding-top: 82px;
+    @include noMobile{
+        padding-top: 0;
+    }
+}
+.s-navhead{
+    position: fixed;
+    top: 0;
+    z-index: 9000;
+    width: 100%;
+    /* top: -83px; */
+    @include noMobile{
+        position: relative;
+    }
+}

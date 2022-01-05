@@ -1,0 +1,31 @@
+.u-hide{
+    display: none;
+}
+
+.u-hide-mobile{
+    @include onlyMobile{
+        display: none;
+    }
+}
+
+.u-dsp-hide-desktop{
+    @include noMobile{
+        display: none;
+    }
+}
+
+.u-flex{
+    display: flex;
+    &1{
+        flex: 1;
+    }
+    &--column{
+        flex-direction: column;
+    }
+    &--columnReverse{
+        flex-direction: column-reverse;
+    }
+    &.-centerItems{
+        align-items: center;
+    }
+}

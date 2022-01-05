@@ -1,0 +1,86 @@
+// BOX SETTINGS
+$base-padding: 1em;
+$base-margin: 1em;
+
+// PADDING
+.u-p{
+    padding: $base-padding !important;
+}
+.u-pT{
+    padding-top: $base-padding !important;
+}
+.u-pL{
+    padding-left: $base-padding !important;
+}
+.u-pR{
+    padding-right: $base-padding !important;
+}
+.u-pB{
+    padding-bottom: $base-padding !important;
+}
+
+
+.u-p0{
+    padding: 0 !important;
+}
+.u-pT0{
+    padding-top: 0 !important;
+}
+.u-pB0{
+    padding-bottom: 0 !important;
+}
+.u-pL0{
+    padding-left: 0 !important;
+}
+.u-pR0{
+    padding-right: 0 !important;
+}
+
+//Margin
+.u-m{
+    margin: $base-margin !important;
+}
+.u-mT{
+    margin-top: $base-margin !important;
+}
+.u-mL{
+    margin-left: $base-margin !important;
+}
+.u-mR{
+    margin-right: $base-margin !important;
+}
+.u-mB{
+    margin-bottom: $base-margin !important;
+}
+
+.u-m\/2{
+    margin: $base-margin/2 !important;
+}
+.u-mT\/2{
+    margin-top: $base-margin/2 !important;
+}
+.u-mR\/2{
+    margin-right: $base-margin/2 !important;
+}
+.u-mB\/2{
+    margin-bottom: $base-margin/2 !important;
+}
+.u-mL\/2{
+    margin-left: $base-margin/2 !important;
+}
+
+.u-m0{
+    margin: 0 !important;
+}
+.u-mT0{
+    margin-top: 0 !important;
+}
+.u-mL0{
+    margin-left: 0 !important;
+}
+.u-mR0{
+    margin-right: 0 !important;
+}
+.u-mB0{
+    margin-bottom: 0 !important;
+}

@@ -1,0 +1,12 @@
+.fas{
+    &.-circle{
+        font-size: .75em;
+        border: 1px solid white;
+        border-radius: 50%;
+        padding: 6px;
+        vertical-align: middle;
+        &:before{
+            vertical-align: middle;
+        }
+    }
+}

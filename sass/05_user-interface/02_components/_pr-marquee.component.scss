@@ -1,0 +1,158 @@
+.c-pr-marquee{
+    width: 100%;
+    height: 34px;
+    overflow: hidden;
+    position: relative;
+    background-color: lighten($secondary-bg-color , 12%);
+    &__label{
+        background-color: $accent-color;
+        color: $primary-bg-text-color;
+        display: inline-block;
+        text-align: center;
+        position: absolute;
+        z-index: 30;
+        height: 100%;
+        padding: 11px 5px;
+        width: 116px; // POST LAUNCH
+        cursor: pointer;
+        font-size: 0.7em;
+        @include noMobile{
+          padding: 11px 5px 9px;
+          width: 126px; //POST LAUNCH
+          font-size: 0.75em;       
+        }
+
+        &:after{
+            content: '';
+            width: 0px;
+            height: 0;
+            border-top: 17px solid transparent;
+            border-bottom: 17px solid transparent;
+            border-left: 10px solid $accent-color;
+            position: absolute;
+            right: -10px;
+            top: 0;
+        }
+    }
+    &__msg{
+        color: $secondary-bg-text-color;
+        position: absolute;
+        top: 8px;
+        // width: 100%;
+        width: calc(100% - 186px);
+        text-align: center;
+        // left: 140px; // POST LAUNCH VALUE
+        left: 186px; // PRE PR LAUNCH VALUE
+        @include noMobile{
+          width: 100%;
+          text-align: left;
+        }
+        span{
+          font-size: .5em;
+          text-transform: uppercase;
+          animation-delay: .5s;
+          span{
+            display: none;
+            @include noMobile{
+              display: inline;
+            }    
+          }
+        }
+        @include noMobile{
+          // left: 150px;
+          left: 220px; //PRE LAUNCH
+        }
+        // opacity: 0;
+        //animation: fadeInNOut 60s linear infinite;
+    }
+    //Elements
+    .e-playerList{
+        position: absolute;
+        // Consider moving to element level.
+        background-color: lighten($secondary-bg-color , 12%);
+        color: $secondary-bg-text-color;
+        // ^^^^^^^^^^^
+        width: 3800px;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        animation: marqueeLeft 60s linear infinite;
+        left: 90px;
+        z-index: 20;
+        @include noMobile{
+          left: 140px;
+        }
+        &::before{
+          content: '';
+          background: lighten($secondary-bg-color , 12%);
+          box-shadow: -8px 0 30px 15px lighten($secondary-bg-color , 12%);
+          width: 25px;
+          height: 100%;
+          left: 0px;
+          display: inline-block;
+          vertical-align: bottom;
+          transform: skewX(-20deg);
+          position: relative;
+          @include noMobile { display: none; }
+          s-navbar.-disabled &{ display: none; }
+        }
+        li{
+            display: inline-block;
+            padding: 2px 20px;
+            transform: skewX(-20deg);
+            // Consider moving to element level
+            &:nth-child(even){
+                background-color: lighten($secondary-bg-color, 8%);
+            }
+          }
+        &__player{
+            transform: skewX(20deg);
+            display: inline-block;
+            cursor: default;
+        }
+    }
+}
+
+//Animations
+@keyframes marqueeLeft {
+  0%  {
+    opacity: 0;
+    transform: translateX(0%);
+  }
+  2%{
+    opacity: 1;
+    transform: translateX(0%);
+  }
+  8%{
+    transform: translateX(0%);
+  }
+  98%{
+    opacity: 1;
+  }
+  99%{
+    opacity: 0;
+  }
+  100%{
+    opacity: 0;
+    transform:translateX(-100%);
+  }
+}
+
+@keyframes fadeInNOut {
+  //fadein
+  0%  {
+    opacity: 0;
+  }
+  88%{
+    opacity: 0;
+  }
+  89%  {
+    opacity: 1;
+  }
+  99%{ //fadeout
+      opacity: 1;
+  }
+  100%{
+    opacity: 0;
+  }
+}

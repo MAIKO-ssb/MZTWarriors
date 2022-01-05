@@ -1,0 +1,41 @@
+body{
+    padding-bottom: 63px;
+    @include noMobile{
+        padding-bottom: 0;
+    }
+    // Temporary while testing.
+    // .pg-home &{
+    //     padding-bottom: 0;
+    // }
+}
+.s-footNav{
+    display: flex;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    z-index: 9000;
+    background: black;
+    color: $primary-bg-text-color;
+    @include noMobile{
+        display: none;
+    }
+    // .pg-home &{
+    //     display: none;
+    // }
+    &__item{
+        flex: 1;
+        text-align: center;
+        padding: 1em;
+        transition: background 350ms;
+        border-right: 1px solid #333;
+        &:last-child{
+            border-right: 0;
+        }
+        &:hover{
+            cursor: pointer;
+        }
+        &--active{
+            background: $accent-color;
+        }
+    }
+}

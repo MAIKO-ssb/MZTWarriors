@@ -1,0 +1,6 @@
+$tablet-width: 768px;
+$desktop-width: 1024px;
+$desktop-lg-width: 1400px;
+
+$breakpoints: $tablet-width, $desktop-width, $desktop-lg-width;
+$breakpointsName: tablet, desktop, desktop-lg;

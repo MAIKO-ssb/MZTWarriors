@@ -1,0 +1,37 @@
+.l-{
+    // -- Scaffolding
+    @for $i from 2 through $cols {
+        @if $i == 2{
+            &1\/1{ width: 100%; }
+        }
+        @for $x from 1 through $i {
+            @if $x != $i {
+                &#{$x}\/#{$i}{
+                    width: $x/$i * 100%;
+                }
+            }
+        }
+    }
+    @for $a from 1 through length($breakpoints){
+        @for $i from 2 through $cols {
+            @if $i == 2{
+                &1\/1\@#{nth($breakpointsName, $a)}{
+                    @media (min-width: #{nth($breakpoints, $a)}) { 
+                        width:100%;
+                    }
+                }
+            }
+            @for $x from 1 through $i {
+                @if $x != $i {
+                    &#{$x}\/#{$i}{
+                        &\@#{nth($breakpointsName, $a)}{
+                            @media (min-width: #{nth($breakpoints, $a)}) { 
+                                width: $x/$i * 100%;
+                            }
+                        }
+                    }
+                }
+            }
+        }		
+    }// End Scaffolding
+}

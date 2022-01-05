@@ -1,0 +1,42 @@
+//---------------------------------\\
+//                                 \\
+//        Begin Media Queries      \\
+//                                 \\
+//---------------------------------\\
+
+@mixin tablet {
+  @media (min-width: #{$tablet-width}) {
+    @content;
+  }
+}
+
+
+@mixin tabletOnly {
+  @media (min-width: #{$tablet-width}) and (max-width: #{$desktop-width - 1px}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$desktop-width}) {
+    @content;
+  }
+}
+
+@mixin desktop-lg {
+  @media (min-width: #{$desktop-lg-width}) {
+    @content;
+  }
+}
+
+@mixin onlyMobile {
+  @media (max-width: #{$tablet-width}) {
+      @content;
+  }
+}
+
+@mixin noMobile {
+    @media (min-width: #{$tablet-width}) {
+        @content;
+    }
+}

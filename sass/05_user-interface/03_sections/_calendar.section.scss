@@ -1,0 +1,94 @@
+s-calendar{
+    display: block;
+}
+
+.s-calendar{
+    padding: 1em;
+    background: $color-secondary-bg;
+}
+
+.c-calendar{
+    color: $color-primary-text;
+    max-width: 60rem;
+    margin: 0 auto;
+    &__header{
+        background: $color-secondary-neutral;
+        position: sticky;
+        top: 0;
+        padding: 1em;
+        z-index: 9001;
+        i{
+            margin: 0 .25em;
+            color: $color-primary-accent;
+            transition: color 500ms;
+            &:hover{
+                color: $color-primary-accent-hover;
+                cursor: pointer;
+            }
+            &:first-of-type{
+                margin: 0 1em 0 0;
+            }
+            &:last-of-type{
+                margin: 0 0 0 1em;
+            }
+        }
+        &__sub{
+            background: $color-secondary-bg;
+            color: white;
+            list-style: none;
+            padding: 0;
+            margin: 1em -1em -1em;
+            display: flex;
+            > *{
+                flex: 1;
+                padding: .5em 0.5em;
+                border-right: 1px solid $color-primary-border;
+                &:last-child{
+                    border-right: none;
+                }
+            }
+        }
+    }
+    &__grid{
+        background: $color-primary-bg;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(10px,1fr));
+        max-width: 100%;
+        list-style: none;
+        padding: 0;
+        &__card{
+            border-right: 1px solid $color-primary-border;
+            border-bottom: 1px solid $color-primary-border;
+            height: 60px;
+            padding: .25em;
+            position: relative;
+            @include noMobile{ height: 150px;padding: .5em; }
+            span{
+                display: block;
+                text-align: right;
+                margin-bottom: .5em;
+            }
+            &:nth-child(7n){
+                border-right: 0;
+            }
+            &__content{
+                font-size: .75em;
+                list-style: none;
+                padding: 0;
+                @include onlyMobile{ list-style: none; padding: 0;display: flex; position: absolute;bottom: .35em;}
+                > *{
+                    padding: .5em 0;
+                    @include onlyMobile{ width: 6px;height: 6px;border-radius: 50%;background: $color-secondary-accent;padding: 0;margin-right: .25em; }
+                    a {
+                        display: none;
+                        @include noMobile{ display: inline-block; }
+                    }
+                }
+            }
+        }
+        &--disabled{
+            background: darken($color-primary-bg, 10%);
+            &:hover{ background: darken($color-primary-bg, 10%); }
+        }
+    }
+}

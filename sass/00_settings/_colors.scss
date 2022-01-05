@@ -1,0 +1,47 @@
+$primary-bg-color: #212121;
+$primary-bg-text-color: #ffffff;
+$primary-bg-text-hover-color: #a5a5a5;
+
+$secondary-bg-color: #cecece;
+$secondary-bg-hover-color: #a5a5a5;
+$secondary-bg-text-color: #505050;
+$secondary-bg-text-hover-color: #ffffff;
+
+$accent-color: #d20000;
+$cta-color: $accent-color;
+
+$content-bg-color: #ffffff;
+$content-text-color: #333;
+$content-link-color:  $accent-color;
+$content-link-hover-color: darken($accent-color, 20);
+
+$table-border-color: #333;
+$table-header-bg-color: #ececec;
+
+$button-bg-color: #f5f5f5;
+$button-bg-cta-color: $accent-color;
+$button-bg-confirm-color: #177217;
+$button-bg-stream-color: #805094;
+
+//EXPERIMENTAL
+$color-primary-neutral: #ffffff;
+$color-secondary-neutral: #cecece;
+
+$color-primary-bg: #ffffff;
+$color-primary-bg-hover: #f3f3f3;
+
+$color-secondary-bg: #212121;
+
+$color-primary-border: #cecece;
+
+$color-primary-accent: #d20000;
+$color-secondary-accent: #06f;
+
+$color-primary-accent-hover: #9e0000;
+$color-secondary-accent-hover: #010f8b;
+
+$color-primary-text: #333;
+$color-primary-text-hover: rgb(163, 163, 163);
+
+$color-primary-link: $color-secondary-accent;
+$color-primary-link-hover: $color-secondary-accent-hover;

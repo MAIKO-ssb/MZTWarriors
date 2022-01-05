@@ -1,0 +1,131 @@
+s-featured{
+    display: block;
+}
+.s-featured{
+    grid-template-columns: 100%;
+    background-color:$primary-bg-color;
+    display:grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr; /* for as many rows as you need */
+    height:100%;
+    grid-template-columns: 100%;
+
+    @include tablet{ grid-template-columns: 35% 65%; }
+    @include desktop{ grid-template-columns: 25% 75%; }
+
+    > *:nth-child(2){
+        @include noMobile{ display: flex; }
+    }
+
+    &__label{
+        order: 1;
+        margin: 0;
+        padding: 1em;
+        text-align: center;
+        color: #fff;
+        background-color: #333;
+        h1,h2,h3,h4,h5,h6{
+            margin: 0;
+        }
+        @include noMobile{
+            display: none;
+        }
+    }
+    &__left{
+        border-top: 1px solid #1f1f1f;
+        order: 4;
+        @include noMobile{
+            display: block;
+            order: 1;
+        }
+    }
+    &__center{
+        order: 2;
+        background-color:#111;
+        @include onlyMobile{
+            margin-top:50px;
+        }
+        @include tablet{
+        background-color:#333;
+        width: 100%;
+        }
+        @include desktop{
+        background-color:#333;
+        width: 66.66666%;
+        }
+        *{
+            transition: height 250ms;
+        } 
+    }
+    &__right{
+        border-top: 1px solid #1f1f1f;
+        background: #111;
+        order: 3;
+        display: flex;
+        @include tablet{ display:none; }
+        @include desktop{
+            width: 33.33333%;
+        }
+        @include noMobile{ background: #333;flex-direction: column; border-top: 0;border-left: 1px solid #000; }
+        &__cell{
+            display: flex;
+            border-left: 1px solid #1f1f1f;
+        }
+    }
+
+    //Modifies eventCard children
+    .c-eventCard{
+        &__main{
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            h2{
+                flex-grow: 3;
+            }
+            &__data {
+                i{
+                    color: white;
+                }
+            }
+            // .-lite{
+            //     .c-eventCard__data{
+            //         display: none;
+            //     }
+            // }
+        }
+        e-btn{     
+            .-lite{
+                display: none;
+                width: 100%;
+                a{
+                    width: 100%;
+                }
+                &:first-of-type{
+                    display: block;
+                }
+            }
+        }
+    }
+}
+
+.ggiframe{
+    width: 100%;
+    margin: 0px auto;
+    overflow: hidden;
+    padding: 0;
+    // height: auto;
+    transition: height 300ms;
+    height: 0;
+    background: #333;
+    &.-active{
+        height: 100%;
+        padding: 1em;
+    }
+    @include noMobile{
+        width: 94%;
+        margin: 3%;
+        overflow: hidden;
+        padding: 0em;
+        height: 0px;
+    }
+}

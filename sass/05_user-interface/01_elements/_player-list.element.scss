@@ -1,0 +1,46 @@
+.e-playerList{
+    background-color: lighten($secondary-bg-color , 12%);
+    color: $secondary-bg-text-color;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    li {
+        padding: .5em 1em;
+        &:nth-child(even){
+            background-color: lighten($secondary-bg-color, 8%);
+        }
+    }
+    img {
+        max-width: 30px;
+        top: -2px;
+        position: relative;
+        vertical-align: middle;
+    }
+    &__player{
+        color:$secondary-bg-text-color;
+        top: 2px;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    strong{
+        font-style:italic;
+        font-family:'Titillium Web', sans-serif;
+        vertical-align:middle;
+        color: #202020;
+        position: relative;
+        display: inline-block;
+        top:-3px;
+        font-size: 1.15em;
+        margin-right: 7px;
+    }
+    .c-socialMedia{
+        display: none;
+    }
+    .c-infoCard &{
+        .c-socialMedia{
+            display: inline-block;
+        }
+    }
+}
+

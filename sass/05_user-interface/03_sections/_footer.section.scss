@@ -1,0 +1,16 @@
+s-footer{
+    display: block;
+}
+.s-footer{
+    font-size: .8em;
+    flex: 1;
+    padding: 1em;
+    background-color: $primary-bg-color;
+    color: #808080;
+    @include noMobile{
+        background-color: #000;
+    }
+    // .pg-home &{
+    //     background-color: #000;
+    // }
+}

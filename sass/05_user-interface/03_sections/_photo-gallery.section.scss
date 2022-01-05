@@ -1,0 +1,55 @@
+.c-photoStrip {
+	// height: 166px;
+	overflow: hidden;
+	&__wrap {
+		padding: 0 1em;
+		// white-space: nowrap;
+		// overflow-x: scroll;
+		// overflow-y: hidden;
+		&__card {
+			display: inline-block;
+			margin: 0.25em;
+			&:first-of-type {
+				margin-left: 0;
+			}
+			&:last-of-type {
+				margin-right: 0;
+			}
+			img {
+				max-width: 500px;
+				width: 100%;
+				height: auto;
+				user-select: none;
+				-moz-user-select: none;
+				-webkit-user-drag: none;
+				-webkit-user-select: none;
+				-ms-user-select: none;
+				border: 4px solid rgb(80, 80, 80);
+			}
+		}
+	}
+}
+
+s-photoGallery{
+    display: block;
+}
+.s-photoGallery{
+	padding: 1em;
+	p{
+		margin-bottom: 0;
+    	color: #a7a7a7;
+	}
+	.c-photoStrip {
+		margin: 0em -1em;
+	}
+}
+
+.t-black {
+	background-color: #212121;
+	color: white;
+	&.s-photoGallery {	
+		img {
+			border: 4px solid white;
+		}
+	}
+}

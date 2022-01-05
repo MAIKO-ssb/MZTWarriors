@@ -1,0 +1,17 @@
+.s-mainContent{
+    display: flex;
+    padding: 0;
+    & > *{
+        padding: 1em;
+    }
+    &__left{
+        width: 25%;
+    }
+    &__center{
+        padding: 1em 0;
+        width: 50%;
+    }
+    &__right{
+        width: 25%;
+    }
+}

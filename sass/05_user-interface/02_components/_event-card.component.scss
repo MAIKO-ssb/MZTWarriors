@@ -1,0 +1,119 @@
+.c-eventCard{
+    display: block;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    &__details{
+        display: flex;
+        bottom: 0;
+        padding: 1em;
+        width: 100%;
+        color: #fff;
+        background-color: #333;
+        &__logo{
+            max-width: 65px;
+            img{
+                float:left;
+                max-width:inherit;
+                height: auto;
+                border: 1px solid #424242;
+            }
+        }
+        &__main{
+            padding: 0;
+            width: 100%;
+            &__title{
+                margin-bottom: .3em;
+                font-size: 1.5em;
+                @include noMobile{
+                    font-size: 1.8em;
+                }
+            }
+            &__img{
+                display: none;
+                float: left;
+                margin-bottom: .5em;
+                margin-right: .5em;
+                max-width: 125px;
+            }
+            &__data{
+                padding-bottom: .275em;
+                font-size: .8em;
+                line-height: 1.6;
+                color: #b1b1b1;
+                &__venue{
+                    display: block;
+                }
+                span:not(.c-eventCard__details__main__data__venue) {
+                    display: inline-block;
+                }
+            }
+            &__btns{
+                .btn{
+                    @include noMobile{
+                        width: auto;
+                    }
+                    &:not(:last-child){
+                        margin-right: .5em;
+                        @include onlyMobile{
+                            margin-bottom: .75em;
+                        }
+                    }
+                }
+            }
+        }
+        //Modifiers
+        &.-lite{
+            padding: .5em;
+            .c-eventCard__logo{
+                display: none;
+            }
+            .c-eventCard__main{
+                padding: 0;
+                h2{
+                    font-size: 1.2em;
+                    margin-bottom: .5em;
+                }
+                &__data{
+                    font-size: .8em;
+                    padding-bottom: .25em;
+                    display: none;
+                }
+            }
+            e-btn{
+                display:none;
+                &:first-child{
+                    width: 100%;
+                    display: block;
+                    a{
+                        width:100%;
+                    }
+                }
+            }
+        }
+    }
+    &__img{
+        display: block;
+        img{
+            display: block;
+        }
+    }
+    &--minified{
+        .c-eventCard__details{
+            &__logo{
+                @include noMobile{ display: none; }
+            }
+        }
+        .c-eventCard__img{
+            @include onlyMobile{
+                display: none;
+            }
+        }
+        .c-eventCard__details__main__img{
+            @include onlyMobile{
+                display: block;
+            }
+        }
+    }
+}

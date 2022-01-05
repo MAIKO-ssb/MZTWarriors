@@ -1,0 +1,157 @@
+s-navbar{
+    display: block;
+}
+.s-navbar{
+    background: $secondary-bg-color;
+    display: flex;
+    align-items: stretch; 
+    position: relative;
+    .s-navbar.-disabled &{ background-color: $primary-bg-color; }
+    @include noMobile{
+        background-color: $primary-bg-color;
+    }
+    &__toggle{
+        color: white;
+        padding: 1em;
+        background-color: $primary-bg-color;
+        cursor: pointer;
+        @include noMobile { display: none; }
+        .s-navbar.-disabled &{ position:absolute; }
+    }
+    &__logo{
+        background-color: $primary-bg-color;
+        display: inline-block;
+        width: 100%; // PRE NAVBAR
+        .s-navbar.-disabled &{ margin: 0 auto; }
+        .e-site-logo{ 
+            .s-navbar.-disabled &{ margin: 0; }
+        }
+        @include noMobile{
+            .s-navbar.-disabled &{ position: absolute;left: 50%;margin-left: -67px; }
+        }
+        &:after{
+            content: '';
+            background: $secondary-bg-color;
+            width: 25px;
+            height: 100%;
+            left: 10px;
+            display: inline-block;
+            display: none; //PRE LAUNCH
+            vertical-align: bottom;
+            transform: skewX(-20deg);
+            position: relative;
+            @include noMobile { display: none; }
+            .s-navbar.-disabled &{ display: none; }
+        }
+    }
+    &__nav{
+        display: none;
+        @include noMobile {
+            display: block;
+        }
+        .e-nav{
+            display: inline-block;
+            height: 100%;
+            s-navbar.-disabled &{ visibility: hidden; }
+            ul{
+                height: 100%;
+                padding: 0;
+                li{
+                    height: 100%;
+                    display: inline-block;
+                    a{
+                        height: 100%;
+                        display: inline-block;
+                        color: $primary-bg-text-color;
+                        padding:  16px 10px 12px;
+                    }
+                }
+            }
+        }
+        &.-primary{
+            .e-nav{
+                display: inline-block;
+                height: 100%;
+                background: $secondary-bg-color;
+                transform: skewX(-20deg);
+                ul{
+                    height: 100%;
+                    li{
+                        display: inline-block;
+                        height: 100%;
+                        a{
+                            display: inline-block;
+                            font-family: $heading-font;
+                            color: $secondary-bg-text-color;
+                            padding: 15px 17px 15px;
+                            height: 100%;
+                            transform: skewX(20deg);
+                            &:focus{   
+                                background-color: $secondary-bg-hover-color;
+                                color: $secondary-bg-text-hover-color;
+                                transform: skewX(0deg);
+                            }
+                        }
+                        &:hover {
+                            background-color: $secondary-bg-hover-color;
+                            a{
+                                color: $secondary-bg-text-hover-color;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        &.-secondary{
+            .e-nav{
+                a{
+                    color: $primary-bg-text-color;
+                    &:hover, &:focus{
+                       color: $primary-bg-text-hover-color;
+                    }
+                }
+            }
+        } 
+    }   
+    &__dropdown{
+        display: flex;
+        align-items: center;
+        position: absolute;
+        right: 0;
+        height: 100%;
+        font-size: .75em;
+        @include noMobile{
+            background-color: $primary-bg-color;
+            color: #fff;
+        }
+        label{
+            height: 100%;
+            > *{
+                vertical-align: middle;
+            }
+            @include noMobile{
+                > *{
+                    vertical-align: initial;
+                }
+            }
+            select{
+                border: 0;
+                font-size: 1em;
+                background-color: inherit;
+                color:inherit;
+                height: inherit;
+                transition: background-color 250ms;
+                &:hover{
+                    background: #474747;
+                    cursor: pointer;
+                }
+            }
+        }
+    }
+    &.-center{
+        .s-navbar__logo{
+            margin: 0 auto;
+            text-align: center;
+        }
+    }
+}

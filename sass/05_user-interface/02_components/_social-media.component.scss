@@ -1,0 +1,24 @@
+.c-socialMedia{
+    display: inline-block;
+    margin-left: auto;
+    &__icon{
+        margin: 0 .5em;
+        @include noMobile{
+            margin: 0 .125em;
+        }
+        i{
+            @include onlyMobile{
+                transform: scale(1.5);
+            }
+        }
+    }
+    .fa-youtube{
+        color: #ff0000;
+    }
+    .fa-twitter{
+        color: #38A1F3;
+    }
+    .fa-twitch{
+        color: #6441a5;
+    }
+}

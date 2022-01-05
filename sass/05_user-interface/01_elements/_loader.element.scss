@@ -1,0 +1,38 @@
+.e-loader{
+	width: auto;
+	max-width: min-content;
+	margin: 0 auto;
+	display: flex;
+	align-items: center;
+	&__dot{
+		fill: white;
+		margin: .25em;
+		animation: grow 1s linear infinite;
+		&.-delayed{
+			animation-delay: .25s;
+		}
+	}
+	&__gc{
+		fill: white;
+		margin: .25em 0.45em .25em .25em;
+		animation: spin 1s linear infinite;
+		transform-origin: center;
+		width: 30px;
+		display: inline-block;
+	}
+}
+
+@keyframes spin {
+    35%  {transform: none;}
+    65% {transform: scale(2) rotate(180deg);}
+    100% {transform: scale(1) rotate(360deg);}	
+}
+
+@keyframes grow {
+ 	40% { 
+	  transform: scale(1.5); 
+	}
+	80% { 
+	  transform: scale(1); 
+	}
+}

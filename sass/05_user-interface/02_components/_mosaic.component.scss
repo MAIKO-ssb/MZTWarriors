@@ -1,0 +1,54 @@
+//Mosaic SCSS
+c-mosaic{
+    display: block;
+}
+.c-mosaic{
+    display: flex;
+    position: relative;
+    min-height: 360px;
+    background-color: #333;
+    overflow: hidden;
+    > *{
+        flex-grow: 1;
+    }
+    &__featured{
+        background-color: #cecece;
+        width: 50%;
+        overflow: hidden;
+        position: relative;
+        max-height: 366px;
+    }
+    &__left{
+        width: 25%;
+        background-color: #333;
+        height: 100%;
+        padding: .75em;
+        max-height: 366px;
+        .icon{
+            padding-right: 5px;
+        }
+        h1,h2,h3,h4,h5,h6{
+            background-color: #d30000;
+            color: white;
+            text-align: center;
+            padding: 0.6em .5em;
+            margin-bottom: 0;
+            border-radius: 2px 2px 0 0;
+            border: none;
+        }
+    }
+    &__right{
+        width: 25%;
+        background-color: #333;
+        height: 100%;
+        overflow: hidden;
+        &__cell{
+            background-color:#ccc;
+            height:183px;
+            position:relative;
+            overflow:hidden;
+            border: 1px solid black;
+        }
+    }
+    
+}

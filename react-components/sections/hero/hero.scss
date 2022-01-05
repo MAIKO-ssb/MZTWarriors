@@ -1,0 +1,44 @@
+.s-hero{
+    //background: black;
+    display: block;
+    main{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    .mzt-logo{
+        max-width: 75%;
+        margin: 0 auto;
+        &__img{
+            
+        }
+    }
+    video{
+        position: absolute;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        background: black;
+        top:0;
+        left:0;
+        z-index: -1;
+    }
+    h1{
+        color: white;
+    }
+    p{
+        color:white;
+    }
+    button{
+        background: #00b750;
+        color: black;
+        font-weight: 800;
+        font-family: monospace;
+        font-size: 1.25em;
+        border-radius: 2px;
+        padding: 0.75em 1.5em;
+        border: 1px solid #7affab;
+        margin-top: 1em;
+    }
+}

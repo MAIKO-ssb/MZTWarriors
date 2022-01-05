@@ -1,0 +1,95 @@
+.l-{
+	&inner{
+		max-width: 60rem;
+		margin: auto;
+	}
+	&row{
+		display:flex;
+		list-style: none;
+		direction: ltr;
+		text-align: left;
+		display: flex;
+		flex-flow: row wrap;
+		margin-right: 0;
+		margin-left: -$gutter;
+		padding-right: 0;
+		padding-left: 0;
+		&__col{
+			width: 100%;
+			display: inline-block;
+			padding-left: $gutter;
+			text-align: left;
+			vertical-align: top;
+			word-wrap: break-word;
+			overflow: hidden;
+			//Column Modifiers
+			&--{
+				// Independent Alignment 				
+				&top{
+					align-self: flex-start;
+				}
+				&middle{
+				    align-self: center;
+				}
+				&bottom{
+					align-self: flex-end;
+				}
+			}
+		}
+		// -- General Row Modifiers
+		&--{
+			//Gutters
+			&flush{
+				margin-left: 0;
+				>.l-row__col{
+					padding-left: 0;
+				}
+			}			
+			//Direction
+			&reverse{
+				flex-direction: row-reverse;
+			}
+			//Size - Horizontal
+			&fit{
+				>.l-row__col{
+					width: auto;
+					flex: 1 1 auto;
+				}
+			}
+			//Size - Vertical
+			&equal{
+				>.l-row__col{
+					display: flex;
+				}	
+			}
+			//Positioning - Vertical
+			&middle{
+				align-items: center;
+				>.l-row__col{
+					vertical-align: middle;
+				}
+			}
+			&bottom{
+				align-items: flex-end;
+				>.l-row__col{
+					vertical-align: bottom;
+				}
+			}
+			//Positioning - Horizontal
+			&right{
+				text-align: right;
+				justify-content: flex-end;
+				>.l-row__col{
+					text-align: left;
+				}
+			}		
+			&center{
+				text-align: center;
+				justify-content: center;
+				>.l-row__col{
+					text-align: left;
+				}
+			}
+		}		
+	}
+} // END REXUS LAYOUT CONCEPT END

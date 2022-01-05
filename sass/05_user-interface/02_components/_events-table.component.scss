@@ -1,0 +1,189 @@
+c-eventsTable{
+    display: block;
+    height: 100%;
+}
+
+.c-eventsTable{
+    display:  flex;
+    flex-direction: column;
+    height: 100%;
+    @include noMobile{
+        border-right: 1px solid #000;
+    }
+
+    &__currentDate{
+        position: relative;
+        background-color: #f7f7f7;
+        color: #545454;
+        padding: 1em 0.5em;
+        text-align: center;
+        font-size: .9em;
+        width: 100%;
+        flex-grow: 0;
+        @include onlyMobile{
+            position: fixed;
+            margin-top:50px;
+        }
+        @include noMobile{
+            padding: .5em;
+        }
+        .t-dark &{
+            background-color: #3e3e3e;
+            color: #efefef;
+            z-index: 1000;
+        }
+        &__prev, &__next{
+            position: absolute;
+            top: 0;
+            width: 40px;
+            height: 100%;
+            padding-top: 15px;
+            transition: background-color 350ms;
+            @include noMobile{
+                padding-top: 7px;
+            }
+            &:hover{
+                background-color: grey;
+                color: white;
+                cursor: pointer;
+            }
+            &.-disabled{
+                color: rgb(49, 49, 49);    
+                &:hover{
+                    cursor: not-allowed;
+                    background: none;
+                }
+            }
+        }
+        &__prev{
+            left: 0;
+        }
+        &__next{
+            right: 0;
+        }
+    }
+    &__currentDay{
+        font-size: .8em;
+        > *{
+            background: #272727;
+            padding: .5em 1em;
+            margin:0;
+        }
+    }
+    &__events{
+        height:100%;
+        overflow: auto;
+        @include onlyMobile{
+            margin-top: 93px;
+        }
+        @include noMobile{
+            max-height: 520px;
+        }
+        .btn i{
+            color: white;
+        }
+    }
+    &__event{
+        background: white;
+        width: 100%;
+        border-bottom: 1px solid #e4e4e4;
+        padding: 1em 1em .5em;
+        flex-grow: 1; 
+        transition: background-color 800ms ease;
+        .t-dark &{
+            color: #fff;
+            background: #333;
+            border-bottom: 1px solid #1f1f1f;
+        }
+        &:last-of-type{
+            border-bottom: none;
+            .u-dsp-flex--columnReverse &{
+                border-bottom: 1px solid #1f1f1f;
+            }
+        }
+        &__logo{
+            width: 50px;
+            min-height: 50px;
+            height: auto;
+            margin: 0 .5em .5em 0;
+            float: left;
+            display: block;
+            @include noMobile{
+                width: 15%;
+                min-height: 60px;
+            }
+            > *{
+                border: 1px solid #5c5b5b;
+                background: #4c4c4c;
+                width: 100%;
+                height: auto;
+                display: block;
+            }
+        }
+        &__name{
+            color: black;
+            border: none;
+            font-weight: 400;
+            border: none;
+            padding-bottom: .25em;
+            position: relative;
+            span{
+                color: #8fff8f;
+                border: 1px solid #8fff8f;
+                text-transform: uppercase;
+                font-size: .25em;
+                padding: .25em;
+                position: absolute;
+                right: 0;
+                top: 0;
+            }
+            .t-dark &{
+                color: white;
+            }
+        }
+        &__details{
+            font-size: .9em;
+            border: none;
+            font-weight: 300;
+            line-height: 1.5;
+            position: relative;
+            .t-dark &{
+                color: #b1b1b1;
+            }
+            i.fa{
+                color: #a7a7a7;
+                font-size: .9em;
+            }
+            .btn{
+                right: 0; 
+                @include onlyMobile{
+                    position: absolute;
+                    transform: translateY(-50%);
+                    top: 50%;
+                }
+                @include noMobile{
+                    top: 50%;
+                    right: 0;
+                    margin-top: .5em;
+                }   
+                .t-dark &{ //This should be new btn declaration
+                    background: none;
+                    border: 1px solid #909090;
+                    color: #d8d8d8;
+                }         
+            }
+        }
+        &:hover{
+            .t-dark &{
+                background: rgb(22, 22, 22);
+            }
+            .c-eventsTable__event__details .btn{
+                background-color: #d20000;
+                border-color: #9f0000;
+                border-bottom: 1px solid #9f0000;
+                color: white;
+                i{ color: white; }
+            }
+        }
+    }
+}
