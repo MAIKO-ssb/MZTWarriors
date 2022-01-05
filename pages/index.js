@@ -24,7 +24,7 @@ export default function Home() {
             <div>
               <h1>MZT Warrior Badge</h1>
               <p>Lorem Ipsum Dolor Sit Amet Consecetur...</p>
-              <button>Mint a 'Warrior Badge'</button>
+              <button>Mint a `Warrior Badge`</button>
             </div>
           </div>
           
