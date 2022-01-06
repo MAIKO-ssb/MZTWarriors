@@ -23,9 +23,13 @@ export default function Home() {
             <div style={{maxWidth:"650px"}}>
               <h1>The MZT Warrior Badge (2022)</h1>
               <p>
-                The `Manzanita Tribe Warriors` is a small esports team located in Southern California. We compete in `Super Smash Bros. Ultimate` and want to continue our journey as a team, pushing our limits this 2022🔥! 
+                The `Manzanita Tribe Warriors` is a small esports team located in Southern California. 
               </p>
-              <p>As a team fundraising effort, we are dropping a limited edition of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
+              <p> 
+                We have competed in `Super Smash Bros. Ultimate` for a few years now, and we want to be able continue our journey as a team, competing &amp; pushing our limits this 2022🔥! 
+              </p>
+              <p>
+                As a <strong>team fundraising</strong> effort, we are dropping a limited edition of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
               <p>
                 We`d like to give special thanks to all of the competitive smash bros. community and everyone that follows us, the Manzanita Tribe Warriors ᴹᶻᵀ.
               </p>
