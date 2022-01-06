@@ -1,11 +1,18 @@
 .s-hero{
-    //background: black;
+    background: #000000;
     display: block;
+    padding: 2.5em 0;
     main{
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        flex-direction: column;
+        position:relative;
+        z-index:10;
+        @media (min-width: 1000px) { 
+            height: 100vh;
+            flex-direction: row;
+        }
     }
     .mzt-logo{
         max-width: 75%;
@@ -17,14 +24,17 @@
     video{
         position: absolute;
         display: block;
-        width: 100vw;
-        height: 100vh;
+
         background: black;
         top:0;
         left:0;
-        z-index: -1;
+        z-index: 1;
+        @media (min-width: 1000px) { 
+            width: 100vw;
+            height: 100vh;
+        }
     }
-    h1, p, small{
+    h1, h2, h3, h4, p, small{
         color:white;
     }
     button{

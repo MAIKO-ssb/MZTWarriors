@@ -15,21 +15,23 @@ export default function Home() {
         <main>
           {/* MAIN CONTENT */}
           <div className='u-flex u-flex1'>
-            <div className='mzt-logo u-animated a-fadeIn'>
-              <Image className='mzt-logo__img' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
-              
+            <div className='mzt-logo'>
+              <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
             </div>
           </div>
-          <div className='u-flex u-flex1' style={{padding: "1.5em", paddingRight: "5em"}}>
-            <div>
+          <div className='u-flex u-flex1' style={{padding: "1.5em"}}>
+            <div style={{maxWidth:"650px"}}>
               <h1>The MZT Warrior Badge</h1>
               <p>
                 The `Manzanita Tribe Warriors` is a small esports team located in Southern California. We compete in `Super Smash Bros. Ultimate` and want to continue our journey as a team, pushing our limits into 2022 &amp; beyond🔥! 
               </p>
-              <p>As a fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` priced at .1 solana each. </p>
+              <p>As a fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` of our team`s logo, priced at .1 solana each. </p>
               <p>
                 We`d like to give special thanks to the competitive Smash Bros. community and everyone that follows us, the Manzanita Tribe Warriors.
               </p>
+              <br/>
+              <h3>1,000 / 1,000 available</h3>
+              <h4>Price: .1 sol</h4>
               <button>Mint a `Warrior Badge`*</button>
               <br/>
               <small>
