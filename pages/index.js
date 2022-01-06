@@ -25,7 +25,7 @@ export default function Home() {
               <p>
                 The `Manzanita Tribe Warriors` is a small esports team located in Southern California. We compete in `Super Smash Bros. Ultimate` and want to continue our journey as a team, pushing our limits this 2022🔥! 
               </p>
-              <p>As a team fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
+              <p>As a team fundraising effort, we are dropping a limited edition of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
               <p>
                 We`d like to give special thanks to all of the competitive smash bros. community and everyone that follows us, the Manzanita Tribe Warriors ᴹᶻᵀ.
               </p>
