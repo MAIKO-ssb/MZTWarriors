@@ -29,10 +29,12 @@ export default function Home() {
               <p>
                 We`d like to give special thanks to the competitive Smash Bros. community and everyone that follows us, the Manzanita Tribe Warriors.
               </p>
+              
+              
+              <button>Mint a `Warrior Badge`*</button>
               <br/>
               <h3>1,000 / 1,000 available</h3>
               <h4>Price: .1 sol</h4>
-              <button>Mint a `Warrior Badge`*</button>
               <br/>
               <small>
                 * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player salaries, event entries, transportation, hotel, food, etc. 
