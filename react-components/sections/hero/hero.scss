@@ -2,6 +2,9 @@
     background: #000000;
     display: block;
     padding: 2.5em 0;
+    @media (min-width: 1000px) { 
+        padding: 0;
+    }
     main{
         display: flex;
         justify-content: center;
@@ -40,14 +43,26 @@
     button{
         background: #00b750;
         color: black;
+        text-shadow: #fff -1px 1px;
         font-weight: 800;
         font-family: monospace;
-        font-size: 1.25em;
+        font-size: 1.6em;
         border-radius: 2px;
         padding: 0.75em 1.5em;
         border: 1px solid #7affab;
         margin-top: 1.75em;
         margin-bottom: 1.75em;
+        &:hover{
+            color: white;
+            background: #33dd7d;
+            text-shadow: black 1px 2px;
+        }
+    }
+    a{
+        color: #00b750;
+        &:hover{
+            color: #72e6a4;
+        }
     }
     small{
         margin-top: 1em;

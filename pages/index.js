@@ -21,13 +21,13 @@ export default function Home() {
           </div>
           <div className='u-flex u-flex1' style={{padding: "1.5em"}}>
             <div style={{maxWidth:"650px"}}>
-              <h1>The MZT Warrior Badge</h1>
+              <h1>The MZT Warrior Badge (2022)</h1>
               <p>
                 The `Manzanita Tribe Warriors` is a small esports team located in Southern California. We compete in `Super Smash Bros. Ultimate` and want to continue our journey as a team, pushing our limits into 2022 &amp; beyond🔥! 
               </p>
-              <p>As a fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` of our team`s logo, priced at .1 solana each. </p>
+              <p>As a team fundraising effort, we are dropping a collection of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
               <p>
-                We`d like to give special thanks to the competitive Smash Bros. community and everyone that follows us, the Manzanita Tribe Warriors.
+                We`d like to give special thanks to all of the competitive smash bros. community and everyone that follows us, the Manzanita Tribe Warriors ᴹᶻᵀ.
               </p>
               
               
@@ -37,11 +37,20 @@ export default function Home() {
               <h4>Price: .1 sol</h4>
               <br/>
               <small>
-                * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player salaries, event entries, transportation, hotel, food, etc. 
+                * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player wages, event entries, transportation, hotel, food, etc. 
                 All re-sales include a 10% royalty fee that directly supports the team.
                 This team badge serves as a representation of your support.   
                 Thank you.
               </small>
+              <br/>
+              <div style={{marginTop:"1em"}}>
+                <h4> 
+                  Our next competition:
+                </h4>
+                <p>
+                  1/28 - San Jose, CA - Major Event - <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a> 
+                </p>
+              </div>
             </div>
           </div>
           
@@ -50,7 +59,7 @@ export default function Home() {
           </div> */}
         </main>
         <video width="100%" height="auto" autoPlay muted playsInline loop>
-          <source src="/video/starry-night-bg.mp4" type="video/mp4" />
+          <source src="/video/starry-night-bg-wide.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
