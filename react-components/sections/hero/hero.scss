@@ -5,6 +5,13 @@
     @media (min-width: 1000px) { 
         padding: 0;
     }
+    h1, h2, h3, h4, p, small,em{
+        color:white;
+    }
+    em{
+        margin-bottom: .5em;
+        display: inline-block;
+    }
     main{
         display: flex;
         justify-content: center;
@@ -24,6 +31,17 @@
             
         }
     }
+    .mzt-bio{
+        &__imgWrap{
+            border-radius: 100%;
+            overflow: hidden;
+            margin-bottom: 1em;
+        }
+        &__content{
+            margin-left: 1em;
+            margin-top: .5em;
+        }
+    }
     video{
         position: absolute;
         display: block;
@@ -37,11 +55,11 @@
             height: 100vh;
         }
     }
-    h1, h2, h3, h4, p, small{
-        color:white;
+    h1{
+        margin-bottom: 1.125em;
     }
     button{
-        background: #00b750;
+        background: #33dd7d;
         color: black;
         text-shadow: #fff -1px 1px;
         font-weight: 800;
@@ -54,7 +72,7 @@
         margin-bottom: 1.75em;
         &:hover{
             color: white;
-            background: #33dd7d;
+            background: #008138;
             text-shadow: black 1px 2px;
         }
     }
@@ -67,5 +85,40 @@
     small{
         margin-top: 1em;
         display: block;
+    }
+    .c-menu{
+        margin-top: 1em;
+        @media (min-width: 1000px) {
+            margin-top: 0;
+        }
+        ul{
+            padding: 0;
+            list-style: none;
+            li{
+                display: inline-block;
+            }
+        }
+        span{
+            margin: 0 1.25em 2em 0;
+            color: #00b750;
+            display: block;
+            //padding: 0.5em;
+            &:first-child{
+                margin-left: 0;
+            }
+            &:hover{
+                color: #72e6a4;
+                cursor: pointer;
+            }
+            &.-active{
+                //background: #00b750;
+                color: #72e6a4;
+                text-decoration: underline;
+                &:hover{
+                    color: #72e6a4;
+                    cursor: default;
+                }
+            }
+        }
     }
 }
