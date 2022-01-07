@@ -20,7 +20,7 @@ export default function Home() {
         <main>
           {/* MAIN CONTENT */}
           <div className='u-flex u-flex1'>
-            <div className='mzt-logo'>
+            <div className='mzt-logo u-animated a-fadeIn'>
               <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
             </div>
           </div>
@@ -62,7 +62,7 @@ export default function Home() {
                   </p>
                   
                   
-                  <button>Mint `ᴹᶻᵀ Warrior Badge`*</button>
+                  <button>Mint a `Warrior Badge`*</button>
                   <br/>
                   <h3>1,000 / 1,000 available</h3>
                   <h4>Price: .1 sol</h4>
