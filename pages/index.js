@@ -29,7 +29,7 @@ export default function Home() {
               <ul className='u-list-unstyled'>
                 <li>
                   <span className={`${contentView == 'mint' ? '-active': ''}`} onClick={() => setContentView('mint')}>
-                    Mint NFT 
+                    Mint Badge 
                   </span>
                 </li>
                 <li>
