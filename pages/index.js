@@ -95,7 +95,7 @@ export default function Home() {
                         <h2>&lt;MAIKO/&gt;</h2>
                         <em>Founder</em>
                         <p>
-                          SSBU Main: Yoshi
+                          Yoshi Main
                         </p>
                         <p>
                           Twitter: &nbsp;
@@ -111,7 +111,7 @@ export default function Home() {
                         <h2>Sin</h2>
                         <em>Co-Founder</em>
                         <p>
-                          SSBU Main: Jigglypuff
+                          Jigglypuff Main
                         </p>
                         <p>
                           Twitter: &nbsp;
@@ -127,7 +127,7 @@ export default function Home() {
                         <h2>Tai</h2>
                         <em>Co-Founder</em>
                         <p>
-                          SSBU Main: Link
+                          Link Main
                         </p>
                         <p>
                           Twitter: &nbsp;
