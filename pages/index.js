@@ -95,6 +95,9 @@ export default function Home() {
                         <h2>&lt;MAIKO/&gt;</h2>
                         <em>Founder</em>
                         <p>
+                          SSBU Main: Yoshi
+                        </p>
+                        <p>
                           Twitter: &nbsp;
                           <a href="https://twitter.com/maiko_ssb" target="_blank" rel="noreferrer" alt="Twitter Link">@maiko_ssb</a>
                         </p>
@@ -108,6 +111,9 @@ export default function Home() {
                         <h2>Sin</h2>
                         <em>Co-Founder</em>
                         <p>
+                          SSBU Main: Jigglypuff
+                        </p>
+                        <p>
                           Twitter: &nbsp;
                           <a href="https://twitter.com/Sin_Puff" target="_blank" rel="noreferrer" alt="Twitter Link">@sin_puff</a>
                         </p>
@@ -120,6 +126,9 @@ export default function Home() {
                       <div className='mzt-bio__content'>
                         <h2>Tai</h2>
                         <em>Co-Founder</em>
+                        <p>
+                          SSBU Main: Link
+                        </p>
                         <p>
                           Twitter: &nbsp;
                           <a href="https://twitter.com/ssbtai" target="_blank" rel="noreferrer" alt="Twitter Link">@ssbtai</a>
