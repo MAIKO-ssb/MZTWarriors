@@ -50,15 +50,16 @@ export default function Home() {
                 <>
                   <h1>The MZT Warrior Badge (2022)</h1>
                   <p>
-                    The `Manzanita Tribe Warriors` is a small esports team located in Southern California. 
+                    We are the Manzanita Tribe Warriors ᴹᶻᵀ, a small esports team based out of Southern California. 
                   </p>
                   <p> 
-                    We have competed in `Super Smash Bros. Ultimate` for a few years now and we want to be able continue our journey as a team, competing &amp; pushing our limits this 2022🔥! 
+                    We have competed in `Super Smash Bros. Ultimate` for a few years and would like to continue our journey as a competitive team, pushing our limits this 2022🔥! 
                   </p>
                   <p>
-                    As a <strong>team fundraising</strong> effort, we are dropping a limited edition of 1000 digital `Warrior Badges` priced at .1 solana each.</p>
+                    As a team fundraising effort, we are starting off the year by dropping 1000 limited edition digital `Warrior Badges` priced at .1 solana each
+                  </p>
                   <p>
-                    We`d like to give special thanks to all of the competitive smash bros. community and everyone that follows and supports us, the Manzanita Tribe Warriors ᴹᶻᵀ
+                    The MZT Warriors would like to give special thanks to the smash bros. gaming community and everyone that follows and supports us.
                   </p>
                   
                   
@@ -69,7 +70,6 @@ export default function Home() {
                   <br/>
                   <small>
                     * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player wages, event entries, transportation, hotel, food, etc. 
-                    All re-sales include a 10% royalty fee that directly supports the team.
                     This team badge serves as a representation of your support.   
                     Thank you.
                   </small>
@@ -153,7 +153,7 @@ export default function Home() {
                     </p>
                     <p>
                       Instagram: &nbsp;
-                      <a href="https://www.instagram.com/manzanita_tribe/" target="_blank" rel="noreferrer" alt="Instagram Link">@manzanita_tribe</a>
+                      <a href="https://www.instagram.com/manzanita_tribe/" target="_blank" rel="noreferrer" alt="Instagram Link">@MZTWarriors</a>
                     </p>
                     <p>
                       Solana Wallet: &nbsp; 
