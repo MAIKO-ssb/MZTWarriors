@@ -24,7 +24,7 @@ export default function Home() {
               <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
             </div>
           </div>
-          <div className='u-flex u-flex1' style={{padding: "1.5em", flexDirection:"column", minHeight: "720px", width:"100%"}}>
+          <div className='u-flex u-flex1' style={{padding: "1.5em", flexDirection:"column", minHeight: "740px", width:"100%"}}>
             <div className='c-menu'>
               <ul className='u-list-unstyled'>
                 <li>
