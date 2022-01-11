@@ -153,7 +153,7 @@ export default function Home() {
                     </p>
                     <p>
                       Instagram: &nbsp;
-                      <a href="https://www.instagram.com/manzanita_tribe/" target="_blank" rel="noreferrer" alt="Instagram Link">@MZTWarriors</a>
+                      <a href="https://www.instagram.com/mztwarriors/" target="_blank" rel="noreferrer" alt="Instagram Link">@MZTWarriors</a>
                     </p>
                     <p>
                       Solana Wallet: &nbsp; 
