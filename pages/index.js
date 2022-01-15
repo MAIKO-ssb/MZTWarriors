@@ -24,7 +24,7 @@ export default function Home() {
               <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
             </div>
           </div>
-          <div className='u-flex u-flex1' style={{padding: "1.5em", flexDirection:"column", minHeight: "740px", width:"100%"}}>
+          <div className='u-flex u-flex1' style={{padding: "1.5em", flexDirection:"column", minHeight: "745px", width:"100%"}}>
             <div className='c-menu'>
               <ul className='u-list-unstyled'>
                 <li>
@@ -72,7 +72,7 @@ export default function Home() {
                   <br/>
                   <small>
                     * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player wages, event entries, transportation, hotel, food, etc. 
-                    This team badge serves as a representation of your support.   
+                    This team badge serves as a representation of your support, minted in the Solana blockchain.  
                     Thank you.
                   </small>
                   <br/>
@@ -81,7 +81,7 @@ export default function Home() {
                       Our next competition:
                     </h4>
                     <p>
-                      1/28 - San Jose, CA - Major Event - <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a> 
+                      4/15 - 4/17: <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a>. San Jose, CA. Major Event:
                     </p>
                   </div>
                 </>
@@ -147,7 +147,7 @@ export default function Home() {
                     </p>
                     <p>
                       Twitter: &nbsp;
-                      <a href="https://twitter.com/mzt_warriors" target="_blank" rel="noreferrer" alt="Twitter Link">@MZTWarriors</a>
+                      <a href="https://twitter.com/mztwarriors" target="_blank" rel="noreferrer" alt="Twitter Link">@MZTWarriors</a>
                     </p>
                     <p>
                       Twitch: &nbsp;

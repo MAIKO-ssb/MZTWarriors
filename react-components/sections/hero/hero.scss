@@ -27,11 +27,12 @@
     .mzt-logo{
         max-width: 75%;
         margin: 0 auto;
-        &__img{
-            transition: transform 450ms ease-in-out;
-            &:hover{
-                transform: scale(1.5);
-            }
+        transition: transform 350ms ease-out;
+        &:hover{
+            transform: scale(1.075);
+            //cursor: url('https://pngset.com/images/fireball-clipart-pixel-sprite-flare-light-sphere-astronomy-transparent-png-2076878.png'), auto;
+            cursor:url('/img/fireball.png') 2 2, pointer;
+            ;
         }
     }
     .mzt-bio{
