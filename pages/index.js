@@ -81,7 +81,7 @@ export default function Home() {
                       Our next competition:
                     </h4>
                     <p>
-                      4/15 - 4/17: <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a>. San Jose, CA. Major Event:
+                      4/15 - 4/17: <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a>, San Jose, CA.
                     </p>
                   </div>
                 </>
