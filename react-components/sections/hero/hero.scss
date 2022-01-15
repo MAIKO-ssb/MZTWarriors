@@ -28,7 +28,10 @@
         max-width: 75%;
         margin: 0 auto;
         &__img{
-            
+            transition: transform 450ms ease-in-out;
+            &:hover{
+                transform: scale(1.5);
+            }
         }
     }
     .mzt-bio{

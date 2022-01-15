@@ -147,7 +147,7 @@ export default function Home() {
                     </p>
                     <p>
                       Twitter: &nbsp;
-                      <a href="https://twitter.com/mzt_warriors" target="_blank" rel="noreferrer" alt="Twitter Link">@MZT_Warriors</a>
+                      <a href="https://twitter.com/mzt_warriors" target="_blank" rel="noreferrer" alt="Twitter Link">@MZTWarriors</a>
                     </p>
                     <p>
                       Twitch: &nbsp;
