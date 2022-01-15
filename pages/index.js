@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div>
       <Head>
-        <title>Manzanita Tribe</title>
+        <title>Manzanita Tribe Warriors - Smash Bros. Local Socal Esports Team</title>
         <meta name="description" content="Manzanita Tribe" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -53,19 +53,21 @@ export default function Home() {
                     We are the Manzanita Tribe Warriors ᴹᶻᵀ, a small esports team based out of Southern California. 
                   </p>
                   <p> 
-                    We have competed in `Super Smash Bros. Ultimate` for a few years and would like to continue our journey as a competitive team, pushing our limits this 2022🔥! 
+                    We have competed in `Super Smash Bros. Ultimate` for a few years &amp; would like to continue our journey as a competitive team, pushing our limits this 2022!🔥 
                   </p>
                   <p>
-                    As a team fundraising effort, we are starting off the year by dropping 1000 limited edition digital `Warrior Badges` priced at .1 solana each
+                    As a team fundraising effort, we are starting off the year by dropping 1,000 limited edition digital `Warrior Badges` priced at .1 solana each. 
                   </p>
                   <p>
-                    The MZT Warriors would like to give special thanks to the smash bros. gaming community and everyone that follows and supports us.
+                    The MZT Warriors would like to give special thanks to the smash bros. gaming community &amp; everyone that follows and supports us!
                   </p>
                   
                   
-                  <button>Mint a `Warrior Badge`*</button>
+                  {/* <button>Mint a `Warrior Badge`*</button> */}
+                  <button>Mint Coming Soon.</button>
+                  <small>Powered by <a href="https://solana.com/" target="_blank" rel="noreferrer">Solana</a>.</small>
                   <br/>
-                  <h3>1,000 / 1,000 available</h3>
+                  <h3>1,000 / 1,000 (Max: 1,000)</h3>
                   <h4>Price: .1 sol</h4>
                   <br/>
                   <small>
