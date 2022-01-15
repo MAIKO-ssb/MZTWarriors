@@ -65,7 +65,7 @@ export default function Home() {
                   
                   {/* <button>Mint a `Warrior Badge`*</button> */}
                   <button>Mint Coming Soon.</button>
-                  <small>Powered by <a href="https://solana.com/" target="_blank" rel="noreferrer">Solana</a>.</small>
+                  <small>Powered by the <a href="https://solana.com/" target="_blank" rel="noreferrer">Solana</a> network.</small>
                   <br/>
                   <h3>1,000 / 1,000 (Max: 1,000)</h3>
                   <h4>Price: .1 sol</h4>
