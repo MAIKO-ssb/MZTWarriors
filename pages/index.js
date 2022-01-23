@@ -85,7 +85,7 @@ export default function Home() {
                   <br/>
                   <div style={{marginTop:"1em"}}>
                     <h4> 
-                      Our next competition:
+                      Our next competition(s):
                     </h4>
                     <p>
                       2/12: <a href="https://smash.gg/tournament/ascension-stroder-beloved/details">Ascension</a>, Phoenix, AZ.
