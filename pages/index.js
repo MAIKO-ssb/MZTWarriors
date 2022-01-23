@@ -90,9 +90,9 @@ export default function Home() {
                       Our next competition(s):
                     </h4>
                     <p>
-                      2/12: <a href="https://smash.gg/tournament/ascension-stroder-beloved/details">Ascension</a>, Phoenix, AZ.
+                      2/12: <a href="https://smash.gg/tournament/ascension-stroder-beloved/details" target="_blank" rel='noreferrer'>Ascension</a>, Phoenix, AZ.
                       <br/>
-                      4/15 - 4/17: <a href="https://smash.gg/tournament/genesis-8/details">Genesis 8</a>, San Jose, CA.
+                      4/15 - 4/17: <a href="https://smash.gg/tournament/genesis-8/details" target="_blank" rel='noreferrer'>Genesis 8</a>, San Jose, CA.
                     </p>
                   </div>
                 </>
