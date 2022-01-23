@@ -74,12 +74,12 @@ export default function Home() {
                   </button>
                   <small>Powered by <a href="https://solana.com/" target="_blank" rel="noreferrer">Solana</a>.</small>
                   <br/>
-                  <h3>Max Supply: 1,111</h3>
-                  <h4>Price: .1 sol</h4>
-                  <small>(Whitelist Only)</small>
+                  <h3>Max Supply: 777</h3>
+                  <h4>Price: .2 sol</h4>
+                  <small>(Whitelist: .1 sol)</small>
                   <br/>
                   <small>
-                    * Your support of .1 sol goes directly to our team`s wallet, which helps fund our costs such as team equipment, player wages, event entries, transportation, hotel, food, etc. 
+                    * Your support goes directly to our team`s wallet, which helps fund our costs such as team equipment, player wages, event entries, transportation, hotel, food, etc. 
                     This token (minted in the Solana blockchain) serves as a representation of your support. Thank you.
                   </small>
                   <br/>
