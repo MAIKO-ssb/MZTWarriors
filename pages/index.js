@@ -56,7 +56,7 @@ export default function Home() {
                     We have competed in `Super Smash Bros. Ultimate` since the beginning &amp; would like to continue our journey as a competitive team, pushing our limits this 2022!🔥 
                   </p>
                   <p>
-                    As a team fundraising effort, we are starting off the year by dropping 777 limited edition digital `Warrior Badges` priced at .1 solana each. 
+                    As a team fundraising effort, we are starting off the year by dropping 777 limited edition digital `Warrior Badges` priced at .2 solana each. 
                   </p>
                   <p>
                     The MZT Warriors would like to give special thanks to the smash bros. gaming community &amp; everyone that follows and supports us!
