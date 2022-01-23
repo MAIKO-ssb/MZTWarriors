@@ -11,7 +11,7 @@ export default function Home() {
     <div>
       <Head>
         <title>MZT Warriors - A local Super Smash Bros. Ultimate esports team from Southern California</title>
-        <meta name="description" content="Manzanita Tribe" />
+        <meta name="description" content="We are the Manzanita Tribe Warriors ᴹᶻᵀ, a local esports team based out of Southern California. We play competitive Super Smash Bros. Ultimate" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
