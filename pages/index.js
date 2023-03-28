@@ -19,12 +19,12 @@ export default function Home() {
       <div className='s-hero'>
         <main>
           {/* MAIN CONTENT */}
-          <div className='u-flex u-flex1' style={{maxWidth: "70vh"}}>
+          <div className='u-flex u-flex1' style={{maxWidth: "75vh"}}>
             <div className='mzt-logo u-animated a-fadeIn'>
               <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="MZT Warriors Logo" />
               <div style={{color: "white",textAlign:"center", padding: "1.5em 0"}}>
                 <h1>MZT Warriors</h1>
-                Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.<br/> 
+                Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.<br/><br/> 
                 Explore mystical forests, raid dangerous dungeons, and gain powerful loot!<span style={{color:"red"}}>*</span><br/>
                 <small style={{fontSize:".85em", display:"block", padding: "1em"}}><span style={{color:"red"}}>*</span>Currently in development.</small>
               </div>
