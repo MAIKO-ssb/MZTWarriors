@@ -1,7 +1,10 @@
 .s-hero{
     background: #000000;
-    display: block;
     padding: 2.5em 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     @media (min-width: 1000px) { 
         padding: 0;
     }
@@ -47,17 +50,26 @@
         }
     }
     video{
-        position: absolute;
-        display: block;
-
-        background: black;
-        top:0;
-        left:0;
-        z-index: 1;
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        min-width: 100%;
+        min-height: 100%;
+        transform: scale(4.5);
         @media (min-width: 1000px) { 
-            width: 100vw;
-            height: 100vh;
+            transform: scale(1.5);
         }
+        // position: absolute;
+        // display: block;
+
+        // background: black;
+        // top:0;
+        // left:0;
+        // z-index: 1;
+        // @media (min-width: 1000px) { 
+        //     width: 100vw;
+        //     height: 100vh;
+        // }
     }
     h1{
         margin-bottom: 1.125em;
