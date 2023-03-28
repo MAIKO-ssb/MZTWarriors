@@ -1,7 +1,7 @@
 .s-hero{
     background: #000000;
     padding: 2.5em 0;
-    min-height: 100vh;
+    min-height: 98vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -32,7 +32,7 @@
         margin: 0 auto;
         transition: transform 350ms ease-out;
         &:hover{
-            transform: scale(1.075);
+            transform: scale(1.025);
             //cursor: url('https://pngset.com/images/fireball-clipart-pixel-sprite-flare-light-sphere-astronomy-transparent-png-2076878.png'), auto;
             cursor:url('/img/fireball.png') 2 2, pointer;
             ;
