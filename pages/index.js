@@ -8,7 +8,7 @@ export default function Home() {
   const [contentView, setContentView] = useState('mint')
 
   return (
-    <div style={{background:"black", minHeight:"96vh"}}>
+    <div style={{background:"black"}}>
       <Head>
         <title>MZT Warriors</title>
         <meta name="description" content="We are the Manzanita Tribe Warriors" />
