@@ -26,7 +26,7 @@ export default function Home() {
                 <h1>MZT Warriors</h1>
                 Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.<br/><br/> 
                 Explore mystical forests, raid dangerous dungeons, and gain powerful loot!<span style={{color:"red"}}>*</span><br/>
-                <small style={{fontSize:".85em", display:"block", padding: "1em"}}><span style={{color:"red"}}>*</span>Currently in development.</small>
+                <small style={{fontSize:".85em", display:"block", padding: "1em"}}><span style={{color:"red"}}>*</span>Project currently under development.</small>
               </div>
             </div>
           </div>
