@@ -31,14 +31,16 @@
         }
     }
     .mzt-logo{
-        //max-width: 75%;
         margin: 0 auto;
-       // transition: transform 350ms ease-out;
-        // &:hover{
-        //     transform: scale(1.025);
-        //     cursor:url('/img/fireball.png') 2 2, pointer;
-        //     ;
-        // }
+        transition: transform 350ms ease-out;
+        img{
+            max-height: 60vh;
+        }
+        &:hover{
+            transform: scale(1.025);
+            cursor:url('/img/fireball.png') 2 2, pointer;
+            ;
+        }
     }
     .mzt-bio{
         &__imgWrap{

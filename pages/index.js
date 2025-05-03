@@ -39,7 +39,9 @@ export default function Intro() {
           {/* MAIN CONTENT */}
           <div className='u-flex u-flex1 l-leftCol'>
             <div className='mzt-logo u-animated a-fadeIn'>
-              <Image className='mzt-logo__img u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="Manzanita Tribe Warriors Logo" />
+              <div style={{display:'flex', justifyContent:'center'}}>
+                <Image className='mzt-logo__img  u-animated a-fadeIn' width="1490" height="1490" src="/img/mzt-logo.png" alt="Manzanita Tribe Warriors Logo" />
+              </div>
               <div style={{color: "white",textAlign:"center", padding: "1.5em 0"}}>
                 <h1>Manzanita Tribe Warriors <br/><span style={{fontSize:'.5em', color:"#ffff00"}}><span style={{color:"#ff0000"}}>(</span>Digital Collectibles<span style={{color:"#ff0000"}}>)</span></span></h1>
                 {/* Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.  */}
