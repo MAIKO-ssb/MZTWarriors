@@ -2,6 +2,9 @@
     background: #000000;
     padding: 1.5em 1em;
     min-height: 100vh;
+    position: relative;
+    overflow-x:hidden;
+    overflow-y:auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -65,7 +68,7 @@
     button{
         background: #33dd7d;
         color: black;
-        text-shadow: #fff -1px 1px;
+        text-shadow: rgb(0, 60, 255) -1px 1px;
         font-weight: 800;
         font-family: monospace;
         font-size: 1.6em;
