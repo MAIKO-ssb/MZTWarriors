@@ -20,7 +20,7 @@ export default function ImageFader({ images = [], delay = 3000 }) {
   return (
     <div
       style={{
-        width: '100vw',
+        width: '80vw',
         maxWidth: '520px',
         aspectRatio: '1 / 1',
         margin: '0 auto',
