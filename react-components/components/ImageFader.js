@@ -19,6 +19,7 @@ export default function ImageFader({ images = [], delay = 3000 }) {
 
   return (
     <div
+      className='c-imageFader'
       style={{
         width: '80vw',
         maxWidth: '520px',
