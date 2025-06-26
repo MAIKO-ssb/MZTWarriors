@@ -639,7 +639,7 @@ export default function Intro() {
                         if (minted) {
                           return 'Mint Another MZT Warrior!';
                         }
-                        return 'Mint Your MZT Warrior';
+                        return 'Mint a Random MZT Warrior!';
                       })()}
                   </button>
                 </div>
