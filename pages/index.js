@@ -8,7 +8,7 @@ import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-ad
 import { defaultPlugins } from '@metaplex-foundation/umi-bundle-defaults';
 import { mplToolbox } from '@metaplex-foundation/mpl-toolbox';
 import { PublicKey as Web3JsPublicKey } from '@solana/web3.js'; // Renamed for clarity
-import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from '@metaplex-foundation/umi-web3js-adapters';
+import { fromWeb3JsPublicKey, toWeb3JsPublicKey, toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
 // import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js'; // // Likely not needed if defaultPlugins works for RPC
 import { fetchCandyMachine, mintV2, mplCandyMachine, safeFetchCandyGuard, CandyGuard as MplCandyGuard, CandyMachine as MplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'; // Import fetchCandyMachine
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
@@ -56,7 +56,7 @@ const faderImages = [
 
 export default function Intro() {
   // State variables
-  const { wallet, publicKey: web3JsWalletPublicKey } = useWallet(); // Destructure wallet and publicKey
+  const { wallet, publicKey: web3JsWalletPublicKey, sendTransaction } = useWallet(); // Destructure wallet and publicKey
   const { connection } = useConnection();
   const [umi, setUmi] = useState(null);
   const [candyMachine, setCandyMachine] = useState(null); // Will store { ...candyMachineData, candyGuard: candyGuardData }
@@ -312,6 +312,7 @@ export default function Intro() {
       console.log("Minting with arguments:", mintArguments);
       console.log("Candy Guard for minting:", candyMachine.candyGuard);
 
+      // 1. Build the transaction with UMI
       const transaction = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 600_000 }))
         .add(
@@ -329,13 +330,38 @@ export default function Intro() {
           })
       );
 
-      console.log("Transaction builder created. Sending and confirming...");
-      const { signature, result } = await transaction.sendAndConfirm(umi, {
-          confirm: { commitment: 'finalized' }, // Or 'processed' / 'finalized'
-          // send: { skipPreflight: true },
-      });
-      console.log('Mint successful (UMI)! Signature (bs58 encoded):', bs58.encode(signature));
+      console.log("Transaction builder created. Preparing to send...");
+
+      // 2. Compile the UMI transaction to a web3.js VersionedTransaction
+      // This creates an unsigned transaction with a recent blockhash
+      const unsignedTx = await transaction.buildWithLatestBlockhash(umi);
+      const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
+
+      // 3. Send the transaction using the wallet adapter's `sendTransaction`
+      // This prompts the user with the Phantom UI to sign and send.
+      const signature = await sendTransaction(web3jsTransaction, connection);
+      // Note: `sendTransaction` returns a base58 string, so bs58.encode is not needed.
+      console.log('Mint transaction sent! Signature:', signature);
+      
+      // 4. Manually confirm the transaction
+      console.log('Awaiting confirmation for transaction:', signature);
+      const latestBlockhash = await connection.getLatestBlockhash();
+      const result = await connection.confirmTransaction({
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+          signature: signature,
+      }, 'finalized');
+
       console.log('Transaction result:', result);
+
+
+      // Pre-Phantom Implementation (if you want to use UMI's sendAndConfirm) [Flagged as d.App risks]:
+      // const { signature, result } = await transaction.sendAndConfirm(umi, {
+      //     confirm: { commitment: 'finalized' }, // Or 'processed' / 'finalized'
+      //     // send: { skipPreflight: true },
+      // });
+      // console.log('Mint successful (UMI)! Signature (bs58 encoded):', bs58.encode(signature));
+      // console.log('Transaction result:', result);
 
       let mintTrulySuccessful = false;
       let uiErrorMessage = "Minting failed. Please check console for details."; // Default error
@@ -463,15 +489,19 @@ export default function Intro() {
       }
     } catch (mintError) {
       // This catches JS errors in the try block or if sendAndConfirm itself throws badly
-      console.error('Mint error (UMI) - JavaScript error or pre-send failure:', mintError);
+      console.error('Mint error - JavaScript error or pre-send failure:', mintError);
       let friendlyMessage = `Minting failed: ${mintError.message || mintError.toString()}`;
+      // Add a more user-friendly message for common rejection errors
+      if (mintError.name === 'WalletSendTransactionError') {
+            friendlyMessage = "Transaction rejected by user in wallet.";
+      }
       setError(friendlyMessage);
       setMinted(false);
       setMintedNftImageUri(null); 
     } finally {
       setMinting(false);
     }
-  }, [umi, candyMachine, collectionMint]);
+  }, [umi, candyMachine, collectionMint, connection, sendTransaction]);
 
   // --- UI Rendering ---
   return (
