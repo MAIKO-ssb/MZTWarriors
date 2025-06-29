@@ -17,6 +17,7 @@ const PhaserGame = () => {
     
     useEffect(() => {
         // Initialize Socket.IO connection
+        // socket.current = io('http://192.168.100.31:4000');
         socket.current = io(`http://${window.location.hostname}:4000`);
 
         // Store the socket ID once the connection is established
@@ -63,11 +64,16 @@ const PhaserGame = () => {
                         frameWidth: 409,
                         frameHeight: 401,
                     });
+                    this.load.image('enemy', '/images/enemies/enemy.png'); 
                 },
                 create: function () {
                     // Create Scene
                     const scene = this; // Store a reference to the scene
                     this.add.image(700, 300, 'sky');
+
+                    // Initialize enemy and attack hitbox variables
+                    this.enemy = null;
+                    this.attackHitbox = null;
 
                     // Create platforms
                     this.platforms = this.physics.add.staticGroup();
@@ -78,20 +84,19 @@ const PhaserGame = () => {
 
 
                     // Add the firepit as a sprite and play animation
-                    this.firepit = this.physics.add.sprite(600, 478, 'firepit').setScale(.3); // Create as physics sprite
+                    this.firepit = this.physics.add.sprite(600, 570, 'firepit').setScale(.3); // Create as physics sprite
                     this.firepit.setDepth(1); // A higher number means it's closer to the front
                     this.firepit.body.setImmovable(true); // Make it static for collision
+                    this.firepit.body.setAllowGravity(false);
+
                     // ADJUST THESE VALUES BASED ON YOUR SPRITE SHEET
                     const bodyWidth = 409; // Example: Reduce width by 40%
                     const bodyHeight = 401; // Example: Reduce height by 30%
-                    const offsetX = - (this.firepit.width - bodyWidth) / 2; // Example offset
-                    const offsetY = - (this.firepit.height - bodyHeight) / 2; // Example offset
                     this.firepit.body.setSize(bodyWidth, bodyHeight);
-                    this.firepit.body.offset.set(offsetX, offsetY);
+                    this.firepit.body.offset.set(0, 0);
 
                     this.physics.add.collider(this.firepit, this.platforms, (firepit, platform) => {
                         console.log("Collision detected between firepit and platform!");
-                        firepit.body.setVelocityY(-20);
                     });
                     console.log("Firepit Body:", this.firepit.body); // Add this line
 
@@ -133,6 +138,34 @@ const PhaserGame = () => {
                             null, // Process callback (optional, can be null)
                             this // Context for the callback
                         );
+
+                        // === CREATE ATTACK HITBOX INSIDE THIS BLOCK ===
+                        // Use this.player.displayHeight to get the scaled height
+                        const playerVisualHeight = this.player.displayHeight;
+                        this.attackHitbox = this.add.rectangle(0, 0, 80, playerVisualHeight * 0.7, 0xff0000, 0.0); // Adjust width/height factor
+                        this.physics.add.existing(this.attackHitbox);
+                        if (this.attackHitbox.body) { // Ensure body exists before setting its properties
+                            this.attackHitbox.body.setAllowGravity(false);
+                            this.attackHitbox.body.setEnable(false);
+                        } else {
+                            console.error("Attack hitbox body not created!"); // Should not happen if physics.add.existing works
+                        }
+                    }
+
+                    // Create Enemy
+                    // Place the enemy at a suitable starting position
+                    const enemyStartX = 700;
+                    const enemyStartY = 300; // Make sure it's above a platform
+                    this.enemy = this.physics.add.sprite(enemyStartX, enemyStartY, 'enemy');
+                    if (this.enemy) { // Check if enemy sprite was created successfully
+                        this.enemy.setScale(0.2); // Adjust scale as needed
+                        this.enemy.setCollideWorldBounds(true); // Keep enemy within game bounds
+                        this.physics.add.collider(this.enemy, this.platforms); // Enemy collides with platforms
+
+                        this.enemy.isAlive = true;
+                        this.enemy.patrolSpeed = 70; // Adjust speed
+                        this.enemy.setVelocityX(this.enemy.patrolSpeed);
+                        this.enemy.flipX = 0; // Initial facing direction
                     }
 
                     // Create =-=- CONTROLS -=-=
@@ -365,8 +398,33 @@ const PhaserGame = () => {
                 // =-=-=- UPDATE FUNCTION -=-=-=
                 update: function () {
                     //console.log('player check on update', this.player);
-                    if (!this.player) return; // Exit if player is not defined
+                    // if (!this.player && !myId.current) return; // Exit if player is not defined
+                    if (!this.player && !myId.current) { // Exit if player related objects aren't ready
+                        // Also check if this.enemy is being updated before player is fully initialized
+                        // If enemy logic depends on player, ensure player exists.
+                        // For simple patrol, it doesn't directly depend on the player.
+                    }
 
+                    // Enemy Patrolling Logic
+                    if (this.enemy && this.enemy.isAlive) {
+                        const enemyBody = this.enemy.body;
+
+                        // If enemy is somehow stopped (e.g. stuck) or hits a wall/platform edge it collides with
+                        if (enemyBody.velocity.x === 0) {
+                            // If it was moving right and now stopped, or moving left and now stopped
+                            this.enemy.patrolSpeed *= -1;
+                            this.enemy.setVelocityX(this.enemy.patrolSpeed);
+                        }
+                        // Or if blocked by world bounds or a platform
+                        else if ((this.enemy.patrolSpeed > 0 && enemyBody.blocked.right) || (this.enemy.patrolSpeed < 0 && enemyBody.blocked.left)) {
+                            this.enemy.patrolSpeed *= -1;
+                            this.enemy.setVelocityX(this.enemy.patrolSpeed);
+                        }
+                        this.enemy.flipX = (enemyBody.velocity.x < 0); // Use enemyBody.velocity.x
+                    }
+
+                    // Player specific logic should be guarded
+                    if (!this.player || !myId.current) return;
 
                     const isLeftPressed = this.cursors.left.isDown || this.WASD.A.isDown;
                     const isRightPressed = this.cursors.right.isDown || this.WASD.D.isDown;
@@ -470,6 +528,40 @@ const PhaserGame = () => {
                             if (this.player.body.blocked.down) {
                                 this.player.body.velocity.x = 0; // Kill horizontal momentum
                             }
+
+                            // Activate and position hitbox
+                            // Adjust hitboxOffsetX/Y based on your character's sprite and attack animation
+                            const hitboxOffsetX = this.player.flipX ? -50 : 50; // e.g., 50 pixels in front
+                            const hitboxOffsetY = 5; // e.g., slightly above player's origin y
+                            this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
+                            this.attackHitbox.body.setEnable(true);
+                            // Optional: make hitbox visible for debugging
+                            // this.attackHitbox.setFillStyle(0xff0000, 0.3); // red, semi-transparent
+
+                            // Check for hit against the enemy
+                            if (this.enemy && this.enemy.isAlive && this.physics.world.overlap(this.attackHitbox, this.enemy)) {
+                                console.log('Enemy hit!');
+                                this.createPopupText(this.enemy.x, this.enemy.y - 30, 'OUCH!', '#FF8C00'); // Enemy OUCH
+                                
+                                // For simplicity, one hit kills the enemy. You could add health later.
+                                this.enemy.isAlive = false;
+                                // Optional: Play enemy death animation here before destroying
+                                // this.enemy.anims.play('enemy_death_animation', true);
+                                // this.enemy.once('animationcomplete', () => { this.enemy.destroy(); });
+                                this.enemy.destroy(); // Remove from game
+                                this.enemy = null; // Clear the reference
+                                
+                                this.createPopupText(this.player.x + (this.player.flipX ? -30 : 30), this.player.y - 60, '*ENEMY KILLED*', '#ff4444');
+                            }
+
+                            // Disable hitbox after a short delay (e.g., duration of attack swing)
+                            // Adjust delay (e.g., 200ms) to match your attack animation's active frames
+                            this.time.delayedCall(300, () => {
+                                if (this.attackHitbox && this.attackHitbox.body) { // Check if hitbox still exists
+                                    this.attackHitbox.body.setEnable(false);
+                                    // this.attackHitbox.setFillStyle(0xff0000, 0.0); // Make invisible again
+                                }
+                            });
 
                             // Prevent movement animation during attack
                             this.player.once('animationcomplete', () => {
