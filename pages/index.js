@@ -234,6 +234,7 @@ export default function Intro() {
   // **STEP 3: Implement the MINT function**
   const handleMint = useCallback(async () => {
     console.log("Mint button clicked!"); 
+    console.log("PHANTOM FIX DEPLOYMENT - VERSION 3 IS RUNNING!"); // <-- ADD THIS LINE
 
     if (!umi) {
       setError('UMI not initialized. Please connect wallet and wait.');

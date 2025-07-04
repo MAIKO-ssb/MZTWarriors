@@ -17,7 +17,7 @@ const PhaserGame = () => {
     
     useEffect(() => {
         // Initialize Socket.IO connection
-        // socket.current = io('http://192.168.100.31:4000');
+        // socket.current = io('http://192.168.1.231:4000');
         socket.current = io(`http://${window.location.hostname}:4000`);
 
         // Store the socket ID once the connection is established

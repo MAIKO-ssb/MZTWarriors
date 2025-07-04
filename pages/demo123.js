@@ -15,7 +15,7 @@ export default function Home() {
 
       <Head>
         <title>MZT Warriors</title>
-        <meta name="description" content="Stay Away! DO NOT ENTER" />
+        <meta name="description" content="The Manzanita Forest Demo" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
