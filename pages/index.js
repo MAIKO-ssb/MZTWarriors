@@ -234,7 +234,7 @@ export default function Intro() {
   // **STEP 3: Implement the MINT function**
   const handleMint = useCallback(async () => {
     console.log("Mint button clicked!"); 
-    console.log("PHANTOM FIX DEPLOYMENT - VERSION 3 IS RUNNING!"); // <-- ADD THIS LINE
+    console.log("Phantom Fix Deployment");
 
     if (!umi) {
       setError('UMI not initialized. Please connect wallet and wait.');
@@ -532,8 +532,8 @@ export default function Intro() {
                 <p style={{maxWidth: "540px", margin: "0 auto 25px"}}> 
                   {/* Discover the universe of the MZT Warriors.<br/> */}
                   {/* Explore mystical forests, raid high-risk dungeons, and gain powerful loot!<span style={{color:"red"}}>*</span> */}
-                  <b style={{fontSize: '1.125em', marginBottom:'-5px', display: 'block'}}>Join the origin of an evolving digital adventure!</b> <br />
-                  <span style={{color: '#8dffbf'}}>Mint a Manzanita Tribe Warrior</span> <span style={{color: '#fff'}}>—</span> <br/><span>fierce survivors from a mysterious forest realm.</span>
+                  <b style={{fontSize: '1.125em', marginBottom:'-5px', display: 'block'}}>🌲 Claim one of the First Warriors of the Manzanita Forest 🌲</b> <br />
+                  <span style={{color: '#8dffbf'}}>Mint your Manzanita Tribe Warrior</span> <span style={{color: '#fff'}}>—</span> <br/><span>fierce survivors from a mysterious forest realm.</span>
                 </p>
                 <p style={{fontSize:'.85em'}}>
                   <br/> This is a self-funded indie passion project by a solo creator. 
@@ -549,7 +549,7 @@ export default function Intro() {
                 <div style={{ textAlign: 'center', marginTop: '0' }}>
                   <a href="https://discord.gg/3uXnWZEfgR" target="_blank" rel="noopener noreferrer" className="discord-button" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
                     <svg xmlns="http://www.w3.org/2000/svg" style={{marginRight: '5px'}} width="30" viewBox="0 0 640 512" fill="#5865f2"><path d="M524.5 69.8a1.5 1.5 0 0 0 -.8-.7A485.1 485.1 0 0 0 404.1 32a1.8 1.8 0 0 0 -1.9 .9 337.5 337.5 0 0 0 -14.9 30.6 447.8 447.8 0 0 0 -134.4 0 309.5 309.5 0 0 0 -15.1-30.6 1.9 1.9 0 0 0 -1.9-.9A483.7 483.7 0 0 0 116.1 69.1a1.7 1.7 0 0 0 -.8 .7C39.1 183.7 18.2 294.7 28.4 404.4a2 2 0 0 0 .8 1.4A487.7 487.7 0 0 0 176 479.9a1.9 1.9 0 0 0 2.1-.7A348.2 348.2 0 0 0 208.1 430.4a1.9 1.9 0 0 0 -1-2.6 321.2 321.2 0 0 1 -45.9-21.9 1.9 1.9 0 0 1 -.2-3.1c3.1-2.3 6.2-4.7 9.1-7.1a1.8 1.8 0 0 1 1.9-.3c96.2 43.9 200.4 43.9 295.5 0a1.8 1.8 0 0 1 1.9 .2c2.9 2.4 6 4.9 9.1 7.2a1.9 1.9 0 0 1 -.2 3.1 301.4 301.4 0 0 1 -45.9 21.8 1.9 1.9 0 0 0 -1 2.6 391.1 391.1 0 0 0 30 48.8 1.9 1.9 0 0 0 2.1 .7A486 486 0 0 0 610.7 405.7a1.9 1.9 0 0 0 .8-1.4C623.7 277.6 590.9 167.5 524.5 69.8zM222.5 337.6c-29 0-52.8-26.6-52.8-59.2S193.1 219.1 222.5 219.1c29.7 0 53.3 26.8 52.8 59.2C275.3 311 251.9 337.6 222.5 337.6zm195.4 0c-29 0-52.8-26.6-52.8-59.2S388.4 219.1 417.9 219.1c29.7 0 53.3 26.8 52.8 59.2C470.7 311 447.5 337.6 417.9 337.6z"></path></svg>
-                    <span>Join our *New* Discord Community</span>
+                    <span>Join our *new* Discord Community</span>
                   </a>
                 </div>
               </div>
