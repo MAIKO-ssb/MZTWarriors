@@ -12,7 +12,7 @@ import { fromWeb3JsPublicKey, toWeb3JsPublicKey, toWeb3JsTransaction } from '@me
 // import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js'; // // Likely not needed if defaultPlugins works for RPC
 import { fetchCandyMachine, mintV2, mplCandyMachine, safeFetchCandyGuard, CandyGuard as MplCandyGuard, CandyMachine as MplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'; // Import fetchCandyMachine
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
-import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox';
+import { setComputeUnitLimit, setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox';
 import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 
 // Import Wallet Stuff
@@ -22,7 +22,10 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 // Next.js UI
 import Head from 'next/head';
 import Image from 'next/image';
+
+// Component UI
 import ImageFader from '../react-components/components/ImageFader';
+import HelloBar from '../react-components/components/HelloBar';
 
 // *** CANDY MACHINE ***
 const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
@@ -232,277 +235,137 @@ export default function Intro() {
   }, [umi]);
 
   // **STEP 3: Implement the MINT function**
-  const handleMint = useCallback(async () => {
-    console.log("Mint button clicked!"); 
-    console.log("Phantom Fix Deployment");
+const handleMint = useCallback(async () => {
+  console.log("Mint button clicked!");
+  console.log("Phantom Fix Deployment - Adding Priority Fee");
 
-    if (!umi) {
-      setError('UMI not initialized. Please connect wallet and wait.');
-      console.error('Mint aborted: UMI not initialized.');
-      return;
+  if (!umi || !wallet || !candyMachine || !candyMachine.candyGuard || !collectionMint) {
+    setError('Minting prerequisites not met. Please ensure your wallet is connected and the page has fully loaded.');
+    console.error('Mint aborted: UMI, Wallet, Candy Machine, or Collection Mint not available.');
+    return;
+  }
+
+  setMinting(true);
+  setError(null);
+  setMinted(false);
+
+  try {
+    const nftMintSigner = generateSigner(umi);
+    console.log("Generated NFT Mint Signer:", nftMintSigner.publicKey.toString());
+    
+    let mintArguments = {};
+    if (candyMachine.candyGuard.guards.solPayment?.__option === 'Some') {
+      const solPaymentGuard = candyMachine.candyGuard.guards.solPayment.value;
+      mintArguments.solPayment = some({ destination: solPaymentGuard.destination });
+    }
+
+    const latestBlockhash = await connection.getLatestBlockhash();
+    console.log("Transaction will use blockhash:", latestBlockhash.blockhash);
+
+    // --- MAIN CHANGE IS HERE ---
+    const transaction = transactionBuilder()
+      .add(setComputeUnitLimit(umi, { units: 1_400_000 })) 
+      // Add a priority fee to prevent the transaction from being dropped.
+      .add(setComputeUnitPrice(umi, { microLamports: 500000 })) 
+      .add(
+        mintV2(umi, {
+          candyMachine: candyMachine.publicKey,
+          nftMint: nftMintSigner,
+          collectionMint: collectionMint,
+          collectionUpdateAuthority: candyMachine.authority,
+          candyGuard: candyMachine.candyGuard.publicKey,
+          group: (candyMachine.candyGuard.groups.length > 0 && candyMachine.candyGuard.groups[0].label !== "default") 
+                 ? some(candyMachine.candyGuard.groups[0].label)
+                 : undefined,
+          tokenStandard: TokenStandard.ProgrammableNonFungible,
+          mintArgs: mintArguments
+        })
+      )
+      .setBlockhash(latestBlockhash.blockhash);
+    
+    const unsignedTx = transaction.build(umi);
+    const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
+
+    console.log("Sending transaction with priority fee...");
+    const signature = await sendTransaction(web3jsTransaction, connection, {
+      skipPreflight: true
+    });
+    console.log("Transaction confirmed by wallet adapter! Signature:", signature);
+
+    // Polling for the transaction result
+    console.log('Polling for transaction details...');
+    let txResult = null;
+    let attempts = 0;
+    const maxAttempts = 20;
+    const delay = 1000;
+
+    while (attempts < maxAttempts) {
+      txResult = await connection.getTransaction(signature, {
+        commitment: 'finalized',
+        maxSupportedTransactionVersion: 0
+      });
+      if (txResult) break;
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    console.log('Fetched transaction details:', txResult);
+
+    // Final result handling
+    let mintTrulySuccessful = false;
+    let uiErrorMessage = "Minting failed. Please check the console for details.";
+
+    if (!txResult) {
+      uiErrorMessage = "Minting failed: Your transaction was sent but could not be confirmed on-chain. This can happen during heavy network traffic.";
+    } else if (txResult.meta?.err) {
+      console.error('On-chain transaction error:', txResult.meta.err);
+      uiErrorMessage = `Minting failed: An on-chain error occurred.`;
+      if (txResult.meta.logMessages?.some(log => log.includes("insufficient lamports"))) {
+        uiErrorMessage = "Minting failed: Insufficient SOL for transaction fees or mint cost.";
+      }
+    } else {
+      console.log('NFT Mint Account successfully created and transaction confirmed.');
+      mintTrulySuccessful = true;
     }
     
-    if (!candyMachine) {
-      setError('Candy Machine data not loaded yet. Please wait.');
-      console.error('Mint aborted: Candy Machine data not loaded.');
-      return;
-    }
-    if (!candyMachine.candyGuard) {
-      setError('Candy Guard data not loaded for this Candy Machine. Cannot mint.');
-      console.error('Mint aborted: Candy Guard data not loaded.');
-      return;
-    }
-    if (!collectionMint) {
-      setError('Collection mint address is invalid. Cannot mint.');
-      console.error('Mint aborted: collectionMint is invalid.');
-      return;
-    }
-    if (!umi.identity || !umi.identity.publicKey || typeof umi.identity.signTransaction !== 'function') {
-      setError('Wallet not properly connected or signer not available in UMI.');
-      console.error('Mint aborted: UMI identity is not a valid signer. Current identity:', umi.identity);
-      return;
-    }
-
-
-    setMinting(true);
-    setError(null);
-    setMinted(false);
-
-    // MINTING:
-    try {
-      const nftMintSigner = generateSigner(umi);
-      console.log("Generated NFT Mint Signer:", nftMintSigner.publicKey.toString());
-      console.log("Candy Machine Public Key for mintV2:", candyMachine.publicKey.toString());
-      console.log("Collection Mint for mintV2:", collectionMint.toString());
-      // The collectionUpdateAuthority is typically the authority of the Candy Machine itself or the deployer wallet.
-      // For mintV2, it's the update authority of the Collection NFT.
-      // Assuming candyMachine.authority is the correct update authority for the collection.
-      // If not, you need the actual collection NFT's update authority.
-      console.log("Collection Update Authority for mintV2:", candyMachine.authority.toString());
-
-      // Prepare mint arguments from the Candy Guard
-      // The structure of guard arguments for mintV2 is { guardLabel: { specific_args_for_guard } }
-      // For the default group, often no explicit label is needed, but check docs for specific guards.
-      // We use the `guards` object directly from the fetched candyGuard.
-      // UMI's mintV2 will internally map these to the transaction.
-      // We need to provide the `guard` settings, not an empty object for all.
-      // `mintArgs` should be a subset of `candyMachine.candyGuard.guards` if some guards have client-side inputs.
-      // Most standard guards (solPayment, startDate, etc.) are evaluated using the on-chain config.
-      // For `solPayment`, UMI handles it if it's in the guard config.
-      // For `allowList`, you'd need to pass `allowList: some({ proof: ... })` if your mint is using it.
-      let mintArguments = {};
-
-      // Example for 'solPayment' and 'allowList'. Adapt based on your actual guard setup.
-      // If a guard (like solPayment) is configured and active, its presence in candyMachine.candyGuard.guards
-      // is usually enough for UMI's mintV2 to construct the transaction correctly.
-      // You only need to add to mintArgs if the guard requires specific client-side input beyond its on-chain config.
-      if (candyMachine.candyGuard.guards.solPayment.__option === 'Some') { // Check if guard is active
-          const solPaymentGuard = candyMachine.candyGuard.guards.solPayment.value;
-          mintArguments.solPayment = some({ destination: solPaymentGuard.destination });
-      }
-      // Add other guards as needed, e.g., for allowList:
-      // if (candyMachine.candyGuard.guards.allowList.__option === 'Some') {
-      //   const merkleProof = await getMerkleProofForUser(umi.identity.publicKey); // You'd need this logic
-      //   if (merkleProof) {
-      //     mintArguments.allowList = some({ proof: merkleProof });
-      //   } else {
-      //       throw new Error("You are not on the allow list or proof is unavailable.");
-      //   }
-      // }
-
-      console.log("Minting with arguments:", mintArguments);
-      console.log("Candy Guard for minting:", candyMachine.candyGuard);
-
-      // 1. Build the transaction with UMI
-      const transaction = transactionBuilder()
-        .add(setComputeUnitLimit(umi, { units: 600_000 }))
-        .add(
-          mintV2(umi, {
-            candyMachine: candyMachine.publicKey,
-            nftMint: nftMintSigner,
-            collectionMint: collectionMint,
-            collectionUpdateAuthority: candyMachine.authority, // This should be the update authority of the Collection NFT
-            candyGuard: candyMachine.candyGuard.publicKey, // Pass the guard's public key
-            group: (candyMachine.candyGuard.groups.length > 0 && candyMachine.candyGuard.groups[0].label !== "default") 
-                   ? some(candyMachine.candyGuard.groups[0].label) // Use first named group if exists
-                   : undefined, // Or none if only default group (UMI handles default implicitly)
-            tokenStandard: TokenStandard.ProgrammableNonFungible,
-            mintArgs: mintArguments // Pre-processed mintArguments
-          })
-      );
-
-      console.log("Transaction builder created. Preparing to send...");
-
-      // 2. Compile the UMI transaction to a web3.js VersionedTransaction
-      // This creates an unsigned transaction with a recent blockhash
-      const unsignedTx = await transaction.buildWithLatestBlockhash(umi);
-      const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
-
-      // 3. Send the transaction using the wallet adapter's `sendTransaction`
-      // This prompts the user with the Phantom UI to sign and send.
-      const signature = await sendTransaction(web3jsTransaction, connection);
-      // Note: `sendTransaction` returns a base58 string, so bs58.encode is not needed.
-      console.log('Mint transaction sent! Signature:', signature);
-      
-      // 4. Manually confirm the transaction
-      console.log('Awaiting confirmation for transaction:', signature);
-      const latestBlockhash = await connection.getLatestBlockhash();
-      const result = await connection.confirmTransaction({
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-          signature: signature,
-      }, 'finalized');
-
-      console.log('Transaction result:', result);
-
-
-      // Pre-Phantom Implementation (if you want to use UMI's sendAndConfirm) [Flagged as d.App risks]:
-      // const { signature, result } = await transaction.sendAndConfirm(umi, {
-      //     confirm: { commitment: 'finalized' }, // Or 'processed' / 'finalized'
-      //     // send: { skipPreflight: true },
-      // });
-      // console.log('Mint successful (UMI)! Signature (bs58 encoded):', bs58.encode(signature));
-      // console.log('Transaction result:', result);
-
-      let mintTrulySuccessful = false;
-      let uiErrorMessage = "Minting failed. Please check console for details."; // Default error
-      
-      // VITAL CHECK: Inspect the transaction result for on-chain errors
-      if (result.value.err) {
-        // Top-level transaction error, definite failure
-        console.error('On-chain transaction error:', result.value.err);
-        if (result.value.logs) {
-            console.error("Transaction Logs for error:", result.value.logs);
-            if (result.value.logs.some(log => log.includes("insufficient lamports") || log.includes("NotEnoughSOL"))) {
-                uiErrorMessage = "Minting failed: Insufficient SOL for transaction fees or mint cost.";
-            } // ... other specific error log checks ...
-            else {
-                 uiErrorMessage = `Minting failed: ${ (typeof result.value.err === 'object' && result.value.err !== null && 'message' in result.value.err) ? result.value.err.message : 'On-chain error'}`;
-            }
-        } else if (typeof result.value.err === 'object' && result.value.err !== null && 'message' in result.value.err) {
-            uiErrorMessage = `Minting failed: ${result.value.err.message || 'Check console for details.'}`;
-        }
-        setError(uiErrorMessage);
-      } else {
-        console.log('Transaction technically succeeded (err: null). Verifying NFT mint account existence...');
-        if (result.value.logs && result.value.logs.length > 0) { // Check if logs exist and are not empty
-            console.log("---- Transaction Logs (when err is null) ----");
-            result.value.logs.forEach((log, index) => console.log(`Log ${index}: ${log}`));
-            console.log("--------------------------------------------");
-            // Now, your specific checks based on these logs would go here
-            // For example:
-            // if (result.value.logs.some(log => log.includes("ConstraintSolPayment"))) {
-            //     uiErrorMessage = "Minting failed: Could not satisfy payment requirements.";
-            //     setError(uiErrorMessage);
-            //     mintTrulySuccessful = false; // Explicitly set this based on log finding
-            // }
-        } else {
-          console.log("No detailed transaction logs returned with result when err is null.");
-        }
-        // The nftAccount check is still your most reliable method if logs are sparse or unhelpful
-        try {
-            const nftAccount = await umi.rpc.getAccount(nftMintSigner.publicKey);
-            if (nftAccount.exists && nftAccount.data.length > 0) { // Check if account exists and has data (is initialized)
-                console.log('NFT Mint Account successfully created and found:', nftMintSigner.publicKey.toString());
-                mintTrulySuccessful = true;
-            } else {
-                // Account might exist but be empty (highly unlikely if mint was supposed to happen)
-                // or getAccount might return exists:false if truly not there.
-                console.warn('NFT Mint Account NOT found or is empty, assuming mint failed despite err:null.', nftMintSigner.publicKey.toString());
-                uiErrorMessage = "Minting process did not complete fully (NFT not created). This can happen with insufficient funds for the NFT cost.";
-                mintTrulySuccessful = false; // Ensure this is false
-            }
-        } catch (e) {
-            // This catch is if umi.rpc.getAccount itself throws an error (e.g. account not found, depending on RPC behavior)
-            console.warn('Error fetching NFT mint account or account not found, assuming mint failed:', e);
-            uiErrorMessage = "Minting failed to confirm NFT creation. This can happen with insufficient funds for the NFT cost.";
-            mintTrulySuccessful = false; // Ensure this is false
-        }
-         // Update error state with the most relevant uiErrorMessage if a failure path was taken within this else block
-        if (!mintTrulySuccessful) {
-            setError(uiErrorMessage);
-        }
-      }
-
-      if (mintTrulySuccessful) {
-        console.log('Mint operation deemed successful.');
-        setMinted(true);
-        setError(null); // Clear any previous error if we now deem it successful
-        setLastMintedNftAddress(nftMintSigner.publicKey.toString()); // Store the address
-        try {
-          console.log(`Workspaceing metadata for NFT: ${nftMintSigner.publicKey.toString()}`);
-          // nftMintSigner.publicKey is already an UmiPublicKey
-          const asset = await fetchDigitalAsset(umi, nftMintSigner.publicKey);
-          console.log('Fetched Digital Asset:', asset);
-
-          if (asset && asset.metadata && asset.metadata.uri) {
-            // The URI in asset.metadata.uri often points to an off-chain JSON file (Arweave/IPFS)
-            // You need to fetch this JSON file to get the image URI.
-            // Replace with a reliable gateway if direct arweave.net fetch is problematic.
-            let metadataJsonUri = asset.metadata.uri;
-            if (metadataJsonUri.startsWith('https://arweave.net/')) {
-                 // No change needed if it's already a direct link, or use a preferred gateway
-            } else if (metadataJsonUri.startsWith('ar://')) {
-                 metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
-            }
-            // Add similar handling for ipfs:// if needed:
-            // else if (metadataJsonUri.startsWith('ipfs://')) {
-            //   metadataJsonUri = `https://YOUR_PREFERRED_IPFS_GATEWAY/ipfs/${metadataJsonUri.substring(7)}`;
-            // }
-
-
-            console.log('Fetching metadata from URI:', metadataJsonUri);
-            const metadataResponse = await fetch(metadataJsonUri);
-
-            if (!metadataResponse.ok) {
-              console.error(`Failed to fetch metadata JSON from ${metadataJsonUri}. Status: ${metadataResponse.status}`);
-              throw new Error(`Failed to fetch metadata JSON: ${metadataResponse.statusText}`);
-            }
-            const metadataJson = await metadataResponse.json();
-            console.log('Fetched Metadata JSON:', metadataJson);
-
-            if (metadataJson.image) {
-              setMintedNftImageUri(metadataJson.image); // Set the image URI for display
-              console.log('Successfully set minted NFT image URI:', metadataJson.image);
-            } else {
-              console.warn('Image URI not found in metadata JSON.');
-              setMintedNftImageUri(null); // Fallback or keep previous fader
-            }
-          } else {
-            console.warn('Could not retrieve metadata URI for the minted NFT.');
-            setMintedNftImageUri(null);
+    if (mintTrulySuccessful) {
+      setMinted(true);
+      setError(null);
+      setLastMintedNftAddress(nftMintSigner.publicKey.toString());
+      try {
+        const asset = await fetchDigitalAsset(umi, nftMintSigner.publicKey);
+        if (asset?.metadata?.uri) {
+          let metadataJsonUri = asset.metadata.uri;
+          if (metadataJsonUri.startsWith('ar://')) {
+               metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
           }
-        } catch (metadataError) {
-          console.error('Failed to fetch metadata for minted NFT:', metadataError);
-          // Don't set the global error state from here, as the mint itself was successful.
-          // The UI will just not show the new image.
-          setMintedNftImageUri(null);
+          const metadataResponse = await fetch(metadataJsonUri);
+          if (!metadataResponse.ok) throw new Error('Failed to fetch metadata JSON');
+          const metadataJson = await metadataResponse.json();
+          if (metadataJson.image) setMintedNftImageUri(metadataJson.image);
         }
-        // --- END FETCH METADATA ---
-      } else {
-        // If not truly successful, ensure an error message is set (if not already)
-        // and minted is false.
-        if (!error && !result.value.err) { // if 'error' state is not already set by a top-level error or the getAccount check
-             setError(uiErrorMessage); // Set the specific message from the getAccount check
-        }
-        setMinted(false);
+      } catch (metadataError) {
+        console.error('Failed to fetch metadata for minted NFT:', metadataError);
         setMintedNftImageUri(null);
       }
-    } catch (mintError) {
-      // This catches JS errors in the try block or if sendAndConfirm itself throws badly
-      console.error('Mint error - JavaScript error or pre-send failure:', mintError);
-      let friendlyMessage = `Minting failed: ${mintError.message || mintError.toString()}`;
-      // Add a more user-friendly message for common rejection errors
-      if (mintError.name === 'WalletSendTransactionError') {
-            friendlyMessage = "Transaction rejected by user in wallet.";
-      }
-      setError(friendlyMessage);
+    } else {
+      setError(uiErrorMessage);
       setMinted(false);
-      setMintedNftImageUri(null); 
-    } finally {
-      setMinting(false);
+      setMintedNftImageUri(null);
     }
-  }, [umi, candyMachine, collectionMint, connection, sendTransaction]);
+  } catch (error) {
+    console.error('Mint error - A JavaScript or wallet error occurred:', error);
+    let friendlyMessage = `Minting failed: ${error.message || 'An unknown error occurred.'}`;
+    if (error.name === 'WalletSendTransactionError' || error.name.includes('UserDenied')) {
+      friendlyMessage = "Transaction rejected by user in wallet.";
+    }
+    setError(friendlyMessage);
+    setMinted(false);
+    setMintedNftImageUri(null); 
+  } finally {
+    setMinting(false);
+  }
+}, [umi, wallet, candyMachine, collectionMint, connection, sendTransaction]);
 
   // --- UI Rendering ---
   return (
@@ -513,7 +376,7 @@ export default function Intro() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      
+      <HelloBar/>
       <div className='s-hero'>
         <main>
           <div className='u-flex u-flex1 l-leftCol'>
@@ -537,7 +400,7 @@ export default function Intro() {
                 </p>
                 <p style={{fontSize:'.85em'}}>
                   <br/> This is a self-funded indie passion project by a solo creator. 
-                  <br/> Every mint fuels the continued growth of the MZT Warriors universe. 
+                  <br/> Every mint &amp; purchase  fuels the continued growth of the MZT Warriors universe. 
                   <br/>
                   <div style={{marginTop: '6px'}}>
                     <span style={{color:"red"}}>*</span>
@@ -545,11 +408,14 @@ export default function Intro() {
                   </div>
                   <em style={{fontWeight:'bold', marginTop: '0px', color:'#092e4d'}}>No promises — only pixels.</em> 
                 </p>
-                {/* Discord Integration */}
-                <div style={{ textAlign: 'center', marginTop: '0' }}>
+                <div style={{ display: 'flex', textAlign: 'center', marginTop: '0', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Discord */}
                   <a href="https://discord.gg/3uXnWZEfgR" target="_blank" rel="noopener noreferrer" className="discord-button" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
                     <svg xmlns="http://www.w3.org/2000/svg" style={{marginRight: '5px'}} width="30" viewBox="0 0 640 512" fill="#5865f2"><path d="M524.5 69.8a1.5 1.5 0 0 0 -.8-.7A485.1 485.1 0 0 0 404.1 32a1.8 1.8 0 0 0 -1.9 .9 337.5 337.5 0 0 0 -14.9 30.6 447.8 447.8 0 0 0 -134.4 0 309.5 309.5 0 0 0 -15.1-30.6 1.9 1.9 0 0 0 -1.9-.9A483.7 483.7 0 0 0 116.1 69.1a1.7 1.7 0 0 0 -.8 .7C39.1 183.7 18.2 294.7 28.4 404.4a2 2 0 0 0 .8 1.4A487.7 487.7 0 0 0 176 479.9a1.9 1.9 0 0 0 2.1-.7A348.2 348.2 0 0 0 208.1 430.4a1.9 1.9 0 0 0 -1-2.6 321.2 321.2 0 0 1 -45.9-21.9 1.9 1.9 0 0 1 -.2-3.1c3.1-2.3 6.2-4.7 9.1-7.1a1.8 1.8 0 0 1 1.9-.3c96.2 43.9 200.4 43.9 295.5 0a1.8 1.8 0 0 1 1.9 .2c2.9 2.4 6 4.9 9.1 7.2a1.9 1.9 0 0 1 -.2 3.1 301.4 301.4 0 0 1 -45.9 21.8 1.9 1.9 0 0 0 -1 2.6 391.1 391.1 0 0 0 30 48.8 1.9 1.9 0 0 0 2.1 .7A486 486 0 0 0 610.7 405.7a1.9 1.9 0 0 0 .8-1.4C623.7 277.6 590.9 167.5 524.5 69.8zM222.5 337.6c-29 0-52.8-26.6-52.8-59.2S193.1 219.1 222.5 219.1c29.7 0 53.3 26.8 52.8 59.2C275.3 311 251.9 337.6 222.5 337.6zm195.4 0c-29 0-52.8-26.6-52.8-59.2S388.4 219.1 417.9 219.1c29.7 0 53.3 26.8 52.8 59.2C470.7 311 447.5 337.6 417.9 337.6z"></path></svg>
-                    <span>Join our *new* Discord Community</span>
+                  </a>
+                  {/* Twitter */}
+                  <a href="https://x.com/mztwarriors" target="_blank" rel="noopener noreferrer" className="discord-button" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" fill="#5865f2"><path d="M453.2 112L523.8 112L369.6 288.2L551 528L409 528L297.7 382.6L170.5 528L99.8 528L264.7 339.5L90.8 112L236.4 112L336.9 244.9L453.2 112zM428.4 485.8L467.5 485.8L215.1 152L173.1 152L428.4 485.8z"/></svg>
                   </a>
                 </div>
               </div>
@@ -617,7 +483,7 @@ export default function Intro() {
                             const solAmount = Number(lamportsBigInt) / (10 ** decimals); 
                             
                             // Format to a few decimal places (e.g., 2 or 4). 0.25 SOL is common.
-                            priceMintString = `${solAmount.toFixed(1)} SOL`; 
+                            priceMintString = `${solAmount.toFixed(2)} SOL`; 
                           } else {
                             console.warn("solPayment lamports.basisPoints is not a bigint:", solPaymentGuard.lamports);
                             priceMintString = "Error fetching price";

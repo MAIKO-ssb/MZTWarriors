@@ -1,3 +1,4 @@
+import '../styles/globals.css';
 import '../sass/site.scss';
 import { useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
@@ -54,9 +55,3 @@ function MyApp({ Component, pageProps }) {
 }
 
 export default MyApp;
-
-  // GlowWalletAdapter,
-  // SlopeWalletAdapter,
-  //   BackpackWalletAdapter,
-  // // BraveWalletAdapter,
-  //   ExodusWalletAdapter,
