@@ -11,7 +11,10 @@ export default function HelloBar() {
     paddingLeft: '1rem', // px-4
     paddingRight: '1rem', // px-4
     textAlign: 'center',
+    marginBottom: '1.5rem',
     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', // shadow-lg
+    background: 'url("/img/forest-bg-pattern2.png")',
+    borderBottom: '2px solid #0e2c1c'
   };
 
   const containerStyle = {

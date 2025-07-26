@@ -498,8 +498,9 @@ try {
             <div style={{ marginTop: '20px', textAlign: 'center' }}>
               <button>MINT COMING SOON</button>
             </div>
+            
             {/* MINT BUTTON AND WALLET CONNECTION */}
-            {/* {web3JsWalletPublicKey ? (
+            {web3JsWalletPublicKey ? (
               <div style={{ marginTop: '20px', textAlign: 'center' }}>
                 <WalletMultiButton />              
                 <p style={{ marginBottom: '10px', color: 'white',  wordBreak: 'break-all', overflowWrap: 'anywhere'}}>
@@ -598,8 +599,7 @@ try {
                 <WalletMultiButton />
                 <p style={{ color: 'white', marginTop: '10px' }}>Connect your Solana wallet to mint a Warrior.</p>
               </div>
-            )} */}
-
+            )}
             
             <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
               <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
