@@ -138,13 +138,13 @@ export default function LoreContent() {
         {/* The Untamed Depths and Dangers Section (Combined) */}
         <section className="mb-12">
           <h2 className="section-heading" style={{marginTop: "1em"}}>
-            The Untamed Depths of the Forest: Dangers and Rewards
+            The Untamed Depths of the Manzanita Forest
           </h2>
           <p className="section-paragraph">
-            But only the boldest dare venture into the untamed depths of the Manzanita Forest. Beyond the familiar paths and sun-dappled clearings lies a realm shrouded in shadow and mystery. Here, the air hangs heavy with ancient secrets, and every rustle of leaves could signify either a hidden treasure or a lurking threat.
+            Only the boldest dare to venture into the untamed depths of the Manzanita Forest. Beyond the familiar trails and sunlit clearings lies a realm cloaked in shadow and mystery. The air is thick with ancient secrets, and every rustle of leaves might signal hidden treasure—or a lurking threat.
           </p>
           <p className="section-paragraph">
-            In these perilous lands, fearsome creatures lurk, their eyes glowing in the gloom, guarding territories untouched by the Manzanita Tribe. Hidden dungeons await, labyrinthine passages filled with traps, puzzles, and the echoes of forgotten civilizations... and ancient loot whispers only to those brave enough to seek it — artifacts of immense power, shimmering with forgotten magic, waiting to be claimed by true heroes.
+            In these wild lands, fearsome creatures lurk—eyes glowing in the gloom, guarding territories untouched by the Manzanita Tribe. Hidden dungeons await: labyrinthine passages filled with traps, puzzles, and echoes of ancient tribes that once walked these lands... And deep within, ancient loot whispers to those bold enough to seek it—artifacts of immense power, shimmering with lost magic, waiting to be claimed by true heroes.
           </p>
         </section>
 
