@@ -237,7 +237,6 @@ export default function Intro() {
   // **STEP 3: Implement the MINT function**
 const handleMint = useCallback(async () => {
   console.log("Mint button clicked!");
-  console.log("Phantom Fix Deployment - Adding Priority Fee");
 
   if (!umi || !wallet || !candyMachine || !candyMachine.candyGuard || !collectionMint) {
     setError('Minting prerequisites not met. Please ensure your wallet is connected and the page has fully loaded.');
@@ -264,9 +263,8 @@ const handleMint = useCallback(async () => {
 
     // --- MAIN CHANGE IS HERE ---
     const transaction = transactionBuilder()
-      .add(setComputeUnitLimit(umi, { units: 1_400_000 })) 
-      // Add a priority fee to prevent the transaction from being dropped.
-      .add(setComputeUnitPrice(umi, { microLamports: 500000 })) 
+      .add(setComputeUnitLimit(umi, { units: 1_000_000 })) 
+      .add(setComputeUnitPrice(umi, { microLamports: 1_500_000 })) // Add a priority fee to prevent the transaction from being dropped.
       .add(
         mintV2(umi, {
           candyMachine: candyMachine.publicKey,
@@ -286,33 +284,75 @@ const handleMint = useCallback(async () => {
     const unsignedTx = transaction.build(umi);
     const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
 
+try {
+  const { value: simulationResult } = await connection.simulateTransaction(web3jsTransaction, { commitment: 'processed' });
+  
+  // Check if the simulation itself returned an error
+  if (simulationResult.err) {
+      console.error("❌ Simulation Failed:", simulationResult.err);
+      console.log("📜 Simulation Logs:", simulationResult.logs);
+      setError("Minting failed during pre-check. See browser console for details.");
+      setMinting(false);
+      return; // Stop the minting process here
+  }
+
+  console.log("✅ Simulation successful.");
+  // Optional: You can review the logs for any warnings even on success
+  // console.log("📜 Simulation Logs:", simulationResult.logs);
+
+} catch (simError) {
+  console.error("An error occurred during the simulation API call:", simError);
+  setError("Failed to simulate the transaction. Check browser console.");
+  setMinting(false);
+  return;
+}
+
     console.log("Sending transaction with priority fee...");
-    const signature = await sendTransaction(web3jsTransaction, connection, {
-      skipPreflight: true
-    });
+    const signature = await sendTransaction(web3jsTransaction, connection, { maxRetries: 5 });
+
     console.log("Transaction confirmed by wallet adapter! Signature:", signature);
 
-    // Polling for the transaction result
-    console.log('Polling for transaction details...');
-    let txResult = null;
-    let attempts = 0;
-    const maxAttempts = 20;
-    const delay = 1000;
+      // NEW: Use the robust confirmTransaction method from web3.js
+    console.log("Confirming transaction on-chain... This may take a moment. ⏳");
 
-    while (attempts < maxAttempts) {
-      txResult = await connection.getTransaction(signature, {
-        commitment: 'finalized',
-        maxSupportedTransactionVersion: 0
-      });
-      if (txResult) break;
-      attempts++;
-      await new Promise(resolve => setTimeout(resolve, delay));
+    // This object contains the necessary details for the confirmation function
+    const confirmStrategy = {
+        signature,
+        blockhash: latestBlockhash.blockhash, // You already fetched this!
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    };
+
+    const confirmation = await connection.confirmTransaction(confirmStrategy, 'confirmed');
+
+    // Check for on-chain errors
+    if (confirmation.value.err) {
+        console.error("On-chain transaction error:", confirmation.value.err);
+        throw new Error(`Minting failed: An on-chain error occurred.`);
     }
 
-    console.log('Fetched transaction details:', txResult);
+    // If we get here, the transaction is confirmed!
+    console.log('Transaction successfully confirmed and finalized! ✅');
+    const txResult = await connection.getTransaction(signature, {
+        commitment: 'finalized',
+        maxSupportedTransactionVersion: 0
+    });
 
-    // Final result handling
-    let mintTrulySuccessful = false;
+    console.log('Fetched transaction details:', txResult);
+    let mintTrulySuccessful = txResult && !txResult.meta.err;
+
+    if (mintTrulySuccessful) {
+      // ... (Your existing success logic)
+      setMinted(true);
+      setError(null);
+      setLastMintedNftAddress(nftMintSigner.publicKey.toString());
+      // ... (the rest of your fetchDigitalAsset logic)
+    } else {
+      // This case should be rare now, but it's good to keep
+      setError("Minting failed: The transaction was confirmed but failed to execute properly.");
+      setMinted(false);
+      setMintedNftImageUri(null);
+    }
+
     let uiErrorMessage = "Minting failed. Please check the console for details.";
 
     if (!txResult) {
@@ -356,9 +396,13 @@ const handleMint = useCallback(async () => {
   } catch (error) {
     console.error('Mint error - A JavaScript or wallet error occurred:', error);
     let friendlyMessage = `Minting failed: ${error.message || 'An unknown error occurred.'}`;
-    if (error.name === 'WalletSendTransactionError' || error.name.includes('UserDenied')) {
+    
+    if (error.name === 'WalletSendTransactionError' || error.name?.includes('UserDenied')) {
       friendlyMessage = "Transaction rejected by user in wallet.";
+    } else if (error.name === 'TransactionExpiredBlockheightExceededError' || error.message.includes('expired')) {
+      friendlyMessage = "Minting failed: Your transaction expired. This can happen during heavy network traffic. Please try again.";
     }
+  
     setError(friendlyMessage);
     setMinted(false);
     setMintedNftImageUri(null); 
@@ -402,19 +446,19 @@ const handleMint = useCallback(async () => {
                   <br/> This is a self-funded indie passion project by a solo creator. 
                   <br/> Every mint &amp; purchase  fuels the continued growth of the MZT Warriors universe. 
                   <br/>
-                  <div style={{marginTop: '6px'}}>
-                    <span style={{color:"red"}}>*</span>
-                    <em style={{color:"#ff0203"}}>Not a financial investment.</em> 
-                  </div>
-                  <em style={{fontWeight:'bold', marginTop: '0px', color:'#092e4d'}}>No promises — only pixels.</em> 
                 </p>
-                <div style={{ display: 'flex', textAlign: 'center', marginTop: '0', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{marginTop: '6px'}}>
+                  <span style={{color:"red"}}>*</span>
+                  <em style={{color:"#ff0203"}}>Not a financial investment.</em> 
+                </div>
+                <em style={{fontWeight:'bold', marginTop: '0px', color:'#092e4d'}}>No promises — only pixels.</em> 
+                <div style={{display: 'flex', alignItems:'center', justifyContent:'center'}}>
                   {/* Discord */}
-                  <a href="https://discord.gg/3uXnWZEfgR" target="_blank" rel="noopener noreferrer" className="discord-button" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
+                  <a href="https://discord.gg/3uXnWZEfgR" target="_blank" rel="noopener noreferrer" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
                     <svg xmlns="http://www.w3.org/2000/svg" style={{marginRight: '5px'}} width="30" viewBox="0 0 640 512" fill="#5865f2"><path d="M524.5 69.8a1.5 1.5 0 0 0 -.8-.7A485.1 485.1 0 0 0 404.1 32a1.8 1.8 0 0 0 -1.9 .9 337.5 337.5 0 0 0 -14.9 30.6 447.8 447.8 0 0 0 -134.4 0 309.5 309.5 0 0 0 -15.1-30.6 1.9 1.9 0 0 0 -1.9-.9A483.7 483.7 0 0 0 116.1 69.1a1.7 1.7 0 0 0 -.8 .7C39.1 183.7 18.2 294.7 28.4 404.4a2 2 0 0 0 .8 1.4A487.7 487.7 0 0 0 176 479.9a1.9 1.9 0 0 0 2.1-.7A348.2 348.2 0 0 0 208.1 430.4a1.9 1.9 0 0 0 -1-2.6 321.2 321.2 0 0 1 -45.9-21.9 1.9 1.9 0 0 1 -.2-3.1c3.1-2.3 6.2-4.7 9.1-7.1a1.8 1.8 0 0 1 1.9-.3c96.2 43.9 200.4 43.9 295.5 0a1.8 1.8 0 0 1 1.9 .2c2.9 2.4 6 4.9 9.1 7.2a1.9 1.9 0 0 1 -.2 3.1 301.4 301.4 0 0 1 -45.9 21.8 1.9 1.9 0 0 0 -1 2.6 391.1 391.1 0 0 0 30 48.8 1.9 1.9 0 0 0 2.1 .7A486 486 0 0 0 610.7 405.7a1.9 1.9 0 0 0 .8-1.4C623.7 277.6 590.9 167.5 524.5 69.8zM222.5 337.6c-29 0-52.8-26.6-52.8-59.2S193.1 219.1 222.5 219.1c29.7 0 53.3 26.8 52.8 59.2C275.3 311 251.9 337.6 222.5 337.6zm195.4 0c-29 0-52.8-26.6-52.8-59.2S388.4 219.1 417.9 219.1c29.7 0 53.3 26.8 52.8 59.2C470.7 311 447.5 337.6 417.9 337.6z"></path></svg>
                   </a>
                   {/* Twitter */}
-                  <a href="https://x.com/mztwarriors" target="_blank" rel="noopener noreferrer" className="discord-button" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
+                  <a href="https://x.com/mztwarriors" target="_blank" rel="noopener noreferrer" style={{display:'flex', alignItems:'center', justifyContent: 'center', color:'#6d79ff'}}>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="30" fill="#5865f2"><path d="M453.2 112L523.8 112L369.6 288.2L551 528L409 528L297.7 382.6L170.5 528L99.8 528L264.7 339.5L90.8 112L236.4 112L336.9 244.9L453.2 112zM428.4 485.8L467.5 485.8L215.1 152L173.1 152L428.4 485.8z"/></svg>
                   </a>
                 </div>
@@ -451,11 +495,14 @@ const handleMint = useCallback(async () => {
             ) : (
               <ImageFader images={faderImages} delay={3000} />
             )}
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <button>MINT COMING SOON</button>
+            </div>
             {/* MINT BUTTON AND WALLET CONNECTION */}
-            {web3JsWalletPublicKey ? (
+            {/* {web3JsWalletPublicKey ? (
               <div style={{ marginTop: '20px', textAlign: 'center' }}>
                 <WalletMultiButton />              
-                <p style={{ marginBottom: '10px', color: 'white' }}>
+                <p style={{ marginBottom: '10px', color: 'white',  wordBreak: 'break-all', overflowWrap: 'anywhere'}}>
                   Connected: {web3JsWalletPublicKey.toBase58()}
                 </p>
                 {umi && candyMachine ? (
@@ -551,7 +598,9 @@ const handleMint = useCallback(async () => {
                 <WalletMultiButton />
                 <p style={{ color: 'white', marginTop: '10px' }}>Connect your Solana wallet to mint a Warrior.</p>
               </div>
-            )}
+            )} */}
+
+
             <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
               <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
             </div>
