@@ -26,6 +26,7 @@ import Image from 'next/image';
 // Component UI
 import ImageFader from '../react-components/components/ImageFader';
 import HelloBar from '../react-components/components/HelloBar';
+import LoreContent from '../react-components/components/LoreContent';
 
 // *** CANDY MACHINE ***
 const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
@@ -611,6 +612,7 @@ try {
           Your browser does not support the video tag.
         </video>
       </div>
+      <LoreContent/>
     </div>
   )
 }
