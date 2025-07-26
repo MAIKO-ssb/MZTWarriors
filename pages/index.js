@@ -308,7 +308,7 @@ try {
 }
 
     console.log("Sending transaction with priority fee...");
-    const signature = await sendTransaction(web3jsTransaction, connection, { maxRetries: 5 });
+    const signature = await sendTransaction(web3jsTransaction, connection, { skipPreflight: true, maxRetries: 5 });
 
     console.log("Transaction confirmed by wallet adapter! Signature:", signature);
 
@@ -499,7 +499,7 @@ try {
               <button>MINT COMING SOON</button>
             </div>
             {/* MINT BUTTON AND WALLET CONNECTION */}
-            {/* {web3JsWalletPublicKey ? (
+            {web3JsWalletPublicKey ? (
               <div style={{ marginTop: '20px', textAlign: 'center' }}>
                 <WalletMultiButton />              
                 <p style={{ marginBottom: '10px', color: 'white',  wordBreak: 'break-all', overflowWrap: 'anywhere'}}>
@@ -598,9 +598,9 @@ try {
                 <WalletMultiButton />
                 <p style={{ color: 'white', marginTop: '10px' }}>Connect your Solana wallet to mint a Warrior.</p>
               </div>
-            )} */}
+            )}
 
-
+            
             <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
               <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
             </div>
