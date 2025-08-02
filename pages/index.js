@@ -2,22 +2,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 //METAPLEX & UMI
-import { createUmi, generateSigner, transactionBuilder, PublicKey as UmiPublicKey, some  } from '@metaplex-foundation/umi';
-import bs58 from 'bs58';
-import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { defaultPlugins } from '@metaplex-foundation/umi-bundle-defaults';
-import { mplToolbox } from '@metaplex-foundation/mpl-toolbox';
-import { PublicKey as Web3JsPublicKey } from '@solana/web3.js'; // Renamed for clarity
-import { fromWeb3JsPublicKey, toWeb3JsPublicKey, toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
-// import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js'; // // Likely not needed if defaultPlugins works for RPC
-import { fetchCandyMachine, mintV2, mplCandyMachine, safeFetchCandyGuard, CandyGuard as MplCandyGuard, CandyMachine as MplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'; // Import fetchCandyMachine
-import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
-import { setComputeUnitLimit, setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox';
-import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
+// import { createUmi, generateSigner, transactionBuilder, PublicKey as UmiPublicKey, some  } from '@metaplex-foundation/umi';
+// import bs58 from 'bs58';
+// import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+// import { defaultPlugins } from '@metaplex-foundation/umi-bundle-defaults';
+// import { mplToolbox } from '@metaplex-foundation/mpl-toolbox';
+// import { Transaction } from '@solana/web3.js'; // Renamed for clarity
+// import { PublicKey as Web3JsPublicKey } from '@solana/web3.js'; // Renamed for clarity
+// import { fromWeb3JsPublicKey, toWeb3JsPublicKey, toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
+// import { fetchCandyMachine, mintV2, mplCandyMachine, safeFetchCandyGuard, CandyGuard as MplCandyGuard, CandyMachine as MplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'; // Import fetchCandyMachine
+// import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+// import { setComputeUnitLimit, setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox';
+// import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 
 // Import Wallet Stuff
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+// import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 // Next.js UI
 import Head from 'next/head';
@@ -27,12 +27,14 @@ import Image from 'next/image';
 import ImageFader from '../react-components/components/ImageFader';
 import HelloBar from '../react-components/components/HelloBar';
 import LoreContent from '../react-components/components/LoreContent';
+import MintButton from '../react-components/components/MintButton';
 
 // *** CANDY MACHINE ***
-const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
-const CANDY_MACHINE_ID = new Web3JsPublicKey(CANDY_MACHINE_ID_STRING);
-const COLLECTION_MINT_ID_STRING = '3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8';
+// const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
+// const CANDY_MACHINE_ID = new Web3JsPublicKey(CANDY_MACHINE_ID_STRING);
+// const COLLECTION_MINT_ID_STRING = '3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8';
 
+// FADER IMAGES
 const faderImages = [
   '/img/nft-preview/98.png',
   '/img/nft-preview/783.png',
@@ -58,359 +60,469 @@ const faderImages = [
   '/img/nft-preview/831.png',
 ]
 
+// function shuffleArray(array) {
+//   let currentIndex = array.length, randomIndex;
+
+//   // While there remain elements to shuffle.
+//   while (currentIndex !== 0) {
+
+//     // Pick a remaining element.
+//     randomIndex = Math.floor(Math.random() * currentIndex);
+//     currentIndex--;
+
+//     // And swap it with the current element.
+//     [array[currentIndex], array[randomIndex]] = [
+//       array[randomIndex], array[currentIndex]];
+//   }
+
+//   return array;
+// }
+
+// const randomizedFaderImages = shuffleArray([...faderImages]); // Create a shallow copy to avoid modifying the original array
+
 export default function Intro() {
   // State variables
-  const { wallet, publicKey: web3JsWalletPublicKey, sendTransaction } = useWallet(); // Destructure wallet and publicKey
-  const { connection } = useConnection();
-  const [umi, setUmi] = useState(null);
-  const [candyMachine, setCandyMachine] = useState(null); // Will store { ...candyMachineData, candyGuard: candyGuardData }
+  // const { wallet, publicKey: web3JsWalletPublicKey, sendTransaction, signTransaction } = useWallet();
+  // const { connection } = useConnection();
+  // const [umi, setUmi] = useState(null);
+  // const [candyMachine, setCandyMachine] = useState(null); // Will store { ...candyMachineData, candyGuard: candyGuardData }
   const [minting, setMinting] = useState(false);
   const [minted, setMinted] = useState(false);
-  const [error, setError] = useState(null);
+  // const [error, setError] = useState(null);
   const [mintedNftImageUri, setMintedNftImageUri] = useState(null);
   const [lastMintedNftAddress, setLastMintedNftAddress] = useState(null);
+  // const [attempt, setAttempt] = useState(0);
+  // const maxRetries = 3;
 
   // **STEP 1: Initialize UMI instance using useEffect**
-  useEffect(() => {
-    console.log("--- UMI Effect Initialization ---");
-    if (connection && web3JsWalletPublicKey && wallet?.adapter) {
-      try {
-        console.log("Attempting to create UMI instance...");
-        console.log('Wallet Adapter available:', !!wallet.adapter);
-        console.log('Connection RPC endpoint:', connection.rpcEndpoint);
-        console.log('Wallet PublicKey (Web3.js):', web3JsWalletPublicKey.toBase58());
+  // useEffect(() => {
+  //   console.log("--- UMI Effect Initialization ---");
+  //   if (connection && web3JsWalletPublicKey && wallet?.adapter) {
+  //     try {
+  //       console.log("Attempting to create UMI instance...");
+  //       console.log('Wallet Adapter available:', !!wallet.adapter);
+  //       console.log('Connection RPC endpoint:', connection.rpcEndpoint);
+  //       console.log('Wallet PublicKey (Web3.js):', web3JsWalletPublicKey.toBase58());
 
 
-        if (typeof mplTokenMetadata !== 'function') {
-          console.error('mplTokenMetadata is not loaded as a function. Type:', typeof mplTokenMetadata);
-          setError('Failed to initialize UMI: mplTokenMetadata plugin could not be loaded correctly.');
-          setUmi(null);
-          return; // Prevent further execution if a plugin is not loaded
-        }
-        if (typeof mplCandyMachine !== 'function') {
-          console.error('mplCandyMachine is not loaded as a function. Type:', typeof mplCandyMachine);
-          setError('Failed to initialize UMI: mplCandyMachine plugin could not be loaded correctly.');
-          setUmi(null);
-          return; // Prevent further execution
-        }
-        if (typeof mplToolbox !== 'function') { // <<--- 2. ADD THIS CHECK
-          console.error('mplToolbox is not loaded as a function. Type:', typeof mplToolbox);
-          setError('Failed to initialize UMI: mplToolbox plugin could not be loaded correctly.');
-          setUmi(null);
-          return;
-        }
-        if (typeof walletAdapterIdentity !== 'function') { // <<--- ADD CHECK FOR walletAdapterIdentity
-            console.error('walletAdapterIdentity is not loaded as a function. Type:', typeof walletAdapterIdentity);
-            setError('Failed to initialize UMI: walletAdapterIdentity plugin could not be loaded correctly.');
-            setUmi(null);
-            return;
-        }
+  //       if (typeof mplTokenMetadata !== 'function') {
+  //         console.error('mplTokenMetadata is not loaded as a function. Type:', typeof mplTokenMetadata);
+  //         setError('Failed to initialize UMI: mplTokenMetadata plugin could not be loaded correctly.');
+  //         setUmi(null);
+  //         return; // Prevent further execution if a plugin is not loaded
+  //       }
+  //       if (typeof mplCandyMachine !== 'function') {
+  //         console.error('mplCandyMachine is not loaded as a function. Type:', typeof mplCandyMachine);
+  //         setError('Failed to initialize UMI: mplCandyMachine plugin could not be loaded correctly.');
+  //         setUmi(null);
+  //         return; // Prevent further execution
+  //       }
+  //       if (typeof mplToolbox !== 'function') { // <<--- 2. ADD THIS CHECK
+  //         console.error('mplToolbox is not loaded as a function. Type:', typeof mplToolbox);
+  //         setError('Failed to initialize UMI: mplToolbox plugin could not be loaded correctly.');
+  //         setUmi(null);
+  //         return;
+  //       }
+  //       if (typeof walletAdapterIdentity !== 'function') { // <<--- ADD CHECK FOR walletAdapterIdentity
+  //           console.error('walletAdapterIdentity is not loaded as a function. Type:', typeof walletAdapterIdentity);
+  //           setError('Failed to initialize UMI: walletAdapterIdentity plugin could not be loaded correctly.');
+  //           setUmi(null);
+  //           return;
+  //       }
 
-        const umiInstance = createUmi()
-          // Use defaultPlugins, providing the RPC endpoint from your connection.
-          // This should set up the RPC interface and mplToolbox (which provides ProgramRepositoryInterface).
-          .use(defaultPlugins(connection.rpcEndpoint))
-          .use(mplToolbox())
-          // Set the signer identity using your wallet adapter.
-          .use(walletAdapterIdentity(wallet.adapter))
-          // Install the Token Metadata plugin.
-          .use(mplTokenMetadata())
-          // Install the Candy Machine plugin.
-          .use(mplCandyMachine());
+  //       const umiInstance = createUmi()
+  //         // Use defaultPlugins, providing the RPC endpoint from your connection.
+  //         // This should set up the RPC interface and mplToolbox (which provides ProgramRepositoryInterface).
+  //         .use(defaultPlugins(connection.rpcEndpoint))
+  //         .use(mplToolbox())
+  //         // Set the signer identity using your wallet adapter.
+  //         .use(walletAdapterIdentity(wallet.adapter))
+  //         // Install the Token Metadata plugin.
+  //         .use(mplTokenMetadata())
+  //         // Install the Candy Machine plugin.
+  //         .use(mplCandyMachine());
 
-        console.log("UMI instance successfully created:", umiInstance);
-        // It's good practice to check if identity got set, though it might happen asynchronously
-        // depending on wallet auto-connection.
-        if (umiInstance.identity?.publicKey) {
-          console.log("UMI Identity Public Key (Umi):", umiInstance.identity.publicKey.toString());
-        } else {
-          console.warn("UMI Identity not immediately set. This might be due to wallet connection timing.");
-        }
-        setUmi(umiInstance);
-        setError(null);
+  //       console.log("UMI instance successfully created:", umiInstance);
+  //       // It's good practice to check if identity got set, though it might happen asynchronously
+  //       // depending on wallet auto-connection.
+  //       if (umiInstance.identity?.publicKey) {
+  //         console.log("UMI Identity Public Key (Umi):", umiInstance.identity.publicKey.toString());
+  //       } else {
+  //         console.warn("UMI Identity not immediately set. This might be due to wallet connection timing.");
+  //       }
+  //       setUmi(umiInstance);
+  //       setError(null);
 
-      } catch (e) {
-          console.error("Error initializing UMI (in effect):", e);
-          const errorMessage = e instanceof Error ? e.message : String(e);
-          // UMI errors often have a 'cause' property with more details
-          if (e.cause) {
-            console.error("Underlying cause:", e.cause);
-          }
-          setError(`Failed to initialize UMI: ${errorMessage}`);
-          setUmi(null);
-        }
-    } else {
-       // Log which specific conditions are not met
-      let missingParts = [];
-      if (!connection) missingParts.push("Solana connection");
-      if (!web3JsWalletPublicKey) missingParts.push("wallet public key");
-      if (!wallet?.adapter) missingParts.push("wallet adapter");
-      console.log(`UMI effect initialization conditions not met. Missing: ${missingParts.join(', ')}.`);
-      setUmi(null); // Reset UMI if conditions are not met
-    }
-  }, [connection, web3JsWalletPublicKey, wallet, wallet?.adapter]);
+  //     } catch (e) {
+  //         console.error("Error initializing UMI (in effect):", e);
+  //         const errorMessage = e instanceof Error ? e.message : String(e);
+  //         // UMI errors often have a 'cause' property with more details
+  //         if (e.cause) {
+  //           console.error("Underlying cause:", e.cause);
+  //         }
+  //         setError(`Failed to initialize UMI: ${errorMessage}`);
+  //         setUmi(null);
+  //       }
+  //   } else {
+  //      // Log which specific conditions are not met
+  //     let missingParts = [];
+  //     if (!connection) missingParts.push("Solana connection");
+  //     if (!web3JsWalletPublicKey) missingParts.push("wallet public key");
+  //     if (!wallet?.adapter) missingParts.push("wallet adapter");
+  //     console.log(`UMI effect initialization conditions not met. Missing: ${missingParts.join(', ')}.`);
+  //     setUmi(null); // Reset UMI if conditions are not met
+  //   }
+  // }, [connection, web3JsWalletPublicKey, wallet, wallet?.adapter]);
   
   // **STEP 2: Fetch Candy Machine and Guard data**
-  useEffect(() => {
-    if (!umi) {
-      console.log("UMI is not initialized. Cannot fetch Candy Machine.");
-      // Ensure candyMachine state is cleared if UMI is lost
-      if (candyMachine) setCandyMachine(null);
-      return;
-    }
+  // useEffect(() => {
+  //   if (!umi) {
+  //     console.log("UMI is not initialized. Cannot fetch Candy Machine.");
+  //     // Ensure candyMachine state is cleared if UMI is lost
+  //     if (candyMachine) setCandyMachine(null);
+  //     return;
+  //   }
 
-    const candyMachineAddressUmi = fromWeb3JsPublicKey(CANDY_MACHINE_ID);
-    console.log(`Attempting to fetch Candy Machine: ${CANDY_MACHINE_ID_STRING} (Umi Pk: ${candyMachineAddressUmi})`);
+  //   const candyMachineAddressUmi = fromWeb3JsPublicKey(CANDY_MACHINE_ID);
+  //   console.log(`Attempting to fetch Candy Machine: ${CANDY_MACHINE_ID_STRING} (Umi Pk: ${candyMachineAddressUmi})`);
 
-    const fetchCMData = async () => {
-      setError(null); // Clear previous errors
-      try {
-        // Fetch the Candy Machine account.
-        // mplCandyMachine plugin should register the GpaBuilder for CandyMachine and CandyGuard.
-        const fetchedCm = await fetchCandyMachine(umi, candyMachineAddressUmi);
-        console.log("Fetched Candy Machine (UMI):", fetchedCm);
+  //   const fetchCMData = async () => {
+  //     setError(null); // Clear previous errors
+  //     try {
+  //       // Fetch the Candy Machine account.
+  //       // mplCandyMachine plugin should register the GpaBuilder for CandyMachine and CandyGuard.
+  //       const fetchedCm = await fetchCandyMachine(umi, candyMachineAddressUmi);
+  //       console.log("Fetched Candy Machine (UMI):", fetchedCm);
 
-        if (!fetchedCm || !fetchedCm.mintAuthority) {
-          console.error("Failed to fetch Candy Machine or it has no mintAuthority (guard address).");
-          setError('Failed to load Candy Machine data or guard address missing.');
-          setCandyMachine(null);
-          return;
-        }
+  //       if (!fetchedCm || !fetchedCm.mintAuthority) {
+  //         console.error("Failed to fetch Candy Machine or it has no mintAuthority (guard address).");
+  //         setError('Failed to load Candy Machine data or guard address missing.');
+  //         setCandyMachine(null);
+  //         return;
+  //       }
         
-        // The mintAuthority of the CandyMachine IS the CandyGuard address.
-        const candyGuardAddress = fetchedCm.mintAuthority;
-        console.log(`Candy Machine's mintAuthority (Candy Guard Address): ${candyGuardAddress.toString()}`);
+  //       // The mintAuthority of the CandyMachine IS the CandyGuard address.
+  //       const candyGuardAddress = fetchedCm.mintAuthority;
+  //       console.log(`Candy Machine's mintAuthority (Candy Guard Address): ${candyGuardAddress.toString()}`);
 
-        // Fetch the Candy Guard account using its address.
-        // safeFetchCandyGuard will return null if not found, instead of throwing.
-        const fetchedCandyGuard = await safeFetchCandyGuard(umi, candyGuardAddress);
+  //       // Fetch the Candy Guard account using its address.
+  //       // safeFetchCandyGuard will return null if not found, instead of throwing.
+  //       const fetchedCandyGuard = await safeFetchCandyGuard(umi, candyGuardAddress);
         
-        if (!fetchedCandyGuard) {
-            console.error(`Candy Guard not found at address: ${candyGuardAddress.toString()}`);
-            setError(`Configuration error: Candy Guard not found for this Candy Machine.`);
-            // Set CM data without guard, or handle as critical error
-            setCandyMachine({ ...fetchedCm, candyGuard: null });
-            return;
-        }
-        console.log("Fetched Candy Guard (UMI):", fetchedCandyGuard);
-        // MODIFY THE LINE BELOW:
-        console.log("DETAILED GUARDS CONFIGURATION:", JSON.stringify(
-          fetchedCandyGuard.guards,
-          (key, value) => (typeof value === 'bigint' ? value.toString() : value), // This handles BigInts
-          2 // This is for pretty printing (2 spaces indentation)
-        ));
-        console.log('Candy Guard raw guards object:', fetchedCandyGuard.guards);
+  //       if (!fetchedCandyGuard) {
+  //           console.error(`Candy Guard not found at address: ${candyGuardAddress.toString()}`);
+  //           setError(`Configuration error: Candy Guard not found for this Candy Machine.`);
+  //           // Set CM data without guard, or handle as critical error
+  //           setCandyMachine({ ...fetchedCm, candyGuard: null });
+  //           return;
+  //       }
+  //       console.log("Fetched Candy Guard (UMI):", fetchedCandyGuard);
+  //       // MODIFY THE LINE BELOW:
+  //       console.log("DETAILED GUARDS CONFIGURATION:", JSON.stringify(
+  //         fetchedCandyGuard.guards,
+  //         (key, value) => (typeof value === 'bigint' ? value.toString() : value), // This handles BigInts
+  //         2 // This is for pretty printing (2 spaces indentation)
+  //       ));
+  //       console.log('Candy Guard raw guards object:', fetchedCandyGuard.guards);
 
-        // Combine Candy Machine and its Guard into one state object
-        setCandyMachine({ ...fetchedCm, candyGuard: fetchedCandyGuard });
+  //       // Combine Candy Machine and its Guard into one state object
+  //       setCandyMachine({ ...fetchedCm, candyGuard: fetchedCandyGuard });
 
-      } catch (fetchError) {
-        console.error('Error fetching Candy Machine or Guard (UMI):', fetchError);
-        let errorMessage = `Failed to load Candy Machine data: ${fetchError.message}`;
-        if (fetchError.name === 'AccountNotFoundError') {
-          errorMessage = `Error: Candy Machine account not found at ${CANDY_MACHINE_ID_STRING}. Double-check the address and network.`;
-        } else if (fetchError.message?.includes("Unable to find a GpaBuilder for the CandyMachine program")) {
-          errorMessage = "Error: UMI isn't configured correctly for CandyMachine. Check mplCandyMachine plugin.";
-        } else if (fetchError.message?.includes("Unable to find a GpaBuilder for the CandyGuard program")) {
-            errorMessage = "Error: UMI isn't configured correctly for CandyGuard. Ensure mplCandyMachine plugin is up-to-date.";
-        }
-        setError(errorMessage);
-        setCandyMachine(null);
-      }
-    };
+  //     } catch (fetchError) {
+  //       console.error('Error fetching Candy Machine or Guard (UMI):', fetchError);
+  //       let errorMessage = `Failed to load Candy Machine data: ${fetchError.message}`;
+  //       if (fetchError.name === 'AccountNotFoundError') {
+  //         errorMessage = `Error: Candy Machine account not found at ${CANDY_MACHINE_ID_STRING}. Double-check the address and network.`;
+  //       } else if (fetchError.message?.includes("Unable to find a GpaBuilder for the CandyMachine program")) {
+  //         errorMessage = "Error: UMI isn't configured correctly for CandyMachine. Check mplCandyMachine plugin.";
+  //       } else if (fetchError.message?.includes("Unable to find a GpaBuilder for the CandyGuard program")) {
+  //           errorMessage = "Error: UMI isn't configured correctly for CandyGuard. Ensure mplCandyMachine plugin is up-to-date.";
+  //       }
+  //       setError(errorMessage);
+  //       setCandyMachine(null);
+  //     }
+  //   };
 
-    fetchCMData();
-  }, [umi]);
+  //   fetchCMData();
+  // }, [umi]);
 
   // Your collectionMint PublicKey. Use useMemo for stability.
-  const collectionMint = useMemo(() => {
-    if (!umi) return null; // UMI must be initialized to create UMI PublicKeys
-    try {
-      // The publicKey constructor from UMI should be used if you are working within UMI context primarily
-      // However, you are converting from a web3.js public key string, so fromWeb3JsPublicKey is appropriate here.
-      return fromWeb3JsPublicKey(new Web3JsPublicKey(COLLECTION_MINT_ID_STRING)); //collectionMint PublicKey
-    } catch(e) {
-      console.error("Invalid Collection Mint Public Key string", e);
-      return null;
-    }
-  }, [umi]);
+  // const collectionMint = useMemo(() => {
+  //   if (!umi) return null; // UMI must be initialized to create UMI PublicKeys
+  //   try {
+  //     // The publicKey constructor from UMI should be used if you are working within UMI context primarily
+  //     // However, you are converting from a web3.js public key string, so fromWeb3JsPublicKey is appropriate here.
+  //     return fromWeb3JsPublicKey(new Web3JsPublicKey(COLLECTION_MINT_ID_STRING)); //collectionMint PublicKey
+  //   } catch(e) {
+  //     console.error("Invalid Collection Mint Public Key string", e);
+  //     return null;
+  //   }
+  // }, [umi]);
 
   // **STEP 3: Implement the MINT function**
-const handleMint = useCallback(async () => {
-  console.log("Mint button clicked!");
-
-  if (!umi || !wallet || !candyMachine || !candyMachine.candyGuard || !collectionMint) {
-    setError('Minting prerequisites not met. Please ensure your wallet is connected and the page has fully loaded.');
-    console.error('Mint aborted: UMI, Wallet, Candy Machine, or Collection Mint not available.');
-    return;
-  }
-
-  setMinting(true);
-  setError(null);
-  setMinted(false);
-
-  try {
-    const nftMintSigner = generateSigner(umi);
-    console.log("Generated NFT Mint Signer:", nftMintSigner.publicKey.toString());
-    
-    let mintArguments = {};
-    if (candyMachine.candyGuard.guards.solPayment?.__option === 'Some') {
-      const solPaymentGuard = candyMachine.candyGuard.guards.solPayment.value;
-      mintArguments.solPayment = some({ destination: solPaymentGuard.destination });
-    }
-
-    const latestBlockhash = await connection.getLatestBlockhash();
-    console.log("Transaction will use blockhash:", latestBlockhash.blockhash);
-
-    // --- MAIN CHANGE IS HERE ---
-    const transaction = transactionBuilder()
-      .add(setComputeUnitLimit(umi, { units: 1_000_000 })) 
-      .add(setComputeUnitPrice(umi, { microLamports: 1_500_000 })) // Add a priority fee to prevent the transaction from being dropped.
-      .add(
-        mintV2(umi, {
-          candyMachine: candyMachine.publicKey,
-          nftMint: nftMintSigner,
-          collectionMint: collectionMint,
-          collectionUpdateAuthority: candyMachine.authority,
-          candyGuard: candyMachine.candyGuard.publicKey,
-          group: (candyMachine.candyGuard.groups.length > 0 && candyMachine.candyGuard.groups[0].label !== "default") 
-                 ? some(candyMachine.candyGuard.groups[0].label)
-                 : undefined,
-          tokenStandard: TokenStandard.ProgrammableNonFungible,
-          mintArgs: mintArguments
-        })
-      )
-      .setBlockhash(latestBlockhash.blockhash);
-    
-    const unsignedTx = transaction.build(umi);
-    const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
-
-try {
-  const { value: simulationResult } = await connection.simulateTransaction(web3jsTransaction, { commitment: 'processed' });
+  // const handleMint = useCallback(async () => {
+  //   console.log("Mint button clicked!");
+  //   if (!umi || !wallet || !candyMachine || !candyMachine.candyGuard || !collectionMint || !signTransaction || !sendTransaction) {
+  //     setError('Minting prerequisites not met. Please ensure your wallet is connected and supports signAndSendTransaction.');
+  //     console.error('Mint aborted: UMI, Wallet, Candy Machine, Collection Mint, or transaction methods not available.');
+  //     setMinting(false);
+  //     return;
+  //   }
   
-  // Check if the simulation itself returned an error
-  if (simulationResult.err) {
-      console.error("❌ Simulation Failed:", simulationResult.err);
-      console.log("📜 Simulation Logs:", simulationResult.logs);
-      setError("Minting failed during pre-check. See browser console for details.");
-      setMinting(false);
-      return; // Stop the minting process here
-  }
-
-  console.log("✅ Simulation successful.");
-  // Optional: You can review the logs for any warnings even on success
-  // console.log("📜 Simulation Logs:", simulationResult.logs);
-
-} catch (simError) {
-  console.error("An error occurred during the simulation API call:", simError);
-  setError("Failed to simulate the transaction. Check browser console.");
-  setMinting(false);
-  return;
-}
-
-    console.log("Sending transaction with priority fee...");
-    const signature = await sendTransaction(web3jsTransaction, connection, { skipPreflight: true, maxRetries: 5 });
-
-    console.log("Transaction confirmed by wallet adapter! Signature:", signature);
-
-      // NEW: Use the robust confirmTransaction method from web3.js
-    console.log("Confirming transaction on-chain... This may take a moment. ⏳");
-
-    // This object contains the necessary details for the confirmation function
-    const confirmStrategy = {
-        signature,
-        blockhash: latestBlockhash.blockhash, // You already fetched this!
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-    };
-
-    const confirmation = await connection.confirmTransaction(confirmStrategy, 'confirmed');
-
-    // Check for on-chain errors
-    if (confirmation.value.err) {
-        console.error("On-chain transaction error:", confirmation.value.err);
-        throw new Error(`Minting failed: An on-chain error occurred.`);
-    }
-
-    // If we get here, the transaction is confirmed!
-    console.log('Transaction successfully confirmed and finalized! ✅');
-    const txResult = await connection.getTransaction(signature, {
-        commitment: 'finalized',
-        maxSupportedTransactionVersion: 0
-    });
-
-    console.log('Fetched transaction details:', txResult);
-    let mintTrulySuccessful = txResult && !txResult.meta.err;
-
-    if (mintTrulySuccessful) {
-      // ... (Your existing success logic)
-      setMinted(true);
-      setError(null);
-      setLastMintedNftAddress(nftMintSigner.publicKey.toString());
-      // ... (the rest of your fetchDigitalAsset logic)
-    } else {
-      // This case should be rare now, but it's good to keep
-      setError("Minting failed: The transaction was confirmed but failed to execute properly.");
-      setMinted(false);
-      setMintedNftImageUri(null);
-    }
-
-    let uiErrorMessage = "Minting failed. Please check the console for details.";
-
-    if (!txResult) {
-      uiErrorMessage = "Minting failed: Your transaction was sent but could not be confirmed on-chain. This can happen during heavy network traffic.";
-    } else if (txResult.meta?.err) {
-      console.error('On-chain transaction error:', txResult.meta.err);
-      uiErrorMessage = `Minting failed: An on-chain error occurred.`;
-      if (txResult.meta.logMessages?.some(log => log.includes("insufficient lamports"))) {
-        uiErrorMessage = "Minting failed: Insufficient SOL for transaction fees or mint cost.";
-      }
-    } else {
-      console.log('NFT Mint Account successfully created and transaction confirmed.');
-      mintTrulySuccessful = true;
-    }
-    
-    if (mintTrulySuccessful) {
-      setMinted(true);
-      setError(null);
-      setLastMintedNftAddress(nftMintSigner.publicKey.toString());
-      try {
-        const asset = await fetchDigitalAsset(umi, nftMintSigner.publicKey);
-        if (asset?.metadata?.uri) {
-          let metadataJsonUri = asset.metadata.uri;
-          if (metadataJsonUri.startsWith('ar://')) {
-               metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
-          }
-          const metadataResponse = await fetch(metadataJsonUri);
-          if (!metadataResponse.ok) throw new Error('Failed to fetch metadata JSON');
-          const metadataJson = await metadataResponse.json();
-          if (metadataJson.image) setMintedNftImageUri(metadataJson.image);
-        }
-      } catch (metadataError) {
-        console.error('Failed to fetch metadata for minted NFT:', metadataError);
-        setMintedNftImageUri(null);
-      }
-    } else {
-      setError(uiErrorMessage);
-      setMinted(false);
-      setMintedNftImageUri(null);
-    }
-  } catch (error) {
-    console.error('Mint error - A JavaScript or wallet error occurred:', error);
-    let friendlyMessage = `Minting failed: ${error.message || 'An unknown error occurred.'}`;
-    
-    if (error.name === 'WalletSendTransactionError' || error.name?.includes('UserDenied')) {
-      friendlyMessage = "Transaction rejected by user in wallet.";
-    } else if (error.name === 'TransactionExpiredBlockheightExceededError' || error.message.includes('expired')) {
-      friendlyMessage = "Minting failed: Your transaction expired. This can happen during heavy network traffic. Please try again.";
-    }
+  //   setMinting(true);
+  //   setError(null);
+  //   setMinted(false);
+  //   setAttempt(0);
   
-    setError(friendlyMessage);
-    setMinted(false);
-    setMintedNftImageUri(null); 
-  } finally {
-    setMinting(false);
-  }
-}, [umi, wallet, candyMachine, collectionMint, connection, sendTransaction]);
+  //   while (attempt < maxRetries) {
+  //     const startTime = Date.now();
+  //     setAttempt(prev => prev + 1);
+  //     console.log(`Mint attempt ${attempt + 1}/${maxRetries} started at ${new Date(startTime).toISOString()}`);
+  
+  //     let signature = 'unknown';
+  //     try {
+  //       // Check wallet balance
+  //       const balanceStart = Date.now();
+  //       const balance = await connection.getBalance(web3JsWalletPublicKey);
+  //       console.log(`getBalance took ${Date.now() - balanceStart}ms`);
+  //       const minBalance = candyMachine.candyGuard.guards.solPayment?.value?.lamports.basisPoints || 0;
+  //       const feeLamports = 0.03 * 1_000_000_000;
+  //       const requiredBalance = Number(minBalance) + feeLamports;
+  //       if (balance < requiredBalance) {
+  //         setError(`Insufficient SOL balance. Need ${(requiredBalance / 1_000_000_000).toFixed(6)} SOL, but wallet has ${(balance / 1_000_000_000).toFixed(6)} SOL.`);
+  //         setMinting(false);
+  //         return;
+  //       }
+  //       console.log(`Wallet balance: ${balance / 1_000_000_000} SOL, Required: ${requiredBalance / 1_000_000_000} SOL`);
+  
+  //       // Fetch recent prioritization fees
+  //       const feeStart = Date.now();
+  //       const recentFees = await connection.getRecentPrioritizationFees();
+  //       console.log(`getRecentPrioritizationFees took ${Date.now() - feeStart}ms`);
+  //       const avgFee = recentFees.length > 0
+  //         ? Math.max(...recentFees.map(f => f.prioritizationFee), 5000000) * 4
+  //         : 20000000;
+  //       console.log(`Using priority fee: ${avgFee} microLamports`);
+  
+  //       // Generate mint signer
+  //       const nftMintSigner = generateSigner(umi);
+  //       console.log("Generated NFT Mint Signer:", nftMintSigner.publicKey.toString());
+  
+  //       // Set mint arguments
+  //       let mintArguments = {};
+  //       if (candyMachine.candyGuard.guards.solPayment?.__option === 'Some') {
+  //         const solPaymentGuard = candyMachine.candyGuard.guards.solPayment.value;
+  //         mintArguments.solPayment = some({ destination: solPaymentGuard.destination });
+  //         console.log(`SolPayment Guard: ${Number(solPaymentGuard.lamports.basisPoints) / 1_000_000_000} SOL to ${solPaymentGuard.destination.toString()}`);
+  //       }
+  
+  //       // Fetch blockhash
+  //       const blockhashStart = Date.now();
+  //       const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+  //       console.log(`getLatestBlockhash took ${Date.now() - blockhashStart}ms`);
+  //       console.log("Transaction will use blockhash:", latestBlockhash.blockhash, "Last valid block height:", latestBlockhash.lastValidBlockHeight);
+  
+  //       // Check block height
+  //       const blockHeightStart = Date.now();
+  //       const blockHeight = await connection.getBlockHeight('confirmed');
+  //       console.log(`getBlockHeight took ${Date.now() - blockHeightStart}ms`);
+  //       console.log(`Current block height: ${blockHeight}`);
+  //       if (blockHeight >= latestBlockhash.lastValidBlockHeight - 100) {
+  //         console.warn(`Blockhash ${latestBlockhash.blockhash} is too close to expiration (block height ${blockHeight} vs ${latestBlockhash.lastValidBlockHeight}). Retrying...`);
+  //         await new Promise(resolve => setTimeout(resolve, 500));
+  //         continue;
+  //       }
+  
+  //       // Build transaction (force legacy)
+  //       const transaction = transactionBuilder()
+  //         .add(setComputeUnitLimit(umi, { units: 1_400_000 }))
+  //         .add(setComputeUnitPrice(umi, { microLamports: avgFee }))
+  //         .add(
+  //           mintV2(umi, {
+  //             candyMachine: candyMachine.publicKey,
+  //             nftMint: nftMintSigner,
+  //             collectionMint: collectionMint,
+  //             collectionUpdateAuthority: candyMachine.authority,
+  //             candyGuard: candyMachine.candyGuard.publicKey,
+  //             group: (candyMachine.candyGuard.groups.length > 0 && candyMachine.candyGuard.groups[0].label !== "default")
+  //               ? some(candyMachine.candyGuard.groups[0].label)
+  //               : undefined,
+  //             tokenStandard: TokenStandard.ProgrammableNonFungible,
+  //             mintArgs: mintArguments,
+  //           })
+  //         )
+  //         .setBlockhash(latestBlockhash.blockhash);
+  
+  //       const unsignedTx = transaction.build(umi);
+  //       const web3jsTransaction = toWeb3JsTransaction(unsignedTx);
+  //       web3jsTransaction.feePayer = web3JsWalletPublicKey;
+  //       web3jsTransaction.recentBlockhash = latestBlockhash.blockhash;
+  
+  //       // Log transaction type
+  //       console.log("Transaction type:", Object.prototype.toString.call(web3jsTransaction));
+  
+  //       // Log expected signers
+  //       console.log("Expected signers:", {
+  //         feePayer: web3JsWalletPublicKey.toBase58(),
+  //         nftMintSigner: nftMintSigner.publicKey.toString(),
+  //       });
+  
+  //       // Conditionally handle signing based on transaction type
+  //       const isLegacyTransaction = web3jsTransaction instanceof Transaction;
+  //       if (isLegacyTransaction) {
+  //         console.log("Partially signing legacy Transaction with nftMintSigner...");
+  //         const keypair = {
+  //           publicKey: toWeb3JsPublicKey(nftMintSigner.publicKey),
+  //           secretKey: nftMintSigner.secretKey,
+  //         };
+  //         web3jsTransaction.partialSign(keypair);
+  //       } else {
+  //         console.log("Skipping partial signing for non-legacy transaction (likely VersionedTransaction).");
+  //         // For VersionedTransaction, signing is handled by sendTransaction or requires sign() with Keypair array
+  //       }
+  
+  //       console.log(`Transaction built in ${Date.now() - startTime}ms`);
+  //       console.log("Transaction details:", {
+  //         feePayer: web3jsTransaction.feePayer.toBase58(),
+  //         recentBlockhash: web3jsTransaction.recentBlockhash,
+  //         version: web3jsTransaction.version || 'legacy',
+  //         signatures: web3jsTransaction.signatures ? web3jsTransaction.signatures.map((sig, i) => ({
+  //           index: i,
+  //           publicKey: sig.publicKey ? sig.publicKey.toBase58() : 'null',
+  //           signature: sig.signature ? bs58.encode(sig.signature) : 'null',
+  //         })) : 'No signatures array (VersionedTransaction)',
+  //       });
+  
+  //       // Simulate transaction without signature verification
+  //       const simStart = Date.now();
+  //       const { value: simulationResult } = await connection.simulateTransaction(web3jsTransaction, {
+  //         commitment: 'confirmed',
+  //         sigVerify: false,
+  //       });
+  //       console.log(`simulateTransaction took ${Date.now() - simStart}ms`);
+  //       if (simulationResult.err) {
+  //         console.error("❌ Simulation Failed:", simulationResult.err);
+  //         console.log("📜 Simulation Logs:", simulationResult.logs);
+  //         setError(`Minting failed during pre-check: ${JSON.stringify(simulationResult.err)}. Logs: ${JSON.stringify(simulationResult.logs || 'No logs available')}.`);
+  //         setMinting(false);
+  //         return;
+  //       }
+  //       console.log("✅ Simulation successful in", Date.now() - startTime, "ms");
+  
+  //       // Sign and send using sendTransaction
+  //       console.log("Signing and sending transaction with priority fee...");
+  //       const sendStart = Date.now();
+  //       signature = await sendTransaction(web3jsTransaction, connection, {
+  //         skipPreflight: false,
+  //         maxRetries: 2,
+  //         preflightCommitment: 'confirmed',
+  //       });
+  //       console.log(`sendTransaction took ${Date.now() - sendStart}ms`);
+  //       console.log("Transaction confirmed by wallet adapter! Signature:", signature, "Time:", Date.now() - startTime, "ms");
+  
+  //       // Confirm transaction
+  //       console.log("Confirming transaction on-chain...");
+  //       let confirmationStatus = null;
+  //       const confirmStart = Date.now();
+  //       for (let i = 0; i < 75; i++) {
+  //         const statusStart = Date.now();
+  //         const result = await connection.getSignatureStatuses([signature], { searchTransactionHistory: false });
+  //         console.log(`getSignatureStatuses (poll ${i + 1}) took ${Date.now() - statusStart}ms`, result.value[0]);
+  //         if (result.value[0] && result.value[0].confirmationStatus) {
+  //           confirmationStatus = result.value[0].confirmationStatus;
+  //           console.log(`Confirmation status (poll ${i + 1}): ${confirmationStatus}`);
+  //           if (confirmationStatus === 'confirmed' || confirmationStatus === 'finalized') {
+  //             break;
+  //           }
+  //         }
+  //         await new Promise(resolve => setTimeout(resolve, 400));
+  //       }
+  //       console.log(`Confirmation polling took ${Date.now() - confirmStart}ms`);
+  
+  //       if (!confirmationStatus || confirmationStatus === 'recent') {
+  //         console.error("On-chain confirmation timeout");
+  //         throw new Error(`Minting failed: Transaction could not be confirmed in time. Signature: ${signature}`);
+  //       }
+  
+  //       // Verify finalization
+  //       console.log("Verifying transaction finalization...");
+  //       const finalConfirmStart = Date.now();
+  //       const finalConfirmation = await connection.getSignatureStatuses([signature], { searchTransactionHistory: false });
+  //       console.log(`Final getSignatureStatuses took ${Date.now() - finalConfirmStart}ms`, finalConfirmation.value[0]);
+  //       if (!finalConfirmation.value[0] || finalConfirmation.value[0].confirmationStatus !== 'finalized' || finalConfirmation.value[0].err) {
+  //         console.error("Finalization error:", finalConfirmation.value[0]?.err);
+  //         throw new Error(`Minting failed: Transaction could not be finalized. Error: ${JSON.stringify(finalConfirmation.value[0]?.err)}`);
+  //       }
+  
+  //       console.log('Transaction successfully confirmed and finalized! ✅ Time:', Date.now() - startTime, "ms");
+  
+  //       // Fetch transaction details
+  //       const txResultStart = Date.now();
+  //       const txResult = await connection.getTransaction(signature, {
+  //         commitment: 'finalized',
+  //         maxSupportedTransactionVersion: 0,
+  //       });
+  //       console.log(`getTransaction took ${Date.now() - txResultStart}ms`);
+  //       console.log('Fetched transaction details:', txResult);
+  
+  //       let mintTrulySuccessful = txResult && !txResult.meta?.err;
+  //       if (mintTrulySuccessful) {
+  //         setMinted(true);
+  //         setError(null);
+  //         setLastMintedNftAddress(nftMintSigner.publicKey.toString());
+  //         try {
+  //           const asset = await fetchDigitalAsset(umi, nftMintSigner.publicKey);
+  //           if (asset?.metadata?.uri) {
+  //             let metadataJsonUri = asset.metadata.uri;
+  //             if (metadataJsonUri.startsWith('ar://')) {
+  //               metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
+  //             }
+  //             const metadataResponse = await fetch(metadataJsonUri);
+  //             if (!metadataResponse.ok) throw new Error('Failed to fetch metadata JSON');
+  //             const metadataJson = await metadataResponse.json();
+  //             if (metadataJson.image) setMintedNftImageUri(metadataJson.image);
+  //           }
+  //         } catch (metadataError) {
+  //           console.error('Failed to fetch metadata for minted NFT:', metadataError);
+  //           setMintedNftImageUri(null);
+  //         }
+  //         setMinting(false);
+  //         return;
+  //       } else {
+  //         throw new Error("Minting failed: The transaction was confirmed but failed to execute properly.");
+  //       }
+  //     } catch (error) {
+  //       console.error(`Mint attempt ${attempt + 1} failed:`, error, error.stack);
+  //       console.log(`Failed after ${Date.now() - startTime}ms`);
+  //       if (error.name === 'SendTransactionError') {
+  //         console.error("SendTransactionError logs:", error.logs || 'No logs available');
+  //         setError(`Minting failed: Transaction error. Logs: ${JSON.stringify(error.logs || 'No logs available')}. Signature: ${signature}. Try switching wallets or RPC providers.`);
+  //       } else if (error.name === 'WalletSendTransactionError' || error.message.includes('User rejected')) {
+  //         setError("Transaction rejected by user in wallet. Please approve the transaction to proceed.");
+  //       } else if (error.name === 'TransactionExpiredBlockheightExceededError' || error.message.includes('expired')) {
+  //         if (attempt + 1 < maxRetries) {
+  //           console.log("Retrying due to blockhash expiration...");
+  //           await new Promise(resolve => setTimeout(resolve, 1000));
+  //           continue;
+  //         }
+  //         setError(`Minting failed after retries: Transaction expired due to network congestion. Signature: ${signature}. Try again or switch to a faster RPC provider.`);
+  //       } else if (error.message.includes('insufficient lamports') || error.message.includes('custom program error: 0x1')) {
+  //         setError(`Minting failed: Insufficient funds. Ensure your wallet has at least ${(requiredBalance / 1_000_000_000).toFixed(6)} SOL for minting and fees.`);
+  //       } else {
+  //         setError(`Minting failed: ${error.message || 'An unknown error occurred.'} Signature: ${signature}.`);
+  //       }
+  //       setMinted(false);
+  //       setMintedNftImageUri(null);
+  //       setMinting(false);
+  //       if (attempt + 1 < maxRetries) {
+  //         console.log("Retrying due to error...");
+  //         await new Promise(resolve => setTimeout(resolve, 1000));
+  //         continue;
+  //       }
+  //       return;
+  //     }
+  //   }
+  // }, [umi, wallet, candyMachine, collectionMint, connection, sendTransaction, signTransaction, web3JsWalletPublicKey, attempt]);
 
   // --- UI Rendering ---
   return (
@@ -499,6 +611,7 @@ try {
             <div style={{ marginTop: '20px', textAlign: 'center' }}>
               <button>MINT COMING SOON</button>
             </div>
+            {/* <MintButton/> */}
             
             {/* MINT BUTTON AND WALLET CONNECTION */}
             {/* {web3JsWalletPublicKey ? (
