@@ -528,8 +528,8 @@ export default function Intro() {
   return (
     <div>
       <Head>
-        <title>Manzanita Tribe Warriors - Digital Collectibles in the Solana Network</title>
-        <meta name="description" content="We are the Manzanita Tribe Warriors! A digital collection in the Solana network." />
+        <title>Manzanita Tribe Warriors - Building Original Indie Art & Lore! A Digital Collection in the Solana Network.</title>
+        <meta name="description" content="Manzanita Tribe Warriors — Building Original Indie Art & Lore! A digital collection in the Solana network." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
@@ -608,10 +608,10 @@ export default function Intro() {
             ) : (
               <ImageFader images={faderImages} delay={3000} />
             )}
-            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            {/* <div style={{ marginTop: '20px', textAlign: 'center' }}>
               <button>MINT COMING SOON</button>
-            </div>
-            {/* <MintButton/> */}
+            </div> */}
+            <MintButton/>
             
             {/* MINT BUTTON AND WALLET CONNECTION */}
             {/* {web3JsWalletPublicKey ? (
