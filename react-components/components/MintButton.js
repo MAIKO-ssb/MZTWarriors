@@ -4,19 +4,20 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { publicKey, transactionBuilder, generateSigner, some } from '@metaplex-foundation/umi';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import { mplCandyMachine, fetchCandyMachine, safeFetchCandyGuard, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
-import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+import { mplTokenMetadata, TokenStandard, fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { ComputeBudgetProgram } from '@solana/web3.js';
 import bs58 from 'bs58';
 
-function MintButton() {
+function MintButton({onMintStart, onMintSuccess, onMintError}) {
   const wallet = useWallet();
   const { connection } = useConnection();
   const [isMinting, setIsMinting] = useState(false);
   const [candyMachine, setCandyMachine] = useState(null);
   const [candyGuard, setCandyGuard] = useState(null);
-  const [error, setError] = useState(null);
+  
+  // const [error, setError] = useState(null);
 
   // 1. Add state to track if the component has mounted
   const [isClient, setIsClient] = useState(false);
@@ -54,27 +55,26 @@ function MintButton() {
         // Errors will be cleared when the user initiates a new action.
       } catch (err) {
         console.error('Failed to fetch Candy Machine data:', err);
-        setError('Failed to load Candy Machine data. Please check the network or Candy Machine ID.');
-        setCandyMachine(null);
-        setCandyGuard(null);
+        onMintError?.('Failed to load minting data. Please refresh.');
       }
     };
 
     fetchCandyMachineData();
-  }, [umi]); // This now correctly runs only when the memoized umi instance changes
+  }, [umi, onMintError]); // This now correctly runs only when the memoized umi instance changes
 
   const mintNft = useCallback(async () => {
     if (!wallet.connected || !wallet.publicKey || !candyMachine || !candyGuard) {
       console.error('Minting prerequisites not met');
-      setError('Wallet not connected or Candy Machine data not loaded');
+      onMintError?.('Wallet not connected or Candy Machine data not loaded');
       return;
     }
 
     setIsMinting(true);
-    setError(null); // 3. Clear previous errors on a new mint attempt
-    try {
-      const nftMint = generateSigner(umi);
+    onMintStart?.(); // 3. Notify parent that minting has started
 
+    const nftMint = generateSigner(umi);
+
+    try {
       const transaction = await transactionBuilder()
         .add(mintV2(umi, {
           candyMachine: candyMachine.publicKey,
@@ -88,20 +88,39 @@ function MintButton() {
           },
         }));
 
-      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
+      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
+      // 4. --- FETCH METADATA AND REPORT SUCCESS ---
+      try {
+        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+        let metadataJsonUri = asset.metadata.uri.replace(/\0/g, '');
+        if (metadataJsonUri.startsWith('ar://')) {
+            metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
+        }
+        const metadataResponse = await fetch(metadataJsonUri);
+        const metadataJson = await metadataResponse.json();
+        
+        // Call the success callback with the mint address and image URL!
+        onMintSuccess?.(nftMint.publicKey.toString(), metadataJson.image);
+
+      } catch (metadataError) {
+        console.error("Mint was successful, but failed to fetch metadata:", metadataError);
+        // Still report success, but maybe without an image
+        onMintSuccess?.(nftMint.publicKey.toString(), null);
+      }
+      // ---------------------------------------------
+
     } catch (error) {
       console.error('Mint failed:', error);
-      // Simplify error message to be more user-friendly
-      if (error.message.includes('User rejected the request')) {
-        setError('Transaction rejected.');
-      } else {
-        setError(`Minting failed: ${error.message}`);
+      let userMessage = error.message;
+      if (userMessage.includes('User rejected')) {
+        userMessage = 'Transaction rejected in wallet.';
       }
-    } finally {
-      setIsMinting(false);
-    }
-  }, [wallet, umi, candyMachine, candyGuard]);
+        onMintError?.(userMessage || 'An unknown error occurred.'); // 5. Report error to parent
+      } finally {
+        setIsMinting(false);
+      }
+  }, [wallet, umi, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
 
   // Calculate items remaining and price
   const itemsRemaining = candyMachine ? candyMachine.data.itemsAvailable - candyMachine.itemsRedeemed : null;
@@ -123,20 +142,19 @@ function MintButton() {
           <p style={{ marginTop: '10px' }}>Connected: {wallet.publicKey.toBase58()}</p>
           {candyMachine ? (
             <>
-              <p>Items Remaining: {itemsRemaining !== null ? itemsRemaining.toString() : 'Loading...'} / {totalItems !== null ? totalItems.toString() : 'Loading...'}</p>
+              <p>Warriors Remaining: {itemsRemaining !== null ? itemsRemaining.toString() : 'Loading...'} / {totalItems !== null ? totalItems.toString() : 'Loading...'}</p>
               <p>Price: {price} SOL</p>
               <button
                 onClick={mintNft}
                 disabled={!wallet.connected || isMinting || !candyMachine || (itemsRemaining !== null && itemsRemaining <= 0n)}
                 className="px-4 py-2 mt-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
               >
-                {isMinting ? 'Minting...' : !candyMachine ? 'Loading...' : itemsRemaining !== null && itemsRemaining <= 0n ? 'Sold Out' : 'Mint a Random MZT Warrior NFT'}
+                {isMinting ? 'Minting...' : !candyMachine ? 'Loading...' : itemsRemaining !== null && itemsRemaining <= 0n ? 'Sold Out' : 'Mint a Random MZT Warrior'}
               </button>
             </>
           ) : (
-            <p>Loading Candy Machine data...</p>
+            <p>Loading...</p>
           )}
-          {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
         </>
       ) : (
         <p style={{ marginTop: '10px' }}>Connect your Solana wallet to mint.</p>
