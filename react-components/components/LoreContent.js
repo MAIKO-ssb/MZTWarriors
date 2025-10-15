@@ -49,7 +49,8 @@ export default function LoreContent() {
 
         {/* Call to Action */}
         <p className="call-to-action">
-          Are you ready to answer to your tribal calling? To face the darkness, overcome the challenges, and emerge victorious as a legend in the Manzanita Forest? <br/><br/>[ Project Currently Under Development... ]
+          Are you ready to answer to your tribal calling? To face the darkness, overcome the challenges, and emerge victorious as a legend in the Manzanita Forest? 
+          <br/><br/>[ Project Currently Under Development...]
         </p>
       </div>
     </div>

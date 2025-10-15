@@ -4,7 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic';
 
 // Dynamically import PhaserGame with SSR disabled
-const PhaserGame = dynamic(() => import('../react-components/sections/PhaserGame/MZTGame'), { ssr: false });
+const PhaserGame = dynamic(() => import('../react-components/sections/MZTGame/MZTGame'), { ssr: false });
 
 export default function Home() {
 

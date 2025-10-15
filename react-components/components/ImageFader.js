@@ -56,6 +56,24 @@ export default function ImageFader({ images = [], delay = 3000 }) {
           />
         </div>
       ))}
+
+      <div
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          background: 'rgba(0, 0, 0, 0.65)',
+          color: '#c0ffc9',
+          padding: '4px 10px',
+          fontSize: '0.75em',
+          borderRadius: '6px',
+          letterSpacing: '0.5px',
+          backdropFilter: 'blur(4px)',
+          fontStyle: 'italic',
+        }}
+      >
+        MZT Warrior NFT Previews
+      </div>
     </div>
   )
 }

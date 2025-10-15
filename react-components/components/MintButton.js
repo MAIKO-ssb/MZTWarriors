@@ -126,7 +126,7 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
   const itemsRemaining = candyMachine ? candyMachine.data.itemsAvailable - candyMachine.itemsRedeemed : null;
   const totalItems = candyMachine ? candyMachine.data.itemsAvailable : null;
   const price = candyGuard && candyGuard.guards.solPayment?.__option === 'Some'
-    ? (Number(candyGuard.guards.solPayment.value.lamports.basisPoints) / 1_000_000_000).toFixed(2)
+    ? (Number(candyGuard.guards.solPayment.value.lamports.basisPoints) / 1_000_000_000).toFixed(3)
     : 'N/A';
   
     // 3. Prevent rendering the wallet-dependent UI until the component has mounted

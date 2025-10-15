@@ -14,6 +14,12 @@
     h1, h2, h3, h4, p, small,em{
         color:white;
     }
+    h1, h2, h3, h4{
+        color: #ffffff;
+    }
+    p{
+        color:#ccc;
+    }
     em{
         margin-bottom: .5em;
         display: inline-block;
@@ -26,7 +32,6 @@
         position:relative;
         z-index:10;
         @media (min-width: 1000px) { 
-            height: 100vh;
             flex-direction: row;
         }
     }
@@ -59,9 +64,9 @@
             transform: scale(1.5);
         }
     }
-    h1{
-        margin-bottom: 1.125em;
-    }
+    // h1{
+    //     margin-bottom: 1.125em;
+    // }
     button{
         background: #0e3969;
         color: white;

@@ -11,7 +11,6 @@ export default function HelloBar() {
     paddingLeft: '1rem', // px-4
     paddingRight: '1rem', // px-4
     textAlign: 'center',
-    marginBottom: '1.5rem',
     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', // shadow-lg
     background: 'url("/img/forest-bg-pattern2.png")',
     borderBottom: '2px solid #0e2c1c'
@@ -24,10 +23,10 @@ export default function HelloBar() {
   };
 
   const mainHeadlineStyle = {
-    fontSize: '1.125rem', // text-lg
+    fontSize: '1.45rem', // text-lg
     fontWeight: '700', // font-bold
     letterSpacing: '0.025em', // tracking-wide
-    marginBottom: '0.5rem', // mb-2
+    marginBottom: '0.75rem', // mb-2
   };
 
   const subHeadlineStyle = {
@@ -52,10 +51,10 @@ export default function HelloBar() {
     <div style={barStyle}>
       <div style={containerStyle}>
         <p style={mainHeadlineStyle} className="main-headline">
-          Manzanita Tribe Warriors — Building Original Indie Art &amp; Lore
+          Adventurer, Welcome to the Tribe!
         </p>
         <p style={subHeadlineStyle} className="sub-headline">
-          Stickers, Prints &amp; Solana NFTs
+          Indie Creator Building Original Game Art, Code &amp; Lore on the Solana Network.
         </p>
         <div style={linksContainerStyle} className="links-container">
           <span className="cta-link">
@@ -73,7 +72,7 @@ export default function HelloBar() {
       </div>
 
       {/* This block handles the responsive and hover styles that inline styles cannot */}
-      <style jsx>{`
+      <style>{`
         .cta-link {
         //   transition: color 300ms;
           color: #8effbf;
@@ -100,36 +99,3 @@ export default function HelloBar() {
     </div>
   );
 };
-
-// import React from 'react';
-
-// export default function HelloBar() {
-//   return (
-//     <div className="relative bg-green-950 text-white py-4 px-4 text-center shadow-lg">
-//       <div className="max-w-7xl mx-auto">
-//         {/* Main headline */}
-//         <p className="text-lg md:text-xl font-bold tracking-wide mb-2">
-//           Manzanita Tribe Warriors — Building Original Indie Art &amp; Lore
-//         </p>
-//         {/* Sub-headline for products */}
-//         <p className="text-sm md:text-base text-green-200 mb-3">
-//           Stickers, Prints &amp; Solana NFTs
-//         </p>
-//         {/* Call to action links */}
-//         <div className="flex justify-center items-center space-x-3 md:space-x-5 text-sm md:text-base">
-//           <a disabled href="#join" className="hover:text-yellow-400 transition-colors duration-300">
-//             Join the Tribe
-//           </a>
-//           <span className="text-green-700">•</span>
-//           <a href="#mint" className="hover:text-yellow-400 transition-colors duration-300">
-//             Mint a Warrior
-//           </a>
-//           <span className="text-green-700">•</span>
-//           <a href="#collect" className="hover:text-yellow-400 transition-colors duration-300">
-//             Collect &amp; Trade
-//           </a>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };

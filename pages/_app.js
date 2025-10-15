@@ -1,3 +1,4 @@
+// /pages/_app.js
 import '../styles/globals.css';
 import '../sass/site.scss';
 import { useMemo } from 'react';

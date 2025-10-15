@@ -42,6 +42,7 @@ a {
   max-width: 64rem; /* max-w-4xl */
   margin-left: auto;
   margin-right: auto;
+  margin-bottom: 2em;
   background-color: rgba(20, 83, 45, 0.8); /* bg-green-900 bg-opacity-80 */
   border-radius: 1rem; /* rounded-2xl */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
