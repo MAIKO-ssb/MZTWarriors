@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
-import Enemy from '../MZTGame/enemies/Enemy'; // Add this import for the Enemy class
+import Enemy from '../MZTGame/enemies/Enemy';
 
 const PhaserGame = () => {
     const players = useRef({}); // Store player instances
@@ -15,7 +15,34 @@ const PhaserGame = () => {
     const isConnected = useRef(false); // Track socket connection status
     const sceneRef = useRef(null); // Store reference to Phaser scene
     const isGameInitialized = useRef(false); // Prevent double initialization
-    const enemies = useRef([]); // Store enemy instances - moved to component scope
+    const enemies = useRef([]); // Store enemy instances
+
+    // Helper function to update animations
+    const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
+        if (scene.animationLock) return;
+        const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
+        let targetAnim = null;
+
+        if (isAirborne) {
+            targetAnim = 'jump';
+        } else {
+            targetAnim = isMoving ? 'walk' : 'idle';
+        }
+
+        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+            player.anims.play(targetAnim, true);
+            scene.lastAnimation = targetAnim;
+            scene.animationLock = true;
+            scene.time.delayedCall(100, () => { scene.animationLock = false; }); 
+        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
+            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
+                player.anims.play('idle', true);
+                scene.lastAnimation = 'idle';
+                scene.animationLock = true;
+                scene.time.delayedCall(100, () => { scene.animationLock = false; });
+            }
+        }
+    };
 
     useEffect(() => {
         if (!containerRef.current || isGameInitialized.current) {
@@ -63,16 +90,26 @@ const PhaserGame = () => {
                 const scene = sceneRef.current;
                 playersList.forEach((playerData) => {
                     if (playerData.id !== myId.current && !players.current[playerData.id]) {
-                        const newPlayer = scene.physics.add.sprite(playerData.position.x, playerData.position.y, 'manzanita');
+                        // NEW: Validate position data
+                        const x = playerData.position?.x ?? 100; // Default to 100 if undefined
+                        const y = playerData.position?.y ?? 650; // Default to ground level
+                        const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                        newPlayer.body.setAllowGravity(false);
+                        newPlayer.body.setImmovable(true);
                         newPlayer.setScale(1);
                         newPlayer.setCollideWorldBounds(true);
                         newPlayer.setDepth(2);
                         scene.physics.add.collider(newPlayer, scene.platforms);
-                        newPlayer.isAttacking = false; // NEW: Initialize attacking state
-                        newPlayer.lastIsAirborne = false; // NEW: For animation resume
-                        newPlayer.lastIsMoving = false; // NEW: For animation resume
+                        newPlayer.isAttacking = false;
+                        newPlayer.lastIsAirborne = false;
+                        newPlayer.lastIsMoving = false;
+                        newPlayer.targetX = x; // NEW: Initialize target for lerp
+                        newPlayer.targetY = y; // NEW: Initialize target for lerp
                         players.current[playerData.id] = newPlayer;
-                        console.log(`Added player ${playerData.id} at (${playerData.position.x}, ${playerData.position.y})`);
+                        console.log(`Added player ${playerData.id} at (${x}, ${y})`);
+                        if (scene.anims.exists('idle')) {
+                            newPlayer.anims.play('idle', true);
+                        }
                     }
                 });
             } else {
@@ -84,16 +121,23 @@ const PhaserGame = () => {
             if (sceneRef.current) {
                 const scene = sceneRef.current;
                 if (!players.current[data.id]) {
-                    const newPlayer = scene.physics.add.sprite(data.position.x, data.position.y, 'manzanita');
+                    // NEW: Validate position data for new players
+                    const x = data.position?.x ?? 100;
+                    const y = data.position?.y ?? 650;
+                    const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                    newPlayer.body.setAllowGravity(false);
+                    newPlayer.body.setImmovable(true);
                     newPlayer.setScale(1);
                     newPlayer.setCollideWorldBounds(true);
                     newPlayer.setDepth(2);
                     scene.physics.add.collider(newPlayer, scene.platforms);
-                    newPlayer.isAttacking = false; // NEW: Initialize attacking state
-                    newPlayer.lastIsAirborne = data.isAirborne; // NEW: Store last state
-                    newPlayer.lastIsMoving = data.isMoving; // NEW: Store last state
+                    newPlayer.isAttacking = false;
+                    newPlayer.lastIsAirborne = data.isAirborne ?? false;
+                    newPlayer.lastIsMoving = data.isMoving ?? false;
+                    newPlayer.targetX = x; // NEW: Set target for lerp
+                    newPlayer.targetY = y; // NEW: Set target for lerp
                     players.current[data.id] = newPlayer;
-                    console.log(`Created new player ${data.id} at (${data.position.x}, ${data.position.y})`);
+                    console.log(`Created new player ${data.id} at (${x}, ${y})`);
                     if (scene.anims.exists('idle')) {
                         newPlayer.anims.play('idle', true);
                     } else {
@@ -101,12 +145,14 @@ const PhaserGame = () => {
                     }
                 } else {
                     const existingPlayer = players.current[data.id];
-                    existingPlayer.setPosition(data.position.x, data.position.y);
+                    // NEW: Update target positions for lerp instead of setPosition
+                    existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
+                    existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
                     existingPlayer.flipX = (data.direction === 'left');
-                    existingPlayer.lastIsAirborne = data.isAirborne; // NEW: Update last state
-                    existingPlayer.lastIsMoving = data.isMoving; // NEW: Update last state
+                    existingPlayer.lastIsAirborne = data.isAirborne ?? existingPlayer.lastIsAirborne;
+                    existingPlayer.lastIsMoving = data.isMoving ?? existingPlayer.lastIsMoving;
                     if (!existingPlayer.isAttacking) {
-                        updatePlayerAnimation(existingPlayer, data.isAirborne, data.isMoving, scene);
+                        updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, scene);
                     }
                 }
             } else {
@@ -115,13 +161,33 @@ const PhaserGame = () => {
         });
 
         socket.current.on('playerJumped', (data) => {
-            if (players.current[data.id]) {
-                const existingPlayer = players.current[data.id];
-                existingPlayer.setPosition(data.position.x, data.position.y);
-                existingPlayer.flipX = (data.direction === 'left');
-                existingPlayer.setVelocityY(data.velocityY);
-                if (sceneRef.current.anims.exists('jump')) {
+            if (!players.current[data.id]) return;
+
+            const existingPlayer = players.current[data.id];
+            // NEW: Update target positions for lerp
+            existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
+            existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
+            existingPlayer.flipX = (data.direction === 'left');
+
+            if (data.id === myId.current) {
+                if (existingPlayer.body) {
+                    existingPlayer.body.setAllowGravity(true);
+                    existingPlayer.setVelocityY(data.velocityY);
+                }
+            } else {
+                if (sceneRef.current && sceneRef.current.anims.exists('jump')) {
                     existingPlayer.anims.play('jump', true);
+                }
+                if (sceneRef.current && sceneRef.current.tweens) {
+                    const scene = sceneRef.current;
+                    scene.tweens.killTweensOf(existingPlayer);
+                    scene.tweens.add({
+                        targets: existingPlayer,
+                        y: (data.position?.y ?? existingPlayer.targetY) - 40,
+                        duration: 140,
+                        yoyo: true,
+                        ease: 'Quad.easeOut'
+                    });
                 }
             }
         });
@@ -129,20 +195,21 @@ const PhaserGame = () => {
         socket.current.on('playerAttacked', (data) => {
             if (players.current[data.id]) {
                 const existingPlayer = players.current[data.id];
+                existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
+                existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
                 existingPlayer.flipX = (data.direction === 'left');
                 existingPlayer.isAttacking = true;
                 existingPlayer.anims.play('attack', true);
                 existingPlayer.once('animationcomplete', () => {
                     existingPlayer.isAttacking = false;
                     updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, sceneRef.current);
-                    // Emit final position to sync any offset adjustments
                     if (data.id === myId.current && socket.current) {
                         socket.current.emit('playerMovement', {
                             id: myId.current,
                             position: { x: existingPlayer.x, y: existingPlayer.y },
                             direction: data.direction,
                             isMoving: false,
-                            isAirborne: data.isAirborne
+                            isAirborne: data.isAirborne ?? false
                         });
                     }
                 });
@@ -169,7 +236,6 @@ const PhaserGame = () => {
                     console.log('Player not found for message:', data.message);
                     return;
                 }
-                console.log('Rendering message via socket:', data.message, 'for player:', data.id, '(', player.x, player.y, ')');
                 const chatText = scene.add.text(player.x, player.y - 50, data.message, {
                     fontSize: '18px',
                     fill: '#ffff00',
@@ -217,7 +283,6 @@ const PhaserGame = () => {
                 key: 'mainScene',
                 preload: function () {
                     this.load.image('sky', '/images/backgrounds/forest-bg.png');
-                    // this.load.image('ground', '/images/platforms/platform.png');
                     this.load.atlas('manzanita', '/images/characters/manzanita.png', '/images/characters/manzanita.json');
                     this.load.spritesheet('firepit', '/images/items/firepit.png', {
                         frameWidth: 409,
@@ -251,30 +316,24 @@ const PhaserGame = () => {
                         console.log('Manzanita texture loaded successfully');
                     }
 
-                    // Modified
                     const background = this.add.image(0, 0, 'sky').setDepth(0);
-                    background.setOrigin(0, 0); // Align to top-left
-                    background.setDisplaySize(this.scale.width, this.scale.height); // Scale to canvas size
+                    background.setOrigin(0, 0);
+                    background.setDisplaySize(this.scale.width, this.scale.height);
 
                     this.enemy = null;
                     this.attackHitbox = null;
 
                     this.platforms = this.physics.add.staticGroup();
-                    // ground baseline (one big invisible platform)
                     let ground = this.add.rectangle(
-                        this.scale.width / 2,  // center x
-                        650,                   // y position of the ground
-                        this.scale.width,      // width = full stage width
-                        32,                    // thickness of ground
-                        0x000000,              // fill color (doesn't matter since we'll hide it)
-                        0                      // alpha 0 = invisible
+                        this.scale.width / 2,
+                        650,
+                        this.scale.width,
+                        32,
+                        0x000000,
+                        0
                     );
-
-                    this.physics.add.existing(ground, true); // true = static body (doesn't move)
-
-                    // Add to platforms group if needed
+                    this.physics.add.existing(ground, true);
                     this.platforms.add(ground);
-                    
                     console.log('Platforms Group:', this.platforms);
 
                     this.firepit = this.physics.add.sprite(600, 570, 'firepit').setScale(0.3);
@@ -344,21 +403,20 @@ const PhaserGame = () => {
                         createPlayer(this);
                     }
 
-                    // Initialize enemy spawner
                     this.enemyCount = 0;
-                    this.enemyMaxCount = 10; // Max enemies allowed at once
+                    this.enemyMaxCount = 10;
                     this.time.addEvent({
-                        delay: 500, 
+                        delay: 500,
                         callback: () => {
                             if (this.enemyCount >= this.enemyMaxCount) {
                                 console.log('Max enemies reached, skipping spawn.');
                                 return;
                             }
-                            const spawnX = Phaser.Math.Between(100, 1180); // Random x within game bounds
+                            const spawnX = Phaser.Math.Between(100, 1180);
                             const spawnY = 0;
                             const enemy = new Enemy(this, spawnX, spawnY);
                             enemies.current.push(enemy);
-                            this.enemyCount++; // Increment count on spawn
+                            this.enemyCount++;
 
                             this.physics.add.overlap(
                                 this.attackHitbox,
@@ -369,7 +427,7 @@ const PhaserGame = () => {
                                         this.createPopupText(enemySprite.x, enemySprite.y - 30, '*SQUISH!*', '#ffae00ff');
                                         enemy.destroy();
                                         enemies.current = enemies.current.filter(e => e.sprite !== enemySprite);
-                                        this.enemyCount--; 
+                                        this.enemyCount--;
                                     }
                                 },
                                 null,
@@ -381,7 +439,8 @@ const PhaserGame = () => {
 
                     this.cursors = this.input.keyboard.createCursorKeys();
                     this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-                    this.jumpKeyWASD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                    this.jumpKeyWASD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+                    this.jumpKeyUpArrow = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
                     this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
                     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
                     this.fullscreen = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
@@ -404,6 +463,7 @@ const PhaserGame = () => {
                     this.lastPosition = { x: 0, y: 0 };
                     this.lastState = { isMoving: false, isAirborne: false };
                     this.lastAnimation = null;
+                    this.lastSendTime = 0; // NEW: For throttling movement updates
 
                     this.input.keyboard.on('keydown-F', () => {
                         this.scale.fullscreenTarget = containerRef.current;
@@ -465,40 +525,8 @@ const PhaserGame = () => {
                     let moving = false;
                     let speed = 350;
 
-                    // Helper function to update animations
-                    const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
-                        if (scene.animationLock) return; // Skip if animation is locked
-                        const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
-                        let targetAnim = null;
-
-                        console.log('Animation check - Current:', currentAnim, 'Airborne:', isAirborne, 'Moving:', isMoving);
-
-                        if (isAirborne) {
-                            targetAnim = 'jump';
-                        } else {
-                            targetAnim = isMoving ? 'walk' : 'idle';
-                        }
-                       
-
-                        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-                            player.anims.play(targetAnim, true);
-                            scene.lastAnimation = targetAnim;
-                            // Lock animation changes for 100ms to prevent rapid toggling
-                            scene.animationLock = true;
-                            scene.time.delayedCall(100, () => { scene.animationLock = false; });
-                        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-                            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-                                player.anims.play('idle', true);
-                                scene.lastAnimation = 'idle';
-                                scene.animationLock = true;
-                                scene.time.delayedCall(100, () => { scene.animationLock = false; });
-                            }
-                        }
-                    };
-
                     if (myId.current != null) {
                         if (!this.isAttacking) {
-                            // Handle horizontal movement
                             if (isLeftPressed) {
                                 this.player.setVelocityX(-speed);
                                 this.player.flipX = true;
@@ -510,25 +538,25 @@ const PhaserGame = () => {
                                 moving = true;
                                 this.facingDirection = 'right';
                             } else {
-                                // MODIFIED: Don't zero velocity during attack to preserve momentum
                                 if (!this.isAttacking) {
                                     this.player.setVelocityX(0);
                                 }
                                 moving = false;
                             }
 
-                            // Adjust body offset based on flipX
                             if (this.player.flipX) {
-                                this.player.body.setOffset(47, 10); // Shift right when facing left (total offset from left edge)
+                                this.player.body.setOffset(47, 10);
                             } else {
-                                this.player.body.setOffset(28, 10); // Original offset when facing right
+                                this.player.body.setOffset(28, 10);
                             }
 
-                            // MODIFIED: Keep jumping inside !isAttacking (can't jump mid-attack)
                             if (!this.isAttacking) {
-                                // Handle jumping
-                                if (Phaser.Input.Keyboard.JustDown(this.jumpKey) && this.jumpCount < this.maxJumps || 
-                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) && this.jumpCount < this.maxJumps) {
+                                if (
+                                    (Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
+                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) ||
+                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow)) &&
+                                    this.jumpCount < this.maxJumps
+                                ) {
                                     this.player.setVelocityY(this.jumpVelocity);
                                     this.jumpCount++;
                                     if (socket.current) {
@@ -551,7 +579,6 @@ const PhaserGame = () => {
                             }
                         }
 
-                        // Stabilize ground detection (rely on Phaser's blocked.down and velocity)
                         const isGrounded = this.player.body.blocked.down && Math.abs(this.player.body.velocity.y) < 10;
                         if (isGrounded) {
                             this.jumpCount = 0;
@@ -559,8 +586,11 @@ const PhaserGame = () => {
                         const isAirborne = !isGrounded;
                         const isMoving = isLeftPressed || isRightPressed;
 
-                        // MODIFIED: Always emit movement for sync (even during attack)
-                        if (socket.current) {
+                        // NEW: Throttle movement updates
+                        const positionChanged = Math.abs(this.player.x - this.lastPosition.x) > 1 || Math.abs(this.player.y - this.lastPosition.y) > 1;
+                        const stateChanged = isMoving !== this.lastState.isMoving || isAirborne !== this.lastState.isAirborne;
+                        const now = Date.now();
+                        if (socket.current && (positionChanged || stateChanged) && (stateChanged || now - this.lastSendTime > 50)) {
                             socket.current.emit('playerMovement', {
                                 id: myId.current,
                                 position: { x: this.player.x, y: this.player.y },
@@ -570,16 +600,15 @@ const PhaserGame = () => {
                             });
                             this.lastPosition = { x: this.player.x, y: this.player.y };
                             this.lastState = { isMoving: isMoving, isAirborne: isAirborne };
+                            this.lastSendTime = now;
                         }
 
-                        // MODIFIED: Only update animation if not attacking (attack anim takes priority)
                         if (!this.isAttacking) {
                             updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                         }
 
                         this.lastMoving = isMoving;
 
-                        // Handle attack
                         if (!this.isAttacking && (Phaser.Input.Keyboard.JustDown(this.attackKey) || 
                                                   Phaser.Input.Keyboard.JustDown(this.WASD.attackKey))) {
                             this.isAttacking = true;
@@ -587,7 +616,6 @@ const PhaserGame = () => {
                             this.player.removeAllListeners('animationcomplete');
                             this.player.baseX = this.player.x;
 
-                            this.player.baseX = this.player.x; // remember body baseline
                             if (this.anims.exists('attack')) {
                                 this.player.anims.play('attack', true);
                                 this.lastAnimation = 'attack';
@@ -595,20 +623,16 @@ const PhaserGame = () => {
                                 this.time.delayedCall(100, () => { this.animationLock = false; });
                             } else {
                                 console.error('Attack animation not available');
-                                this.isAttacking = false; // Reset immediately if animation fails
+                                this.isAttacking = false;
                             }
                             if (socket.current) {
                                 socket.current.emit('playerAttack', {
                                     id: myId.current,
                                     position: { x: this.player.x, y: this.player.y },
                                     direction: this.facingDirection,
-                                    isAirborne: isAirborne // Use current isAirborne
+                                    isAirborne: isAirborne
                                 });
                             }
-
-                            // if (this.player.body.blocked.down) {
-                            //     this.player.setVelocityX(0);
-                            // }
 
                             const hitboxOffsetX = this.player.flipX ? -50 : 50;
                             const hitboxOffsetY = 5;
@@ -616,16 +640,22 @@ const PhaserGame = () => {
 
                             this.player.once('animationcomplete', () => {
                                 this.isAttacking = false;
-                                this.animationLock = false; // Force unlock to avoid stuck anim
+                                this.animationLock = false;
                                 const isGrounded = this.player.body.blocked.down;
                                 const isAirborne = !isGrounded;
                                 const isMoving = isLeftPressed || isRightPressed;
                                 if (isGrounded) {
-                                    this.player.setVelocityY(0); // Ensure no residual upward velocity
+                                    this.player.setVelocityY(0);
                                 }
-                                // MODIFIED: Always resume via updatePlayerAnimation (handles walk/idle/jump correctly)
-                                updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                                // Emit final position to sync any offset adjustments
+                                if (
+                                    this.lastState.isMoving !== isMoving ||
+                                    this.lastState.isAirborne !== isAirborne ||
+                                    this.lastAnimation !== this.player.anims?.currentAnim?.key
+                                ) {
+                                    updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                                }
+                                this.lastState = { isMoving, isAirborne };
+
                                 if (socket.current) {
                                     socket.current.emit('playerMovement', {
                                         id: myId.current,
@@ -634,7 +664,7 @@ const PhaserGame = () => {
                                         isMoving: isMoving,
                                         isAirborne: isAirborne
                                     });
-                                }                                    
+                                }
                             });
                         }
                     }
@@ -653,6 +683,14 @@ const PhaserGame = () => {
 
                     enemies.current.forEach(enemy => enemy.update());
 
+                    // NEW: Lerp remote player positions for smooth movement
+                    Object.keys(players.current).forEach(id => {
+                        const p = players.current[id];
+                        if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
+                            p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
+                            p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
+                        }
+                    });
                 }
             },
         };
@@ -686,22 +724,20 @@ const PhaserGame = () => {
                 console.error('Failed to create player sprite');
                 return;
             }
-            // Configure player physics body
-            scene.player.isAttacking = false; // NEW: Initialize attacking state
-            scene.player.lastIsAirborne = false; // NEW: For animation resume
-            scene.player.lastIsMoving = false; // NEW: For animation resume
+            scene.player.isAttacking = false;
+            scene.player.lastIsAirborne = false;
+            scene.player.lastIsMoving = false;
             scene.player.setCollideWorldBounds(true);
             scene.physics.add.collider(scene.player, scene.platforms);
             scene.player.setScale(1);
             scene.player.setDepth(2);
-            scene.player.body.setDragX(3000); // Increased drag for stability
-            scene.player.body.setSize(55, 55); // Width: 50px, Height: 80px (apple dimensions)
-            scene.player.body.setOffset(25, 10); // Slightly larger offset to ensure ground contact
-            scene.player.body.debugShowBody = true; // Enable for debugging
+            scene.player.body.setDragX(3000);
+            scene.player.body.setSize(55, 55);
+            scene.player.body.setOffset(25, 10);
+            scene.player.body.debugShowBody = true;
             players.current[myId.current] = scene.player;
             console.log('Player created locally:', scene.player, myId.current);
 
-            // Extract attack offsets from frame custom data
             scene.attackOffsets = {};
             const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
             manzanitaFrames.forEach(frameName => {
@@ -712,31 +748,24 @@ const PhaserGame = () => {
             });
             console.log('Attack offsets:', scene.attackOffsets);
 
-            // Create attack hitbox
             scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
             scene.physics.add.existing(scene.attackHitbox);
             if (scene.attackHitbox.body) {
                 scene.attackHitbox.body.setAllowGravity(false);
                 scene.attackHitbox.body.setEnable(false);
-                scene.attackHitbox.body.debugShowBody = true; // Enable physics debug for hitbox
+                scene.attackHitbox.body.debugShowBody = true;
             } else {
                 console.error('Attack hitbox body not created!');
             }
 
-            // Per-frame offset for attack to anchor feet/body
             scene.player.on('animationupdate', (animation, frame) => {
                 if (animation.key === 'attack') {
-                    console.log('Attack frame:', frame.index, 'texture:', frame.textureFrame);
                     const offset = scene.attackOffsets[frame.textureFrame] || 0;
                     const dir = scene.player.flipX ? -1 : 1;
-
-                    // Keep player fixed
                     scene.player.x = scene.player.baseX + offset * dir;
-                    // Position hitbox at spear tip
-                    const hitboxOffsetX = 30; // Base offset for spear tip
+                    const hitboxOffsetX = 30;
                     scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
-                    scene.attackHitbox.y = scene.player.y + 15; // Adjusted Y for better alignment
-                    // Enable only during strike frames
+                    scene.attackHitbox.y = scene.player.y + 15;
                     if (frame.index >= 1 && frame.index <= 2) {
                         scene.attackHitbox.body.setEnable(true);
                         console.log(
@@ -750,7 +779,6 @@ const PhaserGame = () => {
                 }
             });
 
-            // Ensure hitbox is disabled when attack animation completes
             scene.player.on('animationcomplete', (animation) => {
                 if (animation.key === 'attack' && scene.attackHitbox?.body) {
                     scene.attackHitbox.body.setEnable(false);
@@ -758,10 +786,8 @@ const PhaserGame = () => {
                 }
             });
 
-            // Initialize animation lock
             scene.animationLock = false;
 
-            // Verify animations exist
             const requiredAnims = ['idle', 'walk', 'attack', 'jump'];
             requiredAnims.forEach(anim => {
                 if (!scene.anims.exists(anim)) {
@@ -769,7 +795,6 @@ const PhaserGame = () => {
                 }
             });
 
-            // Play idle animation if available
             if (scene.anims.exists('idle')) {
                 scene.player.anims.play('idle', true);
                 scene.lastAnimation = 'idle';

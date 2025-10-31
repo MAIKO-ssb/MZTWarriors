@@ -144,9 +144,9 @@ export default function Intro() {
           </div>
 
           {/* RIGHT COLUMN */}
-          <div className="l-rightCol" style={{ padding: '2em' }}>
+          <div className="l-rightCol" style={{ padding: '3em' }}>
             {/* Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.  */}
-            <h2 className='text-center' style={{color: '#9affc6ff'}}>Claim one of the First Warriors of the Manzanita Forest!</h2>
+            <h2 className='text-center' style={{color: '#9affc6ff'}}>Claim one of the First Warriors of the <br/>Manzanita Forest!</h2>
             <p className="max-w-[540px] mx-auto mb-6 text-center leading-relaxed">
               <span>Mint now —<br/> ...and prepare to explore and conquer the wild depths of the forest! <span style={{color:'red'}}>*</span></span>
             </p>

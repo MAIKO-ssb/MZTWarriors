@@ -6,7 +6,7 @@ const Footer = () => {
         <div className="text-center md:text-center">
           <h2 className="text-2xl font-bold text-[#23ff91] mb-2">Manzanita Tribe Warriors</h2>
           <p className="text-gray-400 text-sm mb-2">
-            Claim your warriors, join the tribe.
+            Claim your warrior, join the tribe.
             {/* Explore the forest, claim your warriors, join the tribe. */}
           </p>
           <p className="text-gray-400 text-sm mb-6">
