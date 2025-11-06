@@ -282,11 +282,12 @@ const PhaserGame = () => {
             scene: {
                 key: 'mainScene',
                 preload: function () {
-                    this.load.image('sky', '/images/backgrounds/forest-bg.png');
+                    this.load.image('sky', '/images/backgrounds/mzt-bg-village.png');
+                    this.load.image('teepee', '/images/items/mzt-fg-village-teepee.png');
                     this.load.atlas('manzanita', '/images/characters/manzanita.png', '/images/characters/manzanita.json');
                     this.load.spritesheet('firepit', '/images/items/firepit.png', {
-                        frameWidth: 409,
-                        frameHeight: 401,
+                        frameWidth: 316,
+                        frameHeight: 463.3,
                     });
                     this.load.image('enemy', '/images/enemies/enemy.png');
                     this.load.on('filecomplete', (key) => {
@@ -326,7 +327,7 @@ const PhaserGame = () => {
                     this.platforms = this.physics.add.staticGroup();
                     let ground = this.add.rectangle(
                         this.scale.width / 2,
-                        650,
+                        655,
                         this.scale.width,
                         32,
                         0x000000,
@@ -336,20 +337,24 @@ const PhaserGame = () => {
                     this.platforms.add(ground);
                     console.log('Platforms Group:', this.platforms);
 
-                    this.firepit = this.physics.add.sprite(600, 570, 'firepit').setScale(0.3);
+                    this.firepit = this.physics.add.sprite(700, 555, 'firepit').setScale(0.42);
                     this.firepit.setDepth(1);
                     this.firepit.body.setImmovable(true);
                     this.firepit.body.setAllowGravity(false);
-                    const bodyWidth = 409 * 0.3;
-                    const bodyHeight = 401 * 0.3;
+                    const bodyWidth = 315 * 0.3;
+                    const bodyHeight = 464 * 0.3;
                     this.firepit.body.setSize(bodyWidth, bodyHeight);
-                    this.firepit.body.offset.set(150, 200);
+                    this.firepit.body.offset.set(100, 280);
                     console.log('Firepit Body:', this.firepit.body);
+
+                    this.teepee = this.add.image(174, 695, 'teepee').setDepth(3); // Position and depth
+                    this.teepee.setOrigin(0.5, 1); // Anchor at bottom center for ground alignment
+                    this.teepee.setScale(1); // Adjust scale as needed
 
                     this.anims.create({
                         key: 'burning',
-                        frames: this.anims.generateFrameNumbers('firepit', { start: 0, end: 15 }),
-                        frameRate: 15,
+                        frames: this.anims.generateFrameNumbers('firepit', { start: 0, end: 14 }),
+                        frameRate: 20,
                         repeat: -1,
                     });
                     this.firepit.play('burning');
@@ -404,7 +409,7 @@ const PhaserGame = () => {
                     }
 
                     this.enemyCount = 0;
-                    this.enemyMaxCount = 10;
+                    this.enemyMaxCount = 0;
                     this.time.addEvent({
                         delay: 500,
                         callback: () => {
@@ -729,7 +734,7 @@ const PhaserGame = () => {
             scene.player.lastIsMoving = false;
             scene.player.setCollideWorldBounds(true);
             scene.physics.add.collider(scene.player, scene.platforms);
-            scene.player.setScale(1);
+            scene.player.setScale(1.25);
             scene.player.setDepth(2);
             scene.player.body.setDragX(3000);
             scene.player.body.setSize(55, 55);
