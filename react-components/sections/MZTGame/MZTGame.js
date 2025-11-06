@@ -53,10 +53,23 @@ const PhaserGame = () => {
         console.log('Initializing Phaser game and socket with container:', containerRef.current);
         isGameInitialized.current = true;
 
-        // Initialize Socket.IO connection
-        socket.current = io(`http://${window.location.hostname}:4000`, {
-            reconnection: true,
-            reconnectionAttempts: 5,
+        // Initialize Socket.IO connection (LOCALHOST METHOD)
+        // socket.current = io(`http://${window.location.hostname}:4000`, {
+        //     reconnection: true,
+        //     reconnectionAttempts: 5,
+        // });
+        
+        // CONNECT TO RAILWAY BACKEND — LIVE MULTIPLAYER
+        const SOCKET_URL = process.env.NODE_ENV === 'development'
+          ? 'http://localhost:4000'
+          : 'https://mztwarriors-backend-production.up.railway.app';
+
+        socket.current = io(SOCKET_URL, {
+          transports: ['websocket'],
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+          timeout: 20000
         });
 
         // Handle socket connection
