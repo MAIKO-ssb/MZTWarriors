@@ -49,7 +49,7 @@ const PhaserGame = () => {
         const player = scene.physics.add.sprite(x, y, 'manzanita');
         
         // EXACT SAME SETUP AS LOCAL PLAYER
-        player.setScale(1.25);                    // Visual size match
+        player.setScale(1);                    // Visual size match
         player.setDepth(2);
         player.body.setAllowGravity(false);       // Remote = no real physics
         player.body.setImmovable(true);
