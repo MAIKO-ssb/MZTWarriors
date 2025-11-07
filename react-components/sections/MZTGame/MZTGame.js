@@ -52,7 +52,7 @@ const PhaserGame = () => {
         player.setScale(1);                    // Visual size match
         player.setDepth(2);
         player.body.setAllowGravity(false);       // Remote = no real physics
-        player.body.setImmovable(true);
+        // player.body.setImmovable(true);
         player.setCollideWorldBounds(true);
         // scene.physics.add.collider(player, scene.platforms);
         scene.physics.add.collider(player, scene.platforms, null, null, scene);
