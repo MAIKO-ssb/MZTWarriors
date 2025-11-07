@@ -44,6 +44,37 @@ const PhaserGame = () => {
         }
     };
 
+    // PERFECT PLAYER FACTORY — same for local + remote
+    const createRemotePlayer = (scene, x, y) => {
+        const player = scene.physics.add.sprite(x, y, 'manzanita');
+        
+        // EXACT SAME SETUP AS LOCAL PLAYER
+        player.setScale(1.25);                    // Visual size match
+        player.setDepth(2);
+        player.body.setAllowGravity(false);       // Remote = no real physics
+        player.body.setImmovable(true);
+        player.setCollideWorldBounds(true);
+        scene.physics.add.collider(player, scene.platforms);
+        
+        // PERFECT COLLISION MATCH
+        player.body.setSize(55, 55);              // Tight hitbox
+        player.body.setOffset(25, 10);            // Precise offset
+        player.body.debugShowBody = true;         // Debug visible
+        
+        // State init
+        player.isAttacking = false;
+        player.lastIsAirborne = false;
+        player.lastIsMoving = false;
+        player.targetX = x;
+        player.targetY = y;
+        
+        if (scene.anims.exists('idle')) {
+            player.anims.play('idle', true);
+        }
+        
+        return player;
+    };
+
     useEffect(() => {
         if (!containerRef.current || isGameInitialized.current) {
             console.warn('Container ref not ready or game already initialized, skipping initialization');
@@ -103,26 +134,33 @@ const PhaserGame = () => {
                 const scene = sceneRef.current;
                 playersList.forEach((playerData) => {
                     if (playerData.id !== myId.current && !players.current[playerData.id]) {
+                        // OLD CODE:
                         // NEW: Validate position data
-                        const x = playerData.position?.x ?? 100; // Default to 100 if undefined
-                        const y = playerData.position?.y ?? 650; // Default to ground level
-                        const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
-                        newPlayer.body.setAllowGravity(false);
-                        newPlayer.body.setImmovable(true);
-                        newPlayer.setScale(1);
-                        newPlayer.setCollideWorldBounds(true);
-                        newPlayer.setDepth(2);
-                        scene.physics.add.collider(newPlayer, scene.platforms);
-                        newPlayer.isAttacking = false;
-                        newPlayer.lastIsAirborne = false;
-                        newPlayer.lastIsMoving = false;
-                        newPlayer.targetX = x; // NEW: Initialize target for lerp
-                        newPlayer.targetY = y; // NEW: Initialize target for lerp
+                        // const x = playerData.position?.x ?? 100; // Default to 100 if undefined
+                        // const y = playerData.position?.y ?? 650; // Default to ground level
+                        // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                        // newPlayer.body.setAllowGravity(false);
+                        // newPlayer.body.setImmovable(true);
+                        // newPlayer.setScale(1);
+                        // newPlayer.setCollideWorldBounds(true);
+                        // newPlayer.setDepth(2);
+                        // scene.physics.add.collider(newPlayer, scene.platforms);
+                        // newPlayer.isAttacking = false;
+                        // newPlayer.lastIsAirborne = false;
+                        // newPlayer.lastIsMoving = false;
+                        // newPlayer.targetX = x; // NEW: Initialize target for lerp
+                        // newPlayer.targetY = y; // NEW: Initialize target for lerp
+                        // players.current[playerData.id] = newPlayer;
+                        // console.log(`Added player ${playerData.id} at (${x}, ${y})`);
+                        // if (scene.anims.exists('idle')) {
+                        //     newPlayer.anims.play('idle', true);
+                        // }
+                        // END OLD CODE
+                        const x = playerData.position?.x ?? 100;
+                        const y = playerData.position?.y ?? 650;
+                        const newPlayer = createRemotePlayer(scene, x, y);
                         players.current[playerData.id] = newPlayer;
                         console.log(`Added player ${playerData.id} at (${x}, ${y})`);
-                        if (scene.anims.exists('idle')) {
-                            newPlayer.anims.play('idle', true);
-                        }
                     }
                 });
             } else {
@@ -134,28 +172,36 @@ const PhaserGame = () => {
             if (sceneRef.current) {
                 const scene = sceneRef.current;
                 if (!players.current[data.id]) {
-                    // NEW: Validate position data for new players
+                    // OLD CODE: Validate position data for new players
+                    // const x = data.position?.x ?? 100;
+                    // const y = data.position?.y ?? 650;
+                    // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                    // newPlayer.body.setAllowGravity(false);
+                    // newPlayer.body.setImmovable(true);
+                    // newPlayer.setScale(1);
+                    // newPlayer.setCollideWorldBounds(true);
+                    // newPlayer.setDepth(2);
+                    // scene.physics.add.collider(newPlayer, scene.platforms);
+                    // newPlayer.isAttacking = false;
+                    // newPlayer.lastIsAirborne = data.isAirborne ?? false;
+                    // newPlayer.lastIsMoving = data.isMoving ?? false;
+                    // newPlayer.targetX = x; // NEW: Set target for lerp
+                    // newPlayer.targetY = y; // NEW: Set target for lerp
+                    // players.current[data.id] = newPlayer;
+                    // console.log(`Created new player ${data.id} at (${x}, ${y})`);
+                    // if (scene.anims.exists('idle')) {
+                    //     newPlayer.anims.play('idle', true);
+                    // } else {
+                    //     console.error('Idle animation not available for new player');
+                    // }
+                    // END OLD CODE
                     const x = data.position?.x ?? 100;
                     const y = data.position?.y ?? 650;
-                    const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
-                    newPlayer.body.setAllowGravity(false);
-                    newPlayer.body.setImmovable(true);
-                    newPlayer.setScale(1);
-                    newPlayer.setCollideWorldBounds(true);
-                    newPlayer.setDepth(2);
-                    scene.physics.add.collider(newPlayer, scene.platforms);
-                    newPlayer.isAttacking = false;
+                    const newPlayer = createRemotePlayer(scene, x, y);
                     newPlayer.lastIsAirborne = data.isAirborne ?? false;
                     newPlayer.lastIsMoving = data.isMoving ?? false;
-                    newPlayer.targetX = x; // NEW: Set target for lerp
-                    newPlayer.targetY = y; // NEW: Set target for lerp
                     players.current[data.id] = newPlayer;
                     console.log(`Created new player ${data.id} at (${x}, ${y})`);
-                    if (scene.anims.exists('idle')) {
-                        newPlayer.anims.play('idle', true);
-                    } else {
-                        console.error('Idle animation not available for new player');
-                    }
                 } else {
                     const existingPlayer = players.current[data.id];
                     // NEW: Update target positions for lerp instead of setPosition
@@ -730,6 +776,125 @@ const PhaserGame = () => {
         };
     }, []);
 
+    // const createPlayer = (scene) => {
+    //     if (!myId.current || players.current[myId.current]) {
+    //         console.log('Player creation skipped:', { id: myId.current, exists: !!players.current[myId.current] });
+    //         return;
+    //     }
+
+    //     try {
+    //         scene.player = scene.physics.add.sprite(100, 50, 'manzanita');
+    //         if (!scene.player) {
+    //             console.error('Failed to create player sprite');
+    //             return;
+    //         }
+    //         scene.player.isAttacking = false;
+    //         scene.player.lastIsAirborne = false;
+    //         scene.player.lastIsMoving = false;
+    //         scene.player.setCollideWorldBounds(true);
+    //         scene.physics.add.collider(scene.player, scene.platforms);
+    //         scene.player.setScale(1.25);
+    //         scene.player.setDepth(2);
+    //         scene.player.body.setDragX(3000);
+    //         scene.player.body.setSize(55, 55);
+    //         scene.player.body.setOffset(25, 10);
+    //         scene.player.body.debugShowBody = true;
+    //         players.current[myId.current] = scene.player;
+    //         console.log('Player created locally:', scene.player, myId.current);
+
+    //         scene.attackOffsets = {};
+    //         const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
+    //         manzanitaFrames.forEach(frameName => {
+    //             const frameData = scene.textures.get('manzanita').frames[frameName].customData;
+    //             if (frameData && frameData.attackOffset !== undefined) {
+    //                 scene.attackOffsets[frameName] = frameData.attackOffset;
+    //             }
+    //         });
+    //         console.log('Attack offsets:', scene.attackOffsets);
+
+    //         scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
+    //         scene.physics.add.existing(scene.attackHitbox);
+    //         if (scene.attackHitbox.body) {
+    //             scene.attackHitbox.body.setAllowGravity(false);
+    //             scene.attackHitbox.body.setEnable(false);
+    //             scene.attackHitbox.body.debugShowBody = true;
+    //         } else {
+    //             console.error('Attack hitbox body not created!');
+    //         }
+
+    //         scene.player.on('animationupdate', (animation, frame) => {
+    //             if (animation.key === 'attack') {
+    //                 const offset = scene.attackOffsets[frame.textureFrame] || 0;
+    //                 const dir = scene.player.flipX ? -1 : 1;
+    //                 scene.player.x = scene.player.baseX + offset * dir;
+    //                 const hitboxOffsetX = 30;
+    //                 scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
+    //                 scene.attackHitbox.y = scene.player.y + 15;
+    //                 if (frame.index >= 1 && frame.index <= 2) {
+    //                     scene.attackHitbox.body.setEnable(true);
+    //                     console.log(
+    //                         `Hitbox enabled at frame: ${frame.index}, ` +
+    //                         `x: ${scene.attackHitbox.x}, y: ${scene.attackHitbox.y}, ` +
+    //                         `player x: ${scene.player.x}, flipX: ${scene.player.flipX}`
+    //                     );
+    //                 } else {
+    //                     scene.attackHitbox.body.setEnable(false);
+    //                 }
+    //             }
+    //         });
+
+    //         scene.player.on('animationcomplete', (animation) => {
+    //             if (animation.key === 'attack' && scene.attackHitbox?.body) {
+    //                 scene.attackHitbox.body.setEnable(false);
+    //                 console.log('Attack animation complete, hitbox disabled');
+    //             }
+    //         });
+
+    //         scene.animationLock = false;
+
+    //         const requiredAnims = ['idle', 'walk', 'attack', 'jump'];
+    //         requiredAnims.forEach(anim => {
+    //             if (!scene.anims.exists(anim)) {
+    //                 console.error(`Animation "${anim}" not found for manzanita sprite`);
+    //             }
+    //         });
+
+    //         if (scene.anims.exists('idle')) {
+    //             scene.player.anims.play('idle', true);
+    //             scene.lastAnimation = 'idle';
+    //         } else {
+    //             console.error('Idle animation not available; player will not animate');
+    //         }
+
+    //         scene.isOuching = false;
+    //         scene.ouchDelay = 550;
+    //         scene.physics.add.overlap(
+    //             scene.player,
+    //             scene.firepit,
+    //             function (player, firepit) {
+    //                 if (!this.isOuching) {
+    //                     console.log('Ouch triggered!');
+    //                     this.createPopupText(player.x, player.y - 50, '*ouch*', '#ffaa00');
+    //                     this.isOuching = true;
+    //                     this.time.delayedCall(this.ouchDelay, () => {
+    //                         this.isOuching = false;
+    //                     });
+    //                 }
+    //             }.bind(scene),
+    //             null,
+    //             scene
+    //         );
+
+    //         if (socket.current) {
+    //             socket.current.emit('newPlayer', { id: myId.current, x: 100, y: 50 });
+    //         } else {
+    //             console.error('Socket not available to emit newPlayer event');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error creating player:', error);
+    //     }
+    // };
+
     const createPlayer = (scene) => {
         if (!myId.current || players.current[myId.current]) {
             console.log('Player creation skipped:', { id: myId.current, exists: !!players.current[myId.current] });
@@ -737,25 +902,15 @@ const PhaserGame = () => {
         }
 
         try {
-            scene.player = scene.physics.add.sprite(100, 50, 'manzanita');
-            if (!scene.player) {
-                console.error('Failed to create player sprite');
-                return;
-            }
-            scene.player.isAttacking = false;
-            scene.player.lastIsAirborne = false;
-            scene.player.lastIsMoving = false;
-            scene.player.setCollideWorldBounds(true);
-            scene.physics.add.collider(scene.player, scene.platforms);
-            scene.player.setScale(1.25);
-            scene.player.setDepth(2);
-            scene.player.body.setDragX(3000);
-            scene.player.body.setSize(55, 55);
-            scene.player.body.setOffset(25, 10);
-            scene.player.body.debugShowBody = true;
+            // USE SAME FACTORY + enable physics for local player
+            scene.player = createRemotePlayer(scene, 100, 50);
+            scene.player.body.setAllowGravity(true);      // ONLY local gets gravity
+            scene.player.body.setDragX(3000);             // ONLY local gets drag
             players.current[myId.current] = scene.player;
-            console.log('Player created locally:', scene.player, myId.current);
+            
+            console.log('Local player created perfectly:', myId.current);
 
+            // Attack hitbox setup (local only)
             scene.attackOffsets = {};
             const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
             manzanitaFrames.forEach(frameName => {
@@ -764,18 +919,14 @@ const PhaserGame = () => {
                     scene.attackOffsets[frameName] = frameData.attackOffset;
                 }
             });
-            console.log('Attack offsets:', scene.attackOffsets);
 
             scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
             scene.physics.add.existing(scene.attackHitbox);
-            if (scene.attackHitbox.body) {
-                scene.attackHitbox.body.setAllowGravity(false);
-                scene.attackHitbox.body.setEnable(false);
-                scene.attackHitbox.body.debugShowBody = true;
-            } else {
-                console.error('Attack hitbox body not created!');
-            }
+            scene.attackHitbox.body.setAllowGravity(false);
+            scene.attackHitbox.body.setEnable(false);
+            scene.attackHitbox.body.debugShowBody = true;
 
+            // Attack animation handlers (local only)
             scene.player.on('animationupdate', (animation, frame) => {
                 if (animation.key === 'attack') {
                     const offset = scene.attackOffsets[frame.textureFrame] || 0;
@@ -786,11 +937,6 @@ const PhaserGame = () => {
                     scene.attackHitbox.y = scene.player.y + 15;
                     if (frame.index >= 1 && frame.index <= 2) {
                         scene.attackHitbox.body.setEnable(true);
-                        console.log(
-                            `Hitbox enabled at frame: ${frame.index}, ` +
-                            `x: ${scene.attackHitbox.x}, y: ${scene.attackHitbox.y}, ` +
-                            `player x: ${scene.player.x}, flipX: ${scene.player.flipX}`
-                        );
                     } else {
                         scene.attackHitbox.body.setEnable(false);
                     }
@@ -800,52 +946,27 @@ const PhaserGame = () => {
             scene.player.on('animationcomplete', (animation) => {
                 if (animation.key === 'attack' && scene.attackHitbox?.body) {
                     scene.attackHitbox.body.setEnable(false);
-                    console.log('Attack animation complete, hitbox disabled');
                 }
             });
 
             scene.animationLock = false;
 
-            const requiredAnims = ['idle', 'walk', 'attack', 'jump'];
-            requiredAnims.forEach(anim => {
-                if (!scene.anims.exists(anim)) {
-                    console.error(`Animation "${anim}" not found for manzanita sprite`);
+            // Firepit overlap (local only)
+            scene.isOuching = false;
+            scene.ouchDelay = 550;
+            scene.physics.add.overlap(scene.player, scene.firepit, (player, firepit) => {
+                if (!scene.isOuching) {
+                    scene.createPopupText(player.x, player.y - 50, '*ouch*', '#ffaa00');
+                    scene.isOuching = true;
+                    scene.time.delayedCall(scene.ouchDelay, () => scene.isOuching = false);
                 }
             });
 
-            if (scene.anims.exists('idle')) {
-                scene.player.anims.play('idle', true);
-                scene.lastAnimation = 'idle';
-            } else {
-                console.error('Idle animation not available; player will not animate');
-            }
+            // Emit to server
+            socket.current.emit('newPlayer', { id: myId.current, x: 100, y: 50 });
 
-            scene.isOuching = false;
-            scene.ouchDelay = 550;
-            scene.physics.add.overlap(
-                scene.player,
-                scene.firepit,
-                function (player, firepit) {
-                    if (!this.isOuching) {
-                        console.log('Ouch triggered!');
-                        this.createPopupText(player.x, player.y - 50, '*ouch*', '#ffaa00');
-                        this.isOuching = true;
-                        this.time.delayedCall(this.ouchDelay, () => {
-                            this.isOuching = false;
-                        });
-                    }
-                }.bind(scene),
-                null,
-                scene
-            );
-
-            if (socket.current) {
-                socket.current.emit('newPlayer', { id: myId.current, x: 100, y: 50 });
-            } else {
-                console.error('Socket not available to emit newPlayer event');
-            }
         } catch (error) {
-            console.error('Error creating player:', error);
+            console.error('Error creating local player:', error);
         }
     };
 
