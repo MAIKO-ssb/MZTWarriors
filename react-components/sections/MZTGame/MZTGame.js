@@ -55,17 +55,18 @@ const PhaserGame = () => {
         //         player.anims.play('idle', true);
         //     }
         // }
-        // Always force correct animation
-        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-            player.anims.play(targetAnim, true);
+        
+        // ALWAYS FORCE CORRECT ANIM — second param TRUE overrides stuck loops
+        if (targetAnim && scene.anims.exists(targetAnim)) {
+            player.anims.play(targetAnim, true);  // TRUE = FORCE even if "playing"
             scene.lastAnimation = targetAnim;
             scene.animationLock = true;
             scene.time.delayedCall(100, () => { scene.animationLock = false; });
             return;
         }
-        
-        // Emergency unstuck: jump → idle
-        if (!isAirborne && currentAnim === 'jump' && scene.anims.exists('idle')) {
+
+        // EMERGENCY UNSTUCK: Wrong anim? FORCE idle
+        if (!isAirborne && !isMoving && scene.anims.exists('idle') && currentAnim !== 'idle') {
             player.anims.play('idle', true);
             scene.lastAnimation = 'idle';
             scene.animationLock = true;
@@ -196,28 +197,12 @@ const PhaserGame = () => {
                     existingPlayer.lastIsAirborne = data.isAirborne ?? existingPlayer.lastIsAirborne;
                     existingPlayer.lastIsMoving = data.isMoving ?? existingPlayer.lastIsMoving;
                     if (!existingPlayer.isAttacking) {
-                        updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, scene);
+                        // updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, scene);
+                        updatePlayerAnimation(existingPlayer, data.isAirborne ?? false, data.isMoving ?? false, scene);
                     }
                 }
             } else {
-                const existingPlayer = players.current[data.id];
-                existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
-                existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
-                existingPlayer.flipX = (data.direction === 'left');
-                
-                // FORCE CLEAN STATE
-                existingPlayer.lastIsAirborne = data.isAirborne ?? false;
-                existingPlayer.lastIsMoving = data.isMoving ?? false;
-                
-                // IMMEDIATE ANIMATION CORRECT
-                if (!existingPlayer.isAttacking) {
-                    updatePlayerAnimation(existingPlayer, data.isAirborne, data.isMoving, scene);
-                }
-                
-                // EXTRA: Kill any jump tweens if grounded
-                if (!data.isAirborne && scene.tweens) {
-                    scene.tweens.killTweensOf(existingPlayer);
-                }
+                console.log('Scene not ready for playerMoved event');
             }
         });
 
