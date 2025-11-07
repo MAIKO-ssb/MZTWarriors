@@ -54,7 +54,8 @@ const PhaserGame = () => {
         player.body.setAllowGravity(false);       // Remote = no real physics
         player.body.setImmovable(true);
         player.setCollideWorldBounds(true);
-        scene.physics.add.collider(player, scene.platforms);
+        // scene.physics.add.collider(player, scene.platforms);
+        scene.physics.add.collider(player, scene.platforms, null, null, scene);
         
         // PERFECT COLLISION MATCH
         player.body.setSize(55, 55);              // Tight hitbox
