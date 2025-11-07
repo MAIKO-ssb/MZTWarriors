@@ -56,21 +56,14 @@ const PhaserGame = () => {
         //     }
         // }
         
-        // ALWAYS FORCE CORRECT ANIM — second param TRUE overrides stuck loops
-        if (targetAnim && scene.anims.exists(targetAnim)) {
-            player.anims.play(targetAnim, true);  // TRUE = FORCE even if "playing"
-            scene.lastAnimation = targetAnim;
-            scene.animationLock = true;
-            scene.time.delayedCall(100, () => { scene.animationLock = false; });
-            return;
+        // FORCE CORRECT ANIM
+        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+            player.anims.play(targetAnim, true);
         }
 
-        // EMERGENCY UNSTUCK: Wrong anim? FORCE idle
-        if (!isAirborne && !isMoving && scene.anims.exists('idle') && currentAnim !== 'idle') {
+        // UNSTUCK: Wrong anim on ground
+        if (!isAirborne && !isMoving && currentAnim !== 'idle' && scene.anims.exists('idle')) {
             player.anims.play('idle', true);
-            scene.lastAnimation = 'idle';
-            scene.animationLock = true;
-            scene.time.delayedCall(100, () => { scene.animationLock = false; });
         }
     };
 
@@ -740,6 +733,10 @@ const PhaserGame = () => {
                         if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
                             p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
                             p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
+                            // NEW: Client-side airborne for remote
+                            const dy = p.targetY - p.y;
+                            const isAirborne = Math.abs(dy) > 1;  // Lerping down/up = airborne
+                            updatePlayerAnimation(p, isAirborne, p.lastIsMoving, this);
                         }
                     });
                 }
