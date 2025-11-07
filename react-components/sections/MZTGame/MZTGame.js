@@ -19,7 +19,10 @@ const PhaserGame = () => {
 
     // Helper function to update animations
     const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
-        if (scene.animationLock) return;
+        // if (scene.animationLock) return;
+        if (player.animationLock) return;
+        player.animationLock = true;
+        scene.time.delayedCall(100, () => { player.animationLock = false; });
 
         const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
         let targetAnim = null;
@@ -83,6 +86,8 @@ const PhaserGame = () => {
         player.lastIsMoving = false;
         player.targetX = x;
         player.targetY = y;
+
+        player.animationLock = false;
         
         if (scene.anims.exists('idle')) {
             player.anims.play('idle', true);
@@ -611,10 +616,10 @@ const PhaserGame = () => {
                                         });
                                     }
                                     if (this.anims.exists('jump')) {
-                                        this.player.anims.play('jump', true);
-                                        this.lastAnimation = 'jump';
-                                        this.animationLock = true;
-                                        this.time.delayedCall(100, () => { this.animationLock = false; });
+                                        // this.player.anims.play('jump', true);
+                                        // this.lastAnimation = 'jump';
+                                        // this.animationLock = true;
+                                        // this.time.delayedCall(100, () => { this.animationLock = false; });
                                     } else {
                                         console.error('Jump animation not available');
                                     }
@@ -649,12 +654,14 @@ const PhaserGame = () => {
                         // if (!this.isAttacking) {
                         //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                         // }
-                        // ONLY CALL WHEN STATE CHANGES
+                        // === ANIMATION STATE CHANGE DETECTION ===
+                        const currentState = { isMoving, isAirborne };
                         if (!this.isAttacking && 
-                            (this.lastState.isMoving !== isMoving || this.lastState.isAirborne !== isAirborne)) {
+                            (currentState.isMoving !== this.lastState.isMoving || 
+                            currentState.isAirborne !== this.lastState.isAirborne)) {
                             updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                         }
-                        this.lastState = { isMoving, isAirborne };  // UPDATE AFTER
+                        this.lastState = currentState;
 
                         this.lastMoving = isMoving;
 
@@ -692,7 +699,8 @@ const PhaserGame = () => {
                                 this.animationLock = false;
                                 const isGrounded = this.player.body.blocked.down;
                                 const isAirborne = !isGrounded;
-                                const isMoving = isLeftPressed || isRightPressed;
+                                // const isMoving = isLeftPressed || isRightPressed;
+                                const isMoving = false; // Force idle after attack
                                 if (isGrounded) {
                                     this.player.setVelocityY(0);
                                 }
@@ -744,6 +752,27 @@ const PhaserGame = () => {
                     //         updatePlayerAnimation(p, isAirborne, p.lastIsMoving, this);
                     //     }
                     // });
+                    
+                    // === LERP REMOTE PLAYERS ===
+                    Object.entries(players.current).forEach(([id, p]) => {
+                        if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
+                            // Smooth lerp
+                            p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
+                            p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
+
+                            // Use actual movement to detect airborne
+                            const isMoving = Math.abs(p.targetX - p.x) > 0.5;
+                            const isAirborne = p.body?.blocked.down === false;
+
+                            if (!p.isAttacking) {
+                                updatePlayerAnimation(p, isAirborne, isMoving, this);
+                            }
+
+                            // Update last known
+                            p.lastIsMoving = isMoving;
+                            p.lastIsAirborne = isAirborne;
+                        }
+                    });
                 }
             },
         };
