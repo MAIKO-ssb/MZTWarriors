@@ -20,6 +20,7 @@ const PhaserGame = () => {
     // Helper function to update animations
     const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
         if (scene.animationLock) return;
+
         const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
         let targetAnim = null;
 
@@ -29,18 +30,46 @@ const PhaserGame = () => {
             targetAnim = isMoving ? 'walk' : 'idle';
         }
 
+        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+        //     player.anims.play(targetAnim, true);
+        //     scene.lastAnimation = targetAnim;
+        //     scene.animationLock = true;
+        //     scene.time.delayedCall(100, () => { scene.animationLock = false; }); 
+        // } else if (targetAnim && !scene.anims.exists(targetAnim)) {
+        //     if (scene.anims.exists('idle') && currentAnim !== 'idle') {
+        //         player.anims.play('idle', true);
+        //         scene.lastAnimation = 'idle';
+        //         scene.animationLock = true;
+        //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
+        //     }
+        // }
+        // ODD
+        // if (currentAnim !== targetAnim && scene.anims.exists(targetAnim)) {
+        //     player.anims.play(targetAnim, true);
+        //     scene.lastAnimation = targetAnim;
+        //     scene.animationLock = true;
+        //     scene.time.delayedCall(100, () => { scene.animationLock = false; });
+        // } else if (!isAirborne && currentAnim === 'jump') {
+        //     // EMERGENCY: Stuck on jump? FORCE idle
+        //     if (scene.anims.exists('idle')) {
+        //         player.anims.play('idle', true);
+        //     }
+        // }
+        // Always force correct animation
         if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
             player.anims.play(targetAnim, true);
             scene.lastAnimation = targetAnim;
             scene.animationLock = true;
-            scene.time.delayedCall(100, () => { scene.animationLock = false; }); 
-        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-                player.anims.play('idle', true);
-                scene.lastAnimation = 'idle';
-                scene.animationLock = true;
-                scene.time.delayedCall(100, () => { scene.animationLock = false; });
-            }
+            scene.time.delayedCall(100, () => { scene.animationLock = false; });
+            return;
+        }
+        
+        // Emergency unstuck: jump → idle
+        if (!isAirborne && currentAnim === 'jump' && scene.anims.exists('idle')) {
+            player.anims.play('idle', true);
+            scene.lastAnimation = 'idle';
+            scene.animationLock = true;
+            scene.time.delayedCall(100, () => { scene.animationLock = false; });
         }
     };
 
@@ -135,28 +164,6 @@ const PhaserGame = () => {
                 const scene = sceneRef.current;
                 playersList.forEach((playerData) => {
                     if (playerData.id !== myId.current && !players.current[playerData.id]) {
-                        // OLD CODE:
-                        // NEW: Validate position data
-                        // const x = playerData.position?.x ?? 100; // Default to 100 if undefined
-                        // const y = playerData.position?.y ?? 650; // Default to ground level
-                        // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
-                        // newPlayer.body.setAllowGravity(false);
-                        // newPlayer.body.setImmovable(true);
-                        // newPlayer.setScale(1);
-                        // newPlayer.setCollideWorldBounds(true);
-                        // newPlayer.setDepth(2);
-                        // scene.physics.add.collider(newPlayer, scene.platforms);
-                        // newPlayer.isAttacking = false;
-                        // newPlayer.lastIsAirborne = false;
-                        // newPlayer.lastIsMoving = false;
-                        // newPlayer.targetX = x; // NEW: Initialize target for lerp
-                        // newPlayer.targetY = y; // NEW: Initialize target for lerp
-                        // players.current[playerData.id] = newPlayer;
-                        // console.log(`Added player ${playerData.id} at (${x}, ${y})`);
-                        // if (scene.anims.exists('idle')) {
-                        //     newPlayer.anims.play('idle', true);
-                        // }
-                        // END OLD CODE
                         const x = playerData.position?.x ?? 100;
                         const y = playerData.position?.y ?? 650;
                         const newPlayer = createRemotePlayer(scene, x, y);
@@ -173,29 +180,6 @@ const PhaserGame = () => {
             if (sceneRef.current) {
                 const scene = sceneRef.current;
                 if (!players.current[data.id]) {
-                    // OLD CODE: Validate position data for new players
-                    // const x = data.position?.x ?? 100;
-                    // const y = data.position?.y ?? 650;
-                    // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
-                    // newPlayer.body.setAllowGravity(false);
-                    // newPlayer.body.setImmovable(true);
-                    // newPlayer.setScale(1);
-                    // newPlayer.setCollideWorldBounds(true);
-                    // newPlayer.setDepth(2);
-                    // scene.physics.add.collider(newPlayer, scene.platforms);
-                    // newPlayer.isAttacking = false;
-                    // newPlayer.lastIsAirborne = data.isAirborne ?? false;
-                    // newPlayer.lastIsMoving = data.isMoving ?? false;
-                    // newPlayer.targetX = x; // NEW: Set target for lerp
-                    // newPlayer.targetY = y; // NEW: Set target for lerp
-                    // players.current[data.id] = newPlayer;
-                    // console.log(`Created new player ${data.id} at (${x}, ${y})`);
-                    // if (scene.anims.exists('idle')) {
-                    //     newPlayer.anims.play('idle', true);
-                    // } else {
-                    //     console.error('Idle animation not available for new player');
-                    // }
-                    // END OLD CODE
                     const x = data.position?.x ?? 100;
                     const y = data.position?.y ?? 650;
                     const newPlayer = createRemotePlayer(scene, x, y);
@@ -216,7 +200,24 @@ const PhaserGame = () => {
                     }
                 }
             } else {
-                console.warn('Scene not ready for playerMoved event');
+                const existingPlayer = players.current[data.id];
+                existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
+                existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
+                existingPlayer.flipX = (data.direction === 'left');
+                
+                // FORCE CLEAN STATE
+                existingPlayer.lastIsAirborne = data.isAirborne ?? false;
+                existingPlayer.lastIsMoving = data.isMoving ?? false;
+                
+                // IMMEDIATE ANIMATION CORRECT
+                if (!existingPlayer.isAttacking) {
+                    updatePlayerAnimation(existingPlayer, data.isAirborne, data.isMoving, scene);
+                }
+                
+                // EXTRA: Kill any jump tweens if grounded
+                if (!data.isAirborne && scene.tweens) {
+                    scene.tweens.killTweensOf(existingPlayer);
+                }
             }
         });
 
@@ -776,125 +777,6 @@ const PhaserGame = () => {
             isGameInitialized.current = false;
         };
     }, []);
-
-    // const createPlayer = (scene) => {
-    //     if (!myId.current || players.current[myId.current]) {
-    //         console.log('Player creation skipped:', { id: myId.current, exists: !!players.current[myId.current] });
-    //         return;
-    //     }
-
-    //     try {
-    //         scene.player = scene.physics.add.sprite(100, 50, 'manzanita');
-    //         if (!scene.player) {
-    //             console.error('Failed to create player sprite');
-    //             return;
-    //         }
-    //         scene.player.isAttacking = false;
-    //         scene.player.lastIsAirborne = false;
-    //         scene.player.lastIsMoving = false;
-    //         scene.player.setCollideWorldBounds(true);
-    //         scene.physics.add.collider(scene.player, scene.platforms);
-    //         scene.player.setScale(1.25);
-    //         scene.player.setDepth(2);
-    //         scene.player.body.setDragX(3000);
-    //         scene.player.body.setSize(55, 55);
-    //         scene.player.body.setOffset(25, 10);
-    //         scene.player.body.debugShowBody = true;
-    //         players.current[myId.current] = scene.player;
-    //         console.log('Player created locally:', scene.player, myId.current);
-
-    //         scene.attackOffsets = {};
-    //         const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
-    //         manzanitaFrames.forEach(frameName => {
-    //             const frameData = scene.textures.get('manzanita').frames[frameName].customData;
-    //             if (frameData && frameData.attackOffset !== undefined) {
-    //                 scene.attackOffsets[frameName] = frameData.attackOffset;
-    //             }
-    //         });
-    //         console.log('Attack offsets:', scene.attackOffsets);
-
-    //         scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
-    //         scene.physics.add.existing(scene.attackHitbox);
-    //         if (scene.attackHitbox.body) {
-    //             scene.attackHitbox.body.setAllowGravity(false);
-    //             scene.attackHitbox.body.setEnable(false);
-    //             scene.attackHitbox.body.debugShowBody = true;
-    //         } else {
-    //             console.error('Attack hitbox body not created!');
-    //         }
-
-    //         scene.player.on('animationupdate', (animation, frame) => {
-    //             if (animation.key === 'attack') {
-    //                 const offset = scene.attackOffsets[frame.textureFrame] || 0;
-    //                 const dir = scene.player.flipX ? -1 : 1;
-    //                 scene.player.x = scene.player.baseX + offset * dir;
-    //                 const hitboxOffsetX = 30;
-    //                 scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
-    //                 scene.attackHitbox.y = scene.player.y + 15;
-    //                 if (frame.index >= 1 && frame.index <= 2) {
-    //                     scene.attackHitbox.body.setEnable(true);
-    //                     console.log(
-    //                         `Hitbox enabled at frame: ${frame.index}, ` +
-    //                         `x: ${scene.attackHitbox.x}, y: ${scene.attackHitbox.y}, ` +
-    //                         `player x: ${scene.player.x}, flipX: ${scene.player.flipX}`
-    //                     );
-    //                 } else {
-    //                     scene.attackHitbox.body.setEnable(false);
-    //                 }
-    //             }
-    //         });
-
-    //         scene.player.on('animationcomplete', (animation) => {
-    //             if (animation.key === 'attack' && scene.attackHitbox?.body) {
-    //                 scene.attackHitbox.body.setEnable(false);
-    //                 console.log('Attack animation complete, hitbox disabled');
-    //             }
-    //         });
-
-    //         scene.animationLock = false;
-
-    //         const requiredAnims = ['idle', 'walk', 'attack', 'jump'];
-    //         requiredAnims.forEach(anim => {
-    //             if (!scene.anims.exists(anim)) {
-    //                 console.error(`Animation "${anim}" not found for manzanita sprite`);
-    //             }
-    //         });
-
-    //         if (scene.anims.exists('idle')) {
-    //             scene.player.anims.play('idle', true);
-    //             scene.lastAnimation = 'idle';
-    //         } else {
-    //             console.error('Idle animation not available; player will not animate');
-    //         }
-
-    //         scene.isOuching = false;
-    //         scene.ouchDelay = 550;
-    //         scene.physics.add.overlap(
-    //             scene.player,
-    //             scene.firepit,
-    //             function (player, firepit) {
-    //                 if (!this.isOuching) {
-    //                     console.log('Ouch triggered!');
-    //                     this.createPopupText(player.x, player.y - 50, '*ouch*', '#ffaa00');
-    //                     this.isOuching = true;
-    //                     this.time.delayedCall(this.ouchDelay, () => {
-    //                         this.isOuching = false;
-    //                     });
-    //                 }
-    //             }.bind(scene),
-    //             null,
-    //             scene
-    //         );
-
-    //         if (socket.current) {
-    //             socket.current.emit('newPlayer', { id: myId.current, x: 100, y: 50 });
-    //         } else {
-    //             console.error('Socket not available to emit newPlayer event');
-    //         }
-    //     } catch (error) {
-    //         console.error('Error creating player:', error);
-    //     }
-    // };
 
     const createPlayer = (scene) => {
         if (!myId.current || players.current[myId.current]) {
