@@ -19,45 +19,29 @@ const PhaserGame = () => {
 
     // Helper function to update animations
     const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
-        // if (scene.animationLock) return;
-        // if (player.animationLock) return;
-        if (player.animationLock || player.isAttacking) return;
-        const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
-        const currentAnim = player.anims.currentAnim?.key;
-        if (currentAnim !== targetAnim && scene.anims.exists(targetAnim)) {
-            player.anims.play(targetAnim, true);
+        if (scene.animationLock) return;
+        const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
+        let targetAnim = null;
+
+        if (isAirborne) {
+            targetAnim = 'jump';
+        } else {
+            targetAnim = isMoving ? 'walk' : 'idle';
         }
-        // player.animationLock = true;
-        // scene.time.delayedCall(100, () => { player.animationLock = false; });
 
-        // const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
-        // let targetAnim = null;
-        // const currentAnim = player.anims.currentAnim?.key;
-        // const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
-
-        // if (isAirborne) {
-        //     targetAnim = 'jump';
-        // } else {
-        //     targetAnim = isMoving ? 'walk' : 'idle';
-        // }
-
-        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-        //     player.anims.play(targetAnim, true);
-        //     scene.lastAnimation = targetAnim;
-        //     scene.animationLock = true;
-        //     scene.time.delayedCall(100, () => { scene.animationLock = false; }); 
-        // } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-        //     if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-        //         player.anims.play('idle', true);
-        //         scene.lastAnimation = 'idle';
-        //         scene.animationLock = true;
-        //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        //     }
-        // }
-        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-        //     player.anims.play(targetAnim, true);
-        // }
-       
+        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+            player.anims.play(targetAnim, true);
+            scene.lastAnimation = targetAnim;
+            scene.animationLock = true;
+            scene.time.delayedCall(100, () => { scene.animationLock = false; }); 
+        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
+            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
+                player.anims.play('idle', true);
+                scene.lastAnimation = 'idle';
+                scene.animationLock = true;
+                scene.time.delayedCall(100, () => { scene.animationLock = false; });
+            }
+        }
     };
 
     // PERFECT PLAYER FACTORY — same for local + remote
@@ -84,8 +68,6 @@ const PhaserGame = () => {
         player.lastIsMoving = false;
         player.targetX = x;
         player.targetY = y;
-
-        player.animationLock = false;
         
         if (scene.anims.exists('idle')) {
             player.anims.play('idle', true);
@@ -153,6 +135,28 @@ const PhaserGame = () => {
                 const scene = sceneRef.current;
                 playersList.forEach((playerData) => {
                     if (playerData.id !== myId.current && !players.current[playerData.id]) {
+                        // OLD CODE:
+                        // NEW: Validate position data
+                        // const x = playerData.position?.x ?? 100; // Default to 100 if undefined
+                        // const y = playerData.position?.y ?? 650; // Default to ground level
+                        // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                        // newPlayer.body.setAllowGravity(false);
+                        // newPlayer.body.setImmovable(true);
+                        // newPlayer.setScale(1);
+                        // newPlayer.setCollideWorldBounds(true);
+                        // newPlayer.setDepth(2);
+                        // scene.physics.add.collider(newPlayer, scene.platforms);
+                        // newPlayer.isAttacking = false;
+                        // newPlayer.lastIsAirborne = false;
+                        // newPlayer.lastIsMoving = false;
+                        // newPlayer.targetX = x; // NEW: Initialize target for lerp
+                        // newPlayer.targetY = y; // NEW: Initialize target for lerp
+                        // players.current[playerData.id] = newPlayer;
+                        // console.log(`Added player ${playerData.id} at (${x}, ${y})`);
+                        // if (scene.anims.exists('idle')) {
+                        //     newPlayer.anims.play('idle', true);
+                        // }
+                        // END OLD CODE
                         const x = playerData.position?.x ?? 100;
                         const y = playerData.position?.y ?? 650;
                         const newPlayer = createRemotePlayer(scene, x, y);
@@ -169,6 +173,29 @@ const PhaserGame = () => {
             if (sceneRef.current) {
                 const scene = sceneRef.current;
                 if (!players.current[data.id]) {
+                    // OLD CODE: Validate position data for new players
+                    // const x = data.position?.x ?? 100;
+                    // const y = data.position?.y ?? 650;
+                    // const newPlayer = scene.physics.add.sprite(x, y, 'manzanita');
+                    // newPlayer.body.setAllowGravity(false);
+                    // newPlayer.body.setImmovable(true);
+                    // newPlayer.setScale(1);
+                    // newPlayer.setCollideWorldBounds(true);
+                    // newPlayer.setDepth(2);
+                    // scene.physics.add.collider(newPlayer, scene.platforms);
+                    // newPlayer.isAttacking = false;
+                    // newPlayer.lastIsAirborne = data.isAirborne ?? false;
+                    // newPlayer.lastIsMoving = data.isMoving ?? false;
+                    // newPlayer.targetX = x; // NEW: Set target for lerp
+                    // newPlayer.targetY = y; // NEW: Set target for lerp
+                    // players.current[data.id] = newPlayer;
+                    // console.log(`Created new player ${data.id} at (${x}, ${y})`);
+                    // if (scene.anims.exists('idle')) {
+                    //     newPlayer.anims.play('idle', true);
+                    // } else {
+                    //     console.error('Idle animation not available for new player');
+                    // }
+                    // END OLD CODE
                     const x = data.position?.x ?? 100;
                     const y = data.position?.y ?? 650;
                     const newPlayer = createRemotePlayer(scene, x, y);
@@ -185,12 +212,11 @@ const PhaserGame = () => {
                     existingPlayer.lastIsAirborne = data.isAirborne ?? existingPlayer.lastIsAirborne;
                     existingPlayer.lastIsMoving = data.isMoving ?? existingPlayer.lastIsMoving;
                     if (!existingPlayer.isAttacking) {
-                        // updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, scene);
-                        updatePlayerAnimation(existingPlayer, data.isAirborne ?? false, data.isMoving ?? false, scene);
+                        updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, scene);
                     }
                 }
             } else {
-                console.log('Scene not ready for playerMoved event');
+                console.warn('Scene not ready for playerMoved event');
             }
         });
 
@@ -236,22 +262,15 @@ const PhaserGame = () => {
                 existingPlayer.anims.play('attack', true);
                 existingPlayer.once('animationcomplete', () => {
                     existingPlayer.isAttacking = false;
-                    // updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, sceneRef.current);
-                    // if (data.id === myId.current && socket.current) {
-                    //     socket.current.emit('playerMovement', {
-                    //         id: myId.current,
-                    //         position: { x: existingPlayer.x, y: existingPlayer.y },
-                    //         direction: data.direction,
-                    //         isMoving: false,
-                    //         isAirborne: data.isAirborne ?? false
-                    //     });
-                    // }
-                    const scene = sceneRef.current;
-                    if (scene) {
-                        const isGrounded = scene.player?.body.blocked.down;
-                        const isAirborne = !isGrounded;
-                        const isMoving = false;
-                        updatePlayerAnimation(existingPlayer, isAirborne, isMoving, scene);
+                    updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, sceneRef.current);
+                    if (data.id === myId.current && socket.current) {
+                        socket.current.emit('playerMovement', {
+                            id: myId.current,
+                            position: { x: existingPlayer.x, y: existingPlayer.y },
+                            direction: data.direction,
+                            isMoving: false,
+                            isAirborne: data.isAirborne ?? false
+                        });
                     }
                 });
             }
@@ -568,8 +587,7 @@ const PhaserGame = () => {
 
                     const isLeftPressed = this.cursors.left.isDown || this.WASD.A.isDown;
                     const isRightPressed = this.cursors.right.isDown || this.WASD.D.isDown;
-                    const isMoving = isLeftPressed || isRightPressed;
-                    // let moving = false;
+                    let moving = false;
                     let speed = 350;
 
                     if (myId.current != null) {
@@ -577,79 +595,61 @@ const PhaserGame = () => {
                             if (isLeftPressed) {
                                 this.player.setVelocityX(-speed);
                                 this.player.flipX = true;
-                                // moving = true;
+                                moving = true;
                                 this.facingDirection = 'left';
                             } else if (isRightPressed) {
                                 this.player.setVelocityX(speed);
                                 this.player.flipX = false;
-                                // moving = true;
+                                moving = true;
                                 this.facingDirection = 'right';
                             } else {
-                                // if (!this.isAttacking) {
-                                //     this.player.setVelocityX(0);
-                                // }
-                                // moving = false;
-                                this.player.setVelocityX(0);
+                                if (!this.isAttacking) {
+                                    this.player.setVelocityX(0);
+                                }
+                                moving = false;
                             }
 
-                            this.player.body.setOffset(this.player.flipX ? 47 : 28, 10);
-
-                            // if (this.player.flipX) {
-                            //     this.player.body.setOffset(47, 10);
-                            // } else {
-                            //     this.player.body.setOffset(28, 10);
-                            // }
-
-                            if (
-                                (Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
-                                Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) ||
-                                Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow)) &&
-                                this.jumpCount < this.maxJumps
-                            ) {
-                                this.player.setVelocityY(this.jumpVelocity);
-                                this.jumpCount++;
-
-                                // FORCE JUMP ANIM IMMEDIATELY
-                                if (this.anims.exists('jump')) {
-                                    this.player.anims.play('jump', true);
-                                }
-
-                                if (socket.current) {
-                                    socket.current.emit('playerJump', {
-                                        id: myId.current,
-                                        position: { x: this.player.x, y: this.player.y },
-                                        direction: this.facingDirection,
-                                        velocityY: this.jumpVelocity,
-                                    });
-                                }
-                                // if (this.anims.exists('jump')) {
-                                //     // this.player.anims.play('jump', true);
-                                //     // this.lastAnimation = 'jump';
-                                //     // this.animationLock = true;
-                                //     // this.time.delayedCall(100, () => { this.animationLock = false; });
-                                // } else {
-                                //     console.error('Jump animation not available');
-                                // }
+                            if (this.player.flipX) {
+                                this.player.body.setOffset(47, 10);
+                            } else {
+                                this.player.body.setOffset(28, 10);
                             }
-                            
+
+                            if (!this.isAttacking) {
+                                if (
+                                    (Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
+                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) ||
+                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow)) &&
+                                    this.jumpCount < this.maxJumps
+                                ) {
+                                    this.player.setVelocityY(this.jumpVelocity);
+                                    this.jumpCount++;
+                                    if (socket.current) {
+                                        socket.current.emit('playerJump', {
+                                            id: myId.current,
+                                            position: { x: this.player.x, y: this.player.y },
+                                            direction: this.facingDirection,
+                                            velocityY: this.jumpVelocity,
+                                        });
+                                    }
+                                    if (this.anims.exists('jump')) {
+                                        this.player.anims.play('jump', true);
+                                        this.lastAnimation = 'jump';
+                                        this.animationLock = true;
+                                        this.time.delayedCall(100, () => { this.animationLock = false; });
+                                    } else {
+                                        console.error('Jump animation not available');
+                                    }
+                                }
+                            }
                         }
 
-                        // const isGrounded = this.player.body.blocked.down && Math.abs(this.player.body.velocity.y) < 10;
-                        const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
+                        const isGrounded = this.player.body.blocked.down && Math.abs(this.player.body.velocity.y) < 10;
                         if (isGrounded) {
                             this.jumpCount = 0;
                         }
                         const isAirborne = !isGrounded;
-                        // const isMoving = isLeftPressed || isRightPressed;
-
-                        // FORCE CORRECT ANIM EVERY FRAME (LOCAL)
-                        if (!this.isAttacking) {
-                            const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
-                            const currentAnim = this.player.anims.currentAnim?.key;
-                            if (currentAnim !== targetAnim && this.anims.exists(targetAnim)) {
-                                this.player.anims.play(targetAnim, true);
-                            }
-                        }
+                        const isMoving = isLeftPressed || isRightPressed;
 
                         // NEW: Throttle movement updates
                         const positionChanged = Math.abs(this.player.x - this.lastPosition.x) > 1 || Math.abs(this.player.y - this.lastPosition.y) > 1;
@@ -664,36 +664,28 @@ const PhaserGame = () => {
                                 isAirborne: isAirborne
                             });
                             this.lastPosition = { x: this.player.x, y: this.player.y };
-                            this.lastState = { isMoving, isAirborne };
+                            this.lastState = { isMoving: isMoving, isAirborne: isAirborne };
                             this.lastSendTime = now;
                         }
 
-                        // if (!this.isAttacking) {
-                        //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                        // }
-                        // === ANIMATION STATE CHANGE DETECTION ===
-                        // const currentState = { isMoving, isAirborne };
-                        // if (!this.isAttacking && 
-                        //     (currentState.isMoving !== this.lastState.isMoving || 
-                        //     currentState.isAirborne !== this.lastState.isAirborne)) {
-                        //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                        // }
-                        // this.lastState = currentState;
+                        if (!this.isAttacking) {
+                            updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                        }
 
-                        // this.lastMoving = isMoving;
+                        this.lastMoving = isMoving;
 
                         if (!this.isAttacking && (Phaser.Input.Keyboard.JustDown(this.attackKey) || 
                                                   Phaser.Input.Keyboard.JustDown(this.WASD.attackKey))) {
                             this.isAttacking = true;
                             this.player.body.setDragX(500);
-                            // this.player.removeAllListeners('animationcomplete');
+                            this.player.removeAllListeners('animationcomplete');
                             this.player.baseX = this.player.x;
 
                             if (this.anims.exists('attack')) {
                                 this.player.anims.play('attack', true);
-                                // this.lastAnimation = 'attack';
-                                // this.animationLock = true;
-                                // this.time.delayedCall(100, () => { this.animationLock = false; });
+                                this.lastAnimation = 'attack';
+                                this.animationLock = true;
+                                this.time.delayedCall(100, () => { this.animationLock = false; });
                             } else {
                                 console.error('Attack animation not available');
                                 this.isAttacking = false;
@@ -713,43 +705,29 @@ const PhaserGame = () => {
 
                             this.player.once('animationcomplete', () => {
                                 this.isAttacking = false;
-                                if (this.anims.exists('idle')) {
-                                    this.player.anims.play('idle', true); // <<<=== FORCE IDLE
+                                this.animationLock = false;
+                                const isGrounded = this.player.body.blocked.down;
+                                const isAirborne = !isGrounded;
+                                const isMoving = isLeftPressed || isRightPressed;
+                                if (isGrounded) {
+                                    this.player.setVelocityY(0);
                                 }
-
-                                const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
-                                this.lastState = { isMoving: false, isAirborne: !isGrounded };
-                                // const isMoving = isLeftPressed || isRightPressed;
-                                // const isMoving = false; // Force idle after attack
-
-                                // if (isGrounded) {
-                                //     this.player.setVelocityY(0);
-                                // }
-                                // if (
-                                //     this.lastState.isMoving !== isMoving ||
-                                //     this.lastState.isAirborne !== isAirborne ||
-                                //     this.lastAnimation !== this.player.anims?.currentAnim?.key
-                                // ) {
-                                //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                                // }
-                                // this.lastState = { isMoving, isAirborne };
-
-                                // FORCE IDLE — IGNORE LAST STATE
-                                // if (this.anims.exists('idle')) {
-                                //     this.player.anims.play('idle', true);
-                                // }
-
-                                // this.lastState = { isMoving, isAirborne };
+                                if (
+                                    this.lastState.isMoving !== isMoving ||
+                                    this.lastState.isAirborne !== isAirborne ||
+                                    this.lastAnimation !== this.player.anims?.currentAnim?.key
+                                ) {
+                                    updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                                }
+                                this.lastState = { isMoving, isAirborne };
 
                                 if (socket.current) {
                                     socket.current.emit('playerMovement', {
                                         id: myId.current,
                                         position: { x: this.player.x, y: this.player.y },
                                         direction: this.facingDirection,
-                                        // isMoving: isMoving,
-                                        // isAirborne: isAirborne
-                                        isMoving,
-                                        isAirborne
+                                        isMoving: isMoving,
+                                        isAirborne: isAirborne
                                     });
                                 }
                             });
@@ -771,38 +749,11 @@ const PhaserGame = () => {
                     enemies.current.forEach(enemy => enemy.update());
 
                     // NEW: Lerp remote player positions for smooth movement
-                    // Object.keys(players.current).forEach(id => {
-                    //     const p = players.current[id];
-                    //     if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
-                    //         p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
-                    //         p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
-                    //         // NEW: Client-side airborne for remote
-                    //         const dy = p.targetY - p.y;
-                    //         const isAirborne = Math.abs(dy) > 1;  // Lerping down/up = airborne
-                    //         updatePlayerAnimation(p, isAirborne, p.lastIsMoving, this);
-                    //     }
-                    // });
-                    
-                    // === LERP REMOTE PLAYERS ===
-                    Object.entries(players.current).forEach(([id, p]) => {
+                    Object.keys(players.current).forEach(id => {
+                        const p = players.current[id];
                         if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
-                            // Smooth lerp
                             p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
                             p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
-
-                            // Detect state change
-                            const isMoving = Math.abs(p.targetX - p.x) > 0.5;
-                            const isAirborne = p.body?.blocked.down === false;
-
-                            // Only update animation if state changed
-                            if (!p.isAttacking && 
-                                (isMoving !== p.lastIsMoving || isAirborne !== p.lastIsAirborne)) {
-                                updatePlayerAnimation(p, isAirborne, isMoving, this);
-                            }
-
-                            // Update last known state
-                            p.lastIsMoving = isMoving;
-                            p.lastIsAirborne = isAirborne;
                         }
                     });
                 }
@@ -825,6 +776,125 @@ const PhaserGame = () => {
             isGameInitialized.current = false;
         };
     }, []);
+
+    // const createPlayer = (scene) => {
+    //     if (!myId.current || players.current[myId.current]) {
+    //         console.log('Player creation skipped:', { id: myId.current, exists: !!players.current[myId.current] });
+    //         return;
+    //     }
+
+    //     try {
+    //         scene.player = scene.physics.add.sprite(100, 50, 'manzanita');
+    //         if (!scene.player) {
+    //             console.error('Failed to create player sprite');
+    //             return;
+    //         }
+    //         scene.player.isAttacking = false;
+    //         scene.player.lastIsAirborne = false;
+    //         scene.player.lastIsMoving = false;
+    //         scene.player.setCollideWorldBounds(true);
+    //         scene.physics.add.collider(scene.player, scene.platforms);
+    //         scene.player.setScale(1.25);
+    //         scene.player.setDepth(2);
+    //         scene.player.body.setDragX(3000);
+    //         scene.player.body.setSize(55, 55);
+    //         scene.player.body.setOffset(25, 10);
+    //         scene.player.body.debugShowBody = true;
+    //         players.current[myId.current] = scene.player;
+    //         console.log('Player created locally:', scene.player, myId.current);
+
+    //         scene.attackOffsets = {};
+    //         const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
+    //         manzanitaFrames.forEach(frameName => {
+    //             const frameData = scene.textures.get('manzanita').frames[frameName].customData;
+    //             if (frameData && frameData.attackOffset !== undefined) {
+    //                 scene.attackOffsets[frameName] = frameData.attackOffset;
+    //             }
+    //         });
+    //         console.log('Attack offsets:', scene.attackOffsets);
+
+    //         scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
+    //         scene.physics.add.existing(scene.attackHitbox);
+    //         if (scene.attackHitbox.body) {
+    //             scene.attackHitbox.body.setAllowGravity(false);
+    //             scene.attackHitbox.body.setEnable(false);
+    //             scene.attackHitbox.body.debugShowBody = true;
+    //         } else {
+    //             console.error('Attack hitbox body not created!');
+    //         }
+
+    //         scene.player.on('animationupdate', (animation, frame) => {
+    //             if (animation.key === 'attack') {
+    //                 const offset = scene.attackOffsets[frame.textureFrame] || 0;
+    //                 const dir = scene.player.flipX ? -1 : 1;
+    //                 scene.player.x = scene.player.baseX + offset * dir;
+    //                 const hitboxOffsetX = 30;
+    //                 scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
+    //                 scene.attackHitbox.y = scene.player.y + 15;
+    //                 if (frame.index >= 1 && frame.index <= 2) {
+    //                     scene.attackHitbox.body.setEnable(true);
+    //                     console.log(
+    //                         `Hitbox enabled at frame: ${frame.index}, ` +
+    //                         `x: ${scene.attackHitbox.x}, y: ${scene.attackHitbox.y}, ` +
+    //                         `player x: ${scene.player.x}, flipX: ${scene.player.flipX}`
+    //                     );
+    //                 } else {
+    //                     scene.attackHitbox.body.setEnable(false);
+    //                 }
+    //             }
+    //         });
+
+    //         scene.player.on('animationcomplete', (animation) => {
+    //             if (animation.key === 'attack' && scene.attackHitbox?.body) {
+    //                 scene.attackHitbox.body.setEnable(false);
+    //                 console.log('Attack animation complete, hitbox disabled');
+    //             }
+    //         });
+
+    //         scene.animationLock = false;
+
+    //         const requiredAnims = ['idle', 'walk', 'attack', 'jump'];
+    //         requiredAnims.forEach(anim => {
+    //             if (!scene.anims.exists(anim)) {
+    //                 console.error(`Animation "${anim}" not found for manzanita sprite`);
+    //             }
+    //         });
+
+    //         if (scene.anims.exists('idle')) {
+    //             scene.player.anims.play('idle', true);
+    //             scene.lastAnimation = 'idle';
+    //         } else {
+    //             console.error('Idle animation not available; player will not animate');
+    //         }
+
+    //         scene.isOuching = false;
+    //         scene.ouchDelay = 550;
+    //         scene.physics.add.overlap(
+    //             scene.player,
+    //             scene.firepit,
+    //             function (player, firepit) {
+    //                 if (!this.isOuching) {
+    //                     console.log('Ouch triggered!');
+    //                     this.createPopupText(player.x, player.y - 50, '*ouch*', '#ffaa00');
+    //                     this.isOuching = true;
+    //                     this.time.delayedCall(this.ouchDelay, () => {
+    //                         this.isOuching = false;
+    //                     });
+    //                 }
+    //             }.bind(scene),
+    //             null,
+    //             scene
+    //         );
+
+    //         if (socket.current) {
+    //             socket.current.emit('newPlayer', { id: myId.current, x: 100, y: 50 });
+    //         } else {
+    //             console.error('Socket not available to emit newPlayer event');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error creating player:', error);
+    //     }
+    // };
 
     const createPlayer = (scene) => {
         if (!myId.current || players.current[myId.current]) {
@@ -880,7 +950,7 @@ const PhaserGame = () => {
                 }
             });
 
-            // scene.animationLock = false;
+            scene.animationLock = false;
 
             // Firepit overlap (local only)
             scene.isOuching = false;
