@@ -24,14 +24,16 @@ const PhaserGame = () => {
         player.animationLock = true;
         scene.time.delayedCall(100, () => { player.animationLock = false; });
 
-        const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
-        let targetAnim = null;
+        // const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
+        // let targetAnim = null;
+        const currentAnim = player.anims.currentAnim?.key;
+        const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
 
-        if (isAirborne) {
-            targetAnim = 'jump';
-        } else {
-            targetAnim = isMoving ? 'walk' : 'idle';
-        }
+        // if (isAirborne) {
+        //     targetAnim = 'jump';
+        // } else {
+        //     targetAnim = isMoving ? 'walk' : 'idle';
+        // }
 
         // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
         //     player.anims.play(targetAnim, true);
@@ -48,16 +50,6 @@ const PhaserGame = () => {
         // }
         if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
             player.anims.play(targetAnim, true);
-            scene.lastAnimation = targetAnim;
-            scene.animationLock = true;
-            scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-                player.anims.play('idle', true);
-                scene.lastAnimation = 'idle';
-                scene.animationLock = true;
-                scene.time.delayedCall(100, () => { scene.animationLock = false; });
-            }
         }
        
     };
@@ -250,9 +242,9 @@ const PhaserGame = () => {
                     // }
                     const scene = sceneRef.current;
                     if (scene) {
-                        const isGrounded = scene.player ? scene.player.body.blocked.down : false;
+                        const isGrounded = scene.player?.body.blocked.down;
                         const isAirborne = !isGrounded;
-                        const isMoving = false; // Post-attack idle
+                        const isMoving = false;
                         updatePlayerAnimation(existingPlayer, isAirborne, isMoving, scene);
                     }
                 });
@@ -760,15 +752,17 @@ const PhaserGame = () => {
                             p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
                             p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
 
-                            // Use actual movement to detect airborne
+                            // Detect state change
                             const isMoving = Math.abs(p.targetX - p.x) > 0.5;
                             const isAirborne = p.body?.blocked.down === false;
 
-                            if (!p.isAttacking) {
+                            // Only update animation if state changed
+                            if (!p.isAttacking && 
+                                (isMoving !== p.lastIsMoving || isAirborne !== p.lastIsAirborne)) {
                                 updatePlayerAnimation(p, isAirborne, isMoving, this);
                             }
 
-                            // Update last known
+                            // Update last known state
                             p.lastIsMoving = isMoving;
                             p.lastIsAirborne = isAirborne;
                         }
@@ -848,7 +842,7 @@ const PhaserGame = () => {
                 }
             });
 
-            scene.animationLock = false;
+            // scene.animationLock = false;
 
             // Firepit overlap (local only)
             scene.isOuching = false;
