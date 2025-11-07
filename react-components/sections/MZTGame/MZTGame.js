@@ -20,14 +20,20 @@ const PhaserGame = () => {
     // Helper function to update animations
     const updatePlayerAnimation = (player, isAirborne, isMoving, scene) => {
         // if (scene.animationLock) return;
-        if (player.animationLock) return;
-        player.animationLock = true;
-        scene.time.delayedCall(100, () => { player.animationLock = false; });
+        // if (player.animationLock) return;
+        if (player.animationLock || player.isAttacking) return;
+        const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+        const currentAnim = player.anims.currentAnim?.key;
+        if (currentAnim !== targetAnim && scene.anims.exists(targetAnim)) {
+            player.anims.play(targetAnim, true);
+        }
+        // player.animationLock = true;
+        // scene.time.delayedCall(100, () => { player.animationLock = false; });
 
         // const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
         // let targetAnim = null;
-        const currentAnim = player.anims.currentAnim?.key;
-        const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+        // const currentAnim = player.anims.currentAnim?.key;
+        // const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
 
         // if (isAirborne) {
         //     targetAnim = 'jump';
@@ -48,9 +54,9 @@ const PhaserGame = () => {
         //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
         //     }
         // }
-        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-            player.anims.play(targetAnim, true);
-        }
+        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+        //     player.anims.play(targetAnim, true);
+        // }
        
     };
 
@@ -562,7 +568,8 @@ const PhaserGame = () => {
 
                     const isLeftPressed = this.cursors.left.isDown || this.WASD.A.isDown;
                     const isRightPressed = this.cursors.right.isDown || this.WASD.D.isDown;
-                    let moving = false;
+                    const isMoving = isLeftPressed || isRightPressed;
+                    // let moving = false;
                     let speed = 350;
 
                     if (myId.current != null) {
@@ -570,67 +577,79 @@ const PhaserGame = () => {
                             if (isLeftPressed) {
                                 this.player.setVelocityX(-speed);
                                 this.player.flipX = true;
-                                moving = true;
+                                // moving = true;
                                 this.facingDirection = 'left';
                             } else if (isRightPressed) {
                                 this.player.setVelocityX(speed);
                                 this.player.flipX = false;
-                                moving = true;
+                                // moving = true;
                                 this.facingDirection = 'right';
                             } else {
-                                if (!this.isAttacking) {
-                                    this.player.setVelocityX(0);
+                                // if (!this.isAttacking) {
+                                //     this.player.setVelocityX(0);
+                                // }
+                                // moving = false;
+                                this.player.setVelocityX(0);
+                            }
+
+                            this.player.body.setOffset(this.player.flipX ? 47 : 28, 10);
+
+                            // if (this.player.flipX) {
+                            //     this.player.body.setOffset(47, 10);
+                            // } else {
+                            //     this.player.body.setOffset(28, 10);
+                            // }
+
+                            if (
+                                (Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
+                                Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) ||
+                                Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow)) &&
+                                this.jumpCount < this.maxJumps
+                            ) {
+                                this.player.setVelocityY(this.jumpVelocity);
+                                this.jumpCount++;
+
+                                // FORCE JUMP ANIM IMMEDIATELY
+                                if (this.anims.exists('jump')) {
+                                    this.player.anims.play('jump', true);
                                 }
-                                moving = false;
-                            }
 
-                            if (this.player.flipX) {
-                                this.player.body.setOffset(47, 10);
-                            } else {
-                                this.player.body.setOffset(28, 10);
-                            }
-
-                            if (!this.isAttacking) {
-                                if (
-                                    (Phaser.Input.Keyboard.JustDown(this.jumpKey) ||
-                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyWASD) ||
-                                    Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow)) &&
-                                    this.jumpCount < this.maxJumps
-                                ) {
-                                    this.player.setVelocityY(this.jumpVelocity);
-                                    this.jumpCount++;
-
-                                    // FORCE JUMP ANIM IMMEDIATELY
-                                    if (this.anims.exists('jump')) {
-                                        this.player.anims.play('jump', true);
-                                    }
-
-                                    if (socket.current) {
-                                        socket.current.emit('playerJump', {
-                                            id: myId.current,
-                                            position: { x: this.player.x, y: this.player.y },
-                                            direction: this.facingDirection,
-                                            velocityY: this.jumpVelocity,
-                                        });
-                                    }
-                                    // if (this.anims.exists('jump')) {
-                                    //     // this.player.anims.play('jump', true);
-                                    //     // this.lastAnimation = 'jump';
-                                    //     // this.animationLock = true;
-                                    //     // this.time.delayedCall(100, () => { this.animationLock = false; });
-                                    // } else {
-                                    //     console.error('Jump animation not available');
-                                    // }
+                                if (socket.current) {
+                                    socket.current.emit('playerJump', {
+                                        id: myId.current,
+                                        position: { x: this.player.x, y: this.player.y },
+                                        direction: this.facingDirection,
+                                        velocityY: this.jumpVelocity,
+                                    });
                                 }
+                                // if (this.anims.exists('jump')) {
+                                //     // this.player.anims.play('jump', true);
+                                //     // this.lastAnimation = 'jump';
+                                //     // this.animationLock = true;
+                                //     // this.time.delayedCall(100, () => { this.animationLock = false; });
+                                // } else {
+                                //     console.error('Jump animation not available');
+                                // }
                             }
+                            
                         }
 
-                        const isGrounded = this.player.body.blocked.down && Math.abs(this.player.body.velocity.y) < 10;
+                        // const isGrounded = this.player.body.blocked.down && Math.abs(this.player.body.velocity.y) < 10;
+                        const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
                         if (isGrounded) {
                             this.jumpCount = 0;
                         }
                         const isAirborne = !isGrounded;
-                        const isMoving = isLeftPressed || isRightPressed;
+                        // const isMoving = isLeftPressed || isRightPressed;
+
+                        // FORCE CORRECT ANIM EVERY FRAME (LOCAL)
+                        if (!this.isAttacking) {
+                            const targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+                            const currentAnim = this.player.anims.currentAnim?.key;
+                            if (currentAnim !== targetAnim && this.anims.exists(targetAnim)) {
+                                this.player.anims.play(targetAnim, true);
+                            }
+                        }
 
                         // NEW: Throttle movement updates
                         const positionChanged = Math.abs(this.player.x - this.lastPosition.x) > 1 || Math.abs(this.player.y - this.lastPosition.y) > 1;
@@ -645,7 +664,7 @@ const PhaserGame = () => {
                                 isAirborne: isAirborne
                             });
                             this.lastPosition = { x: this.player.x, y: this.player.y };
-                            this.lastState = { isMoving: isMoving, isAirborne: isAirborne };
+                            this.lastState = { isMoving, isAirborne };
                             this.lastSendTime = now;
                         }
 
@@ -653,21 +672,21 @@ const PhaserGame = () => {
                         //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                         // }
                         // === ANIMATION STATE CHANGE DETECTION ===
-                        const currentState = { isMoving, isAirborne };
-                        if (!this.isAttacking && 
-                            (currentState.isMoving !== this.lastState.isMoving || 
-                            currentState.isAirborne !== this.lastState.isAirborne)) {
-                            updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                        }
-                        this.lastState = currentState;
+                        // const currentState = { isMoving, isAirborne };
+                        // if (!this.isAttacking && 
+                        //     (currentState.isMoving !== this.lastState.isMoving || 
+                        //     currentState.isAirborne !== this.lastState.isAirborne)) {
+                        //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                        // }
+                        // this.lastState = currentState;
 
-                        this.lastMoving = isMoving;
+                        // this.lastMoving = isMoving;
 
                         if (!this.isAttacking && (Phaser.Input.Keyboard.JustDown(this.attackKey) || 
                                                   Phaser.Input.Keyboard.JustDown(this.WASD.attackKey))) {
                             this.isAttacking = true;
                             this.player.body.setDragX(500);
-                            this.player.removeAllListeners('animationcomplete');
+                            // this.player.removeAllListeners('animationcomplete');
                             this.player.baseX = this.player.x;
 
                             if (this.anims.exists('attack')) {
@@ -694,12 +713,14 @@ const PhaserGame = () => {
 
                             this.player.once('animationcomplete', () => {
                                 this.isAttacking = false;
-                                this.animationLock = false;
+                                if (this.anims.exists('idle')) {
+                                    this.player.anims.play('idle', true); // <<<=== FORCE IDLE
+                                }
 
-                                const isGrounded = this.player.body.blocked.down;
-                                const isAirborne = !isGrounded;
+                                const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
+                                this.lastState = { isMoving: false, isAirborne: !isGrounded };
                                 // const isMoving = isLeftPressed || isRightPressed;
-                                const isMoving = false; // Force idle after attack
+                                // const isMoving = false; // Force idle after attack
 
                                 // if (isGrounded) {
                                 //     this.player.setVelocityY(0);
@@ -714,11 +735,11 @@ const PhaserGame = () => {
                                 // this.lastState = { isMoving, isAirborne };
 
                                 // FORCE IDLE — IGNORE LAST STATE
-                                if (this.anims.exists('idle')) {
-                                    this.player.anims.play('idle', true);
-                                }
+                                // if (this.anims.exists('idle')) {
+                                //     this.player.anims.play('idle', true);
+                                // }
 
-                                this.lastState = { isMoving, isAirborne };
+                                // this.lastState = { isMoving, isAirborne };
 
                                 if (socket.current) {
                                     socket.current.emit('playerMovement', {
