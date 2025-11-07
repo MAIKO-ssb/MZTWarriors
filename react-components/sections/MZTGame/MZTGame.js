@@ -43,28 +43,20 @@ const PhaserGame = () => {
         //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
         //     }
         // }
-        // ODD
-        // if (currentAnim !== targetAnim && scene.anims.exists(targetAnim)) {
-        //     player.anims.play(targetAnim, true);
-        //     scene.lastAnimation = targetAnim;
-        //     scene.animationLock = true;
-        //     scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        // } else if (!isAirborne && currentAnim === 'jump') {
-        //     // EMERGENCY: Stuck on jump? FORCE idle
-        //     if (scene.anims.exists('idle')) {
-        //         player.anims.play('idle', true);
-        //     }
-        // }
-        
-        // FORCE CORRECT ANIM
         if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
             player.anims.play(targetAnim, true);
+            scene.lastAnimation = targetAnim;
+            scene.animationLock = true;
+            scene.time.delayedCall(100, () => { scene.animationLock = false; });
+        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
+            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
+                player.anims.play('idle', true);
+                scene.lastAnimation = 'idle';
+                scene.animationLock = true;
+                scene.time.delayedCall(100, () => { scene.animationLock = false; });
+            }
         }
-
-        // UNSTUCK: Wrong anim on ground
-        if (!isAirborne && !isMoving && currentAnim !== 'idle' && scene.anims.exists('idle')) {
-            player.anims.play('idle', true);
-        }
+       
     };
 
     // PERFECT PLAYER FACTORY — same for local + remote
@@ -241,15 +233,22 @@ const PhaserGame = () => {
                 existingPlayer.anims.play('attack', true);
                 existingPlayer.once('animationcomplete', () => {
                     existingPlayer.isAttacking = false;
-                    updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, sceneRef.current);
-                    if (data.id === myId.current && socket.current) {
-                        socket.current.emit('playerMovement', {
-                            id: myId.current,
-                            position: { x: existingPlayer.x, y: existingPlayer.y },
-                            direction: data.direction,
-                            isMoving: false,
-                            isAirborne: data.isAirborne ?? false
-                        });
+                    // updatePlayerAnimation(existingPlayer, existingPlayer.lastIsAirborne, existingPlayer.lastIsMoving, sceneRef.current);
+                    // if (data.id === myId.current && socket.current) {
+                    //     socket.current.emit('playerMovement', {
+                    //         id: myId.current,
+                    //         position: { x: existingPlayer.x, y: existingPlayer.y },
+                    //         direction: data.direction,
+                    //         isMoving: false,
+                    //         isAirborne: data.isAirborne ?? false
+                    //     });
+                    // }
+                    const scene = sceneRef.current;
+                    if (scene) {
+                        const isGrounded = scene.player ? scene.player.body.blocked.down : false;
+                        const isAirborne = !isGrounded;
+                        const isMoving = false; // Post-attack idle
+                        updatePlayerAnimation(existingPlayer, isAirborne, isMoving, scene);
                     }
                 });
             }
@@ -440,7 +439,7 @@ const PhaserGame = () => {
                             zeroPad: 4
                         }),
                         frameRate: 20,
-                        repeat: -1
+                        repeat: 0
                     });
 
                     if (isConnected.current && myId.current && !players.current[myId.current]) {
@@ -647,9 +646,15 @@ const PhaserGame = () => {
                             this.lastSendTime = now;
                         }
 
-                        if (!this.isAttacking) {
+                        // if (!this.isAttacking) {
+                        //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                        // }
+                        // ONLY CALL WHEN STATE CHANGES
+                        if (!this.isAttacking && 
+                            (this.lastState.isMoving !== isMoving || this.lastState.isAirborne !== isAirborne)) {
                             updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                         }
+                        this.lastState = { isMoving, isAirborne };  // UPDATE AFTER
 
                         this.lastMoving = isMoving;
 
@@ -728,17 +733,17 @@ const PhaserGame = () => {
                     enemies.current.forEach(enemy => enemy.update());
 
                     // NEW: Lerp remote player positions for smooth movement
-                    Object.keys(players.current).forEach(id => {
-                        const p = players.current[id];
-                        if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
-                            p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
-                            p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
-                            // NEW: Client-side airborne for remote
-                            const dy = p.targetY - p.y;
-                            const isAirborne = Math.abs(dy) > 1;  // Lerping down/up = airborne
-                            updatePlayerAnimation(p, isAirborne, p.lastIsMoving, this);
-                        }
-                    });
+                    // Object.keys(players.current).forEach(id => {
+                    //     const p = players.current[id];
+                    //     if (id !== myId.current && p.targetX !== undefined && p.targetY !== undefined) {
+                    //         p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
+                    //         p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
+                    //         // NEW: Client-side airborne for remote
+                    //         const dy = p.targetY - p.y;
+                    //         const isAirborne = Math.abs(dy) > 1;  // Lerping down/up = airborne
+                    //         updatePlayerAnimation(p, isAirborne, p.lastIsMoving, this);
+                    //     }
+                    // });
                 }
             },
         };
