@@ -599,6 +599,12 @@ const PhaserGame = () => {
                                 ) {
                                     this.player.setVelocityY(this.jumpVelocity);
                                     this.jumpCount++;
+
+                                    // FORCE JUMP ANIM IMMEDIATELY
+                                    if (this.anims.exists('jump')) {
+                                        this.player.anims.play('jump', true);
+                                    }
+
                                     if (socket.current) {
                                         socket.current.emit('playerJump', {
                                             id: myId.current,
@@ -607,14 +613,14 @@ const PhaserGame = () => {
                                             velocityY: this.jumpVelocity,
                                         });
                                     }
-                                    if (this.anims.exists('jump')) {
-                                        // this.player.anims.play('jump', true);
-                                        // this.lastAnimation = 'jump';
-                                        // this.animationLock = true;
-                                        // this.time.delayedCall(100, () => { this.animationLock = false; });
-                                    } else {
-                                        console.error('Jump animation not available');
-                                    }
+                                    // if (this.anims.exists('jump')) {
+                                    //     // this.player.anims.play('jump', true);
+                                    //     // this.lastAnimation = 'jump';
+                                    //     // this.animationLock = true;
+                                    //     // this.time.delayedCall(100, () => { this.animationLock = false; });
+                                    // } else {
+                                    //     console.error('Jump animation not available');
+                                    // }
                                 }
                             }
                         }
@@ -666,9 +672,9 @@ const PhaserGame = () => {
 
                             if (this.anims.exists('attack')) {
                                 this.player.anims.play('attack', true);
-                                this.lastAnimation = 'attack';
-                                this.animationLock = true;
-                                this.time.delayedCall(100, () => { this.animationLock = false; });
+                                // this.lastAnimation = 'attack';
+                                // this.animationLock = true;
+                                // this.time.delayedCall(100, () => { this.animationLock = false; });
                             } else {
                                 console.error('Attack animation not available');
                                 this.isAttacking = false;
@@ -689,20 +695,29 @@ const PhaserGame = () => {
                             this.player.once('animationcomplete', () => {
                                 this.isAttacking = false;
                                 this.animationLock = false;
+
                                 const isGrounded = this.player.body.blocked.down;
                                 const isAirborne = !isGrounded;
                                 // const isMoving = isLeftPressed || isRightPressed;
                                 const isMoving = false; // Force idle after attack
-                                if (isGrounded) {
-                                    this.player.setVelocityY(0);
+
+                                // if (isGrounded) {
+                                //     this.player.setVelocityY(0);
+                                // }
+                                // if (
+                                //     this.lastState.isMoving !== isMoving ||
+                                //     this.lastState.isAirborne !== isAirborne ||
+                                //     this.lastAnimation !== this.player.anims?.currentAnim?.key
+                                // ) {
+                                //     updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                                // }
+                                // this.lastState = { isMoving, isAirborne };
+
+                                // FORCE IDLE — IGNORE LAST STATE
+                                if (this.anims.exists('idle')) {
+                                    this.player.anims.play('idle', true);
                                 }
-                                if (
-                                    this.lastState.isMoving !== isMoving ||
-                                    this.lastState.isAirborne !== isAirborne ||
-                                    this.lastAnimation !== this.player.anims?.currentAnim?.key
-                                ) {
-                                    updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                                }
+
                                 this.lastState = { isMoving, isAirborne };
 
                                 if (socket.current) {
@@ -710,8 +725,10 @@ const PhaserGame = () => {
                                         id: myId.current,
                                         position: { x: this.player.x, y: this.player.y },
                                         direction: this.facingDirection,
-                                        isMoving: isMoving,
-                                        isAirborne: isAirborne
+                                        // isMoving: isMoving,
+                                        // isAirborne: isAirborne
+                                        isMoving,
+                                        isAirborne
                                     });
                                 }
                             });
