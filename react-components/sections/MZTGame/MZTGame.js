@@ -436,7 +436,7 @@ const PhaserGame = () => {
                             zeroPad: 4
                         }),
                         frameRate: 20,
-                        repeat: 0
+                        repeat: -1
                     });
 
                     if (isConnected.current && myId.current && !players.current[myId.current]) {
