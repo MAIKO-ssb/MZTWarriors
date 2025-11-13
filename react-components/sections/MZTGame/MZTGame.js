@@ -60,7 +60,7 @@ const PhaserGame = () => {
         // PERFECT COLLISION MATCH
         player.body.setSize(55, 55);              // Tight hitbox
         player.body.setOffset(25, 10);            // Precise offset
-        player.body.debugShowBody = true;         // Debug visible
+        player.body.debugShowBody = false;         // Debug visible
         
         // State init
         player.isAttacking = false;
@@ -547,7 +547,7 @@ const PhaserGame = () => {
                             backgroundColor: 'rgba(0, 0, 0, 0.85)',
                             padding: { x: 10, y: 5 },
                             align: 'center',
-                        }).setOrigin(0.5);
+                        }).setOrigin(0.5).setDepth(4);
 
                         const popupSpacing = 24;
                         this.activePopups.forEach(existingPopup => {
@@ -925,7 +925,7 @@ const PhaserGame = () => {
             scene.physics.add.existing(scene.attackHitbox);
             scene.attackHitbox.body.setAllowGravity(false);
             scene.attackHitbox.body.setEnable(false);
-            scene.attackHitbox.body.debugShowBody = true;
+            scene.attackHitbox.body.debugShowBody = false;
 
             // Attack animation handlers (local only)
             scene.player.on('animationupdate', (animation, frame) => {
