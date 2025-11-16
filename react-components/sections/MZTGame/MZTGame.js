@@ -1020,7 +1020,14 @@ const PhaserGame = () => {
                 backgroundColor: 'black'
             }}
         >
-            <div style={{ position: 'absolute', bottom: '10px', left: '10px', zIndex: '10' }}>
+            <div 
+                style={{ 
+                    position: 'absolute', 
+                    top: '20px', 
+                    right: '20px', 
+                    zIndex: '1000'
+                }}
+            >
                 <input
                     ref={chatInputRef}
                     id='chat-input'
@@ -1028,9 +1035,30 @@ const PhaserGame = () => {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onFocus={() => { isChatFocused.current = true; }}
-                    onBlur={() => { isChatFocused.current = false; }}
-                    placeholder='Type a message...'
+                    onBlur={() => { 
+                        isChatFocused.current = false; 
+                        if (gameRef.current) gameRef.current.input.keyboard.enabled = true;
+                    }}
+                    placeholder={isChatFocused.current ? 'ENTER to send, ESC to cancel' : 'Press ENTER to chat...'}
                     onKeyDown={(e) => handleChatKeyDown(e)}
+                    style={{
+                        backgroundColor: isChatFocused.current ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.85)',
+                        backdropFilter: 'blur(12px)',
+                        border: isChatFocused.current ? '2px solid #ffff00' : '2px solid rgba(255,255,255,0.3)',
+                        borderRadius: '12px',
+                        padding: '14px 20px',
+                        fontSize: '16px',
+                        fontFamily: '-apple-system, monospace',
+                        color: '#ffff00',
+                        width: '300px',
+                        outline: 'none',
+                        boxShadow: isChatFocused.current 
+                            ? '0 0 0 4px rgba(255,255,0,0.4), 0 12px 40px rgba(0,0,0,0.6)' 
+                            : '0 8px 32px rgba(0,0,0,0.5)',
+                        opacity: 1,
+                        transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                        cursor: 'text'
+                    }}
                 />
             </div>
         </div>
