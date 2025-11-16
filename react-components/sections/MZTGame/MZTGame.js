@@ -1042,7 +1042,7 @@ const PhaserGame = () => {
                     placeholder={isChatFocused.current ? 'ENTER to send, ESC to cancel' : 'Press ENTER to chat...'}
                     onKeyDown={(e) => handleChatKeyDown(e)}
                     style={{
-                        backgroundColor: isChatFocused.current ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.85)',
+                        backgroundColor: isChatFocused.current ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.3)',
                         backdropFilter: 'blur(12px)',
                         border: isChatFocused.current ? '2px solid #ffff00' : '2px solid rgba(255,255,255,0.3)',
                         borderRadius: '12px',
