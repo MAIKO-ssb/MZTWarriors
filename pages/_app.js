@@ -25,7 +25,7 @@ import {
 // const network = WalletAdapterNetwork.Devnet;
 const network = WalletAdapterNetwork.MainnetBeta;
 // const endpoint = "https://mainnet.helius-rpc.com/?api-key=b51522ca-f265-4967-829a-fb829f1878a4"; 
-const endpoint = "https://yolo-summer-firefly.solana-mainnet.quiknode.pro/9a4eba8499a88b47c2eede675014d479977a9704/"; 
+const endpoint = "https://mainnet.helius-rpc.com/?api-key=27ebc857-458c-4b9d-9c57-f004a9f02c50";
 // const endpoint = clusterApiUrl(network);
 
 
