@@ -1,3 +1,112 @@
+// react-components/components/MintButton.js
+"use client";
+
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+import { mplCandyMachine, fetchCandyMachine, safeFetchCandyGuard, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
+import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+import { publicKey, some, generateSigner } from '@metaplex-foundation/umi';
+import bs58 from 'bs58';
+
+const CANDY_MACHINE_ID = publicKey('33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK');
+const COLLECTION_MINT = publicKey('3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8');
+const TREASURY = publicKey('FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX');
+
+export default function MintButton({ onMintStart, onMintSuccess, onMintError }) {
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const [candyMachine, setCandyMachine] = useState(null);
+  const [candyGuard, setCandyGuard] = useState(null);
+  const [isMinting, setIsMinting] = useState(false);
+
+  // Create umi directly — no context hell
+  const umi = useMemo(() => {
+    if (!connection || !wallet.publicKey) return null;
+    return createUmi(connection)
+      .use(walletAdapterIdentity(wallet))
+      .use(mplCandyMachine())
+      .use(mplTokenMetadata());
+  }, [connection, wallet]);
+
+  // Load candy machine
+  useEffect(() => {
+    if (!umi) return;
+    (async () => {
+      try {
+        const cm = await fetchCandyMachine(umi, CANDY_MACHINE_ID);
+        const guard = await safeFetchCandyGuard(umi, cm.mintAuthority);
+        setCandyMachine(cm);
+        setCandyGuard(guard);
+      } catch (e) {
+        console.error('Failed to load CM:', e);
+      }
+    })();
+  }, [umi]);
+
+  const mint = useCallback(async () => {
+    if (!wallet.connected || !umi || !candyMachine || !candyGuard) return;
+
+    setIsMinting(true);
+    onMintStart?.();
+
+    const nftMint = generateSigner(umi);
+
+    try {
+      const { signature } = await mintV2(umi, {
+        candyMachine: candyMachine.publicKey,
+        candyGuard: candyGuard?.publicKey,
+        nftMint,
+        collectionMint: COLLECTION_MINT,
+        collectionUpdateAuthority: candyMachine.authority,
+        tokenStandard: TokenStandard.ProgrammableNonFungible,
+        mintArgs: { solPayment: some({ destination: TREASURY }) },
+      }).sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
+
+      console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
+      onMintSuccess?.(nftMint.publicKey.toString(), null);
+    } catch (error) {
+      console.error(error);
+      onMintError?.(error.message || 'Mint failed');
+    } finally {
+      setIsMinting(false);
+    }
+  }, [wallet, umi, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
+
+  const itemsLeft = candyMachine ? Number(candyMachine.data.itemsAvailable - candyMachine.itemsRedeemed) : 0;
+
+  return (
+    <div style={{ textAlign: 'center', color: 'white' }}>
+      <WalletMultiButton />
+      {wallet.connected && (
+        <>
+          <p>Connected: {wallet.publicKey?.toBase58().slice(0,4)}...{wallet.publicKey?.toBase58().slice(-4)}</p>
+          <p>Remaining: {itemsLeft}/1111</p>
+          <button
+            onClick={mint}
+            disabled={isMinting || itemsLeft === 0}
+            style={{
+              padding: '18px 36px',
+              fontSize: '24px',
+              background: '#00ff9d',
+              color: 'black',
+              border: 'none',
+              borderRadius: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginTop: '20px'
+            }}
+          >
+            {isMinting ? 'MINTING...' : itemsLeft === 0 ? 'SOLD OUT' : 'MINT WARRIOR'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // // react-components/components/MintButton.js
 // import React, { useCallback, useState, useEffect, useMemo } from 'react'; // 1. Import useMemo
 // import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -169,94 +278,94 @@
 // export default MintButton;
 
 // WORKING MINT
-import React, { useCallback, useState } from 'react';
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { publicKey, transactionBuilder, generateSigner, some } from '@metaplex-foundation/umi';
-import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplCandyMachine, fetchCandyMachine, safeFetchCandyGuard, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
-import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { ComputeBudgetProgram } from '@solana/web3.js';
-import bs58 from 'bs58';
+// import React, { useCallback, useState } from 'react';
+// import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+// import { publicKey, transactionBuilder, generateSigner, some } from '@metaplex-foundation/umi';
+// import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+// import { mplCandyMachine, fetchCandyMachine, safeFetchCandyGuard, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
+// import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+// import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+// import { ComputeBudgetProgram } from '@solana/web3.js';
+// import bs58 from 'bs58';
 
-function MintButton() {
-  const wallet = useWallet();
-  const { connection } = useConnection();
-  const [isMinting, setIsMinting] = useState(false);
+// function MintButton() {
+//   const wallet = useWallet();
+//   const { connection } = useConnection();
+//   const [isMinting, setIsMinting] = useState(false);
 
-  const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
-  const COLLECTION_MINT_ID_STRING = '3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8';
-  const TREASURY_ADDRESS = 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
+//   const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
+//   const COLLECTION_MINT_ID_STRING = '3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8';
+//   const TREASURY_ADDRESS = 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
 
-  const umi = createUmi(connection)
-    .use(walletAdapterIdentity(wallet))
-    .use(mplCandyMachine())
-    .use(mplTokenMetadata());
+//   const umi = createUmi(connection)
+//     .use(walletAdapterIdentity(wallet))
+//     .use(mplCandyMachine())
+//     .use(mplTokenMetadata());
 
-  const mintNft = useCallback(async () => {
-    if (!wallet.connected || !wallet.publicKey) {
-      console.error('Wallet not connected');
-      return;
-    }
+//   const mintNft = useCallback(async () => {
+//     if (!wallet.connected || !wallet.publicKey) {
+//       console.error('Wallet not connected');
+//       return;
+//     }
 
-    setIsMinting(true);
-    try {
-      const candyMachineAddress = publicKey(CANDY_MACHINE_ID_STRING);
-      const collectionMint = publicKey(COLLECTION_MINT_ID_STRING);
-      const treasuryAddress = publicKey(TREASURY_ADDRESS);
+//     setIsMinting(true);
+//     try {
+//       const candyMachineAddress = publicKey(CANDY_MACHINE_ID_STRING);
+//       const collectionMint = publicKey(COLLECTION_MINT_ID_STRING);
+//       const treasuryAddress = publicKey(TREASURY_ADDRESS);
 
-      const candyMachine = await fetchCandyMachine(umi, candyMachineAddress);
-      const candyGuard = await safeFetchCandyGuard(umi, candyMachine.mintAuthority);
+//       const candyMachine = await fetchCandyMachine(umi, candyMachineAddress);
+//       const candyGuard = await safeFetchCandyGuard(umi, candyMachine.mintAuthority);
 
-      const nftMint = generateSigner(umi);
+//       const nftMint = generateSigner(umi);
 
-      const computeUnitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 1200000, // Increased for pNFT complexity
-      });
+//       const computeUnitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+//         units: 1200000, // Increased for pNFT complexity
+//       });
 
-      const transaction = await transactionBuilder()
-        .add({
-          instruction: {
-            programId: publicKey(computeUnitInstruction.programId.toString()),
-            keys: [],
-            data: computeUnitInstruction.data,
-          },
-          signers: [],
-          bytes: computeUnitInstruction.data,
-        })
-        .add(mintV2(umi, {
-          candyMachine: candyMachine.publicKey,
-          candyGuard: candyGuard?.publicKey,
-          nftMint,
-          collectionMint: collectionMint,
-          collectionUpdateAuthority: candyMachine.authority,
-          tokenStandard: TokenStandard.ProgrammableNonFungible, // Explicitly set for pNFT
-          mintArgs: {
-            solPayment: some({ destination: treasuryAddress }),
-          },
-        }));
+//       const transaction = await transactionBuilder()
+//         .add({
+//           instruction: {
+//             programId: publicKey(computeUnitInstruction.programId.toString()),
+//             keys: [],
+//             data: computeUnitInstruction.data,
+//           },
+//           signers: [],
+//           bytes: computeUnitInstruction.data,
+//         })
+//         .add(mintV2(umi, {
+//           candyMachine: candyMachine.publicKey,
+//           candyGuard: candyGuard?.publicKey,
+//           nftMint,
+//           collectionMint: collectionMint,
+//           collectionUpdateAuthority: candyMachine.authority,
+//           tokenStandard: TokenStandard.ProgrammableNonFungible, // Explicitly set for pNFT
+//           mintArgs: {
+//             solPayment: some({ destination: treasuryAddress }),
+//           },
+//         }));
 
-      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
-      console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
-    } catch (error) {
-      console.error('Mint failed:', error.message);
-      if (error.logs) {
-        console.error('Transaction logs:', error.logs);
-      }
-    } finally {
-      setIsMinting(false);
-    }
-  }, [wallet, umi]);
+//       const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
+//       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
+//     } catch (error) {
+//       console.error('Mint failed:', error.message);
+//       if (error.logs) {
+//         console.error('Transaction logs:', error.logs);
+//       }
+//     } finally {
+//       setIsMinting(false);
+//     }
+//   }, [wallet, umi]);
 
-  return (
-    <button
-      onClick={mintNft}
-      disabled={!wallet.connected || isMinting}
-      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-    >
-      {isMinting ? 'Minting...' : 'Mint NFT'}
-    </button>
-  );
-}
+//   return (
+//     <button
+//       onClick={mintNft}
+//       disabled={!wallet.connected || isMinting}
+//       className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+//     >
+//       {isMinting ? 'Minting...' : 'Mint NFT'}
+//     </button>
+//   );
+// }
 
-export default MintButton;
+// export default MintButton;
