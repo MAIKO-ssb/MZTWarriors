@@ -62,7 +62,10 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
         collectionMint: COLLECTION_MINT,
         collectionUpdateAuthority: candyMachine.authority,
         tokenStandard: TokenStandard.ProgrammableNonFungible,
-        mintArgs: { solPayment: some({ destination: TREASURY }) },
+        mintArgs: {
+          group: "public",
+          solPayment: some({ destination: TREASURY })
+        },
       }).sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
 
       console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
