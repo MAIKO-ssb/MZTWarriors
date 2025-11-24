@@ -88,7 +88,12 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
           },
         }));
 
-      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+      // const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+      await transaction.sendAndConfirm(umi, {
+        send: { skipPreflight: true, maxRetries: 5 },     // ← kills the simulation + blockhash error
+        confirm: { commitment: 'confirmed' }
+      });
+
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
       // 4. --- FETCH METADATA AND REPORT SUCCESS ---
       try {
