@@ -89,12 +89,10 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
         }));
 
       // const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-      // ← THIS IS THE ONLY PART THAT CHANGED
-      const { signature } = await tx.sendAndConfirm(umi, {
+      const { signature } = await transaction.sendAndConfirm(umi, {
         send: { skipPreflight: true, maxRetries: 5 },
         confirm: { commitment: 'confirmed' },
       });
-      // ← END OF CHANGE
 
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
       // 4. --- FETCH METADATA AND REPORT SUCCESS ---
