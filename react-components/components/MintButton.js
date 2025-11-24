@@ -75,7 +75,8 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
     const nftMint = generateSigner(umi);
 
     try {
-      const transaction = await transactionBuilder()
+      const nftMint = generateSigner(umi);
+      const txBuilder =transactionBuilder()
         .add(mintV2(umi, {
           candyMachine: candyMachine.publicKey,
           candyGuard: candyGuard?.publicKey,
@@ -88,14 +89,20 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
           },
         }));
 
-      // const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
-      const signedTx = await transaction.buildAndSign(umi);
-      const signature = await umi.rpc.sendTransaction(signedTx, {
-        skipPreflight: true,     // THIS KILLS THE PHANTOM WARNING FOREVER
-        maxRetries: 5
+      const blockhash = await umi.rpc.getLatestBlockhash();
+      const signed = await txBuilder
+        .setBlockhash(blockhash.blockhash)
+        .buildAndSign(umi);
+
+      const signature = await umi.rpc.sendTransaction(signed, {
+        skipPreflight: true,   // kills Phantom warning
+        maxRetries: 10
       });
-      await umi.rpc.confirmTransaction(signature, { commitment: 'confirmed' });
-      
+
+      console.log(`MINTED https://solana.fm/tx/${bs58.encode(signature)}`);
+
+      await umi.rpc.confirmTransaction(signature, { commitment: "confirmed" });
+
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
 
       // 4. --- FETCH METADATA AND REPORT SUCCESS ---
