@@ -7,14 +7,25 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 // Next.js UI
 import Head from 'next/head';
 import Image from 'next/image';
+import dynamic from 'next/dynamic'; // <--- 1. IMPORT dynamic
 
 // Component UI
 import ImageFader from '../react-components/components/ImageFader';
 import HelloBar from '../react-components/components/HelloBar';
 import LoreContent from '../react-components/components/LoreContent';
-import MintButton from '../react-components/components/MintButton';
+//import MintButton from '../react-components/components/MintButton';
 import SocialMedia from '../react-components/sections/SocialMedia/SocialMedia';
 import Footer from '../react-components/sections/Footer/Footer';
+
+// 3. DYNAMIC IMPORT: This tells Next.js to render MintButton ONLY in the browser (client-side)
+const DynamicMintButton = dynamic(() => import('../react-components/components/MintButton'), {
+  ssr: false, // <-- THE CRUCIAL SETTING
+  loading: () => (
+    <div style={{ textAlign: 'center', color: 'white', marginTop: '10px' }}>
+      Loading Wallet Interface...
+    </div>
+  ),
+});
 
 // *** CANDY MACHINE ***
 // const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
@@ -189,7 +200,7 @@ export default function Intro() {
             <p className="note-text text-center text-sm mt-4 italic text-[#23ff91] opacity-90 max-w-[420px] mx-auto">
               <span style={{color:'red'}}>*</span> The interactive Manzanita Forest demo is currently being crafted — your mint helps bring it to life.
             </p>
-            <MintButton
+            <DynamicMintButton 
               onMintStart={handleMintStart}
               onMintSuccess={handleMintSuccess}
               onMintError={handleMintError}

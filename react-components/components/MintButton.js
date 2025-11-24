@@ -1,4 +1,5 @@
 // react-components/components/MintButton.js
+import React, { useCallback, useState, useEffect, useMemo } from 'react'; // 1. Import useMemo
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { publicKey, transactionBuilder, generateSigner, some } from '@metaplex-foundation/umi';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
@@ -15,16 +16,14 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
   const [isMinting, setIsMinting] = useState(false);
   const [candyMachine, setCandyMachine] = useState(null);
   const [candyGuard, setCandyGuard] = useState(null);
-  
-  // const [error, setError] = useState(null);
-
 
   const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
   const COLLECTION_MINT_ID_STRING = '3pCs14iq2azE7aWXuSmw7vgxia41pcHzm72RJX86zdc8';
   const TREASURY_ADDRESS = 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
 
-  // 2. Memoize the Umi instance
+  // Memoize the Umi instance
   const umi = useMemo(() => 
+    // IMPORTANT: Because we use dynamic import (ssr: false), 'connection' and 'wallet' are guaranteed to be defined here on the client.
     createUmi(connection)
       .use(walletAdapterIdentity(wallet))
       .use(mplCandyMachine())
@@ -34,7 +33,10 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
 
   // Fetch Candy Machine and Guard data (run even if wallet is not connected)
   useEffect(() => {
-    if (!umi) return; // Don't run if umi is not yet initialized
+    if (!umi) {
+      console.warn("UMI not initialized. Waiting for wallet context.");
+      return; 
+    }
     
     const fetchCandyMachineData = async () => {
       try {
@@ -67,10 +69,7 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
     const nftMint = generateSigner(umi);
 
     try {
-      const nftMint = generateSigner(umi);
-
-      // Build the mint transaction
-      const tx = transactionBuilder()
+      const txBuilder =transactionBuilder()
         .add(mintV2(umi, {
           candyMachine: candyMachine.publicKey,
           candyGuard: candyGuard?.publicKey,
@@ -79,39 +78,56 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
           collectionUpdateAuthority: candyMachine.authority,
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs: {
-            solPayment: some({ destination: publicKey(TREASURY_ADDRESS) })
-          }
+            solPayment: some({ destination: publicKey(TREASURY_ADDRESS) }),
+          },
         }));
 
-      // GET FRESH BLOCKHASH THE ONLY WAY UMI ACCEPTS IT
-      const { blockhash } = await umi.rpc.getLatestBlockhash({ commitment: 'confirmed' });
+      const blockhash = await umi.rpc.getLatestBlockhash();
+      const signed = await txBuilder
+        .setBlockhash(blockhash.blockhash)
+        .buildAndSign(umi);
 
-      // BUILD + SIGN + SEND WITH skipPreflight = TRUE
-      const signedTx = await tx.setBlockhash(blockhash).buildAndSign(umi);
-
-      const signature = await umi.rpc.sendTransaction(signedTx, {
-        skipPreflight: true,   // THIS IS WHAT KILLS PHANTOM WARNING 100%
+      const signature = await umi.rpc.sendTransaction(signed, {
+        skipPreflight: true,   // kills Phantom warning
         maxRetries: 10
       });
 
-      console.log(`MINTED → https://solana.fm/tx/${bs58.encode(signature)}`);
+      console.log(`MINTED https://solana.fm/tx/${bs58.encode(signature)}`);
 
-      await umi.rpc.confirmTransaction(signature, { commitment: 'confirmed' });
+      await umi.rpc.confirmTransaction(signature, { commitment: "confirmed" });
 
-      // Metadata fetch (unchanged)
-      const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-      let uri = asset.metadata.uri.replace(/\0/g, '');
-      if (uri.startsWith('ar://')) uri = `https://arweave.net/${uri.slice(5)}`;
-      const metadata = await (await fetch(uri)).json();
-      onMintSuccess?.(nftMint.publicKey.toString(), metadata.image);
+      console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
+
+      // 4. --- FETCH METADATA AND REPORT SUCCESS ---
+      try {
+        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+        let metadataJsonUri = asset.metadata.uri.replace(/\0/g, '');
+        if (metadataJsonUri.startsWith('ar://')) {
+            metadataJsonUri = `https://arweave.net/${metadataJsonUri.substring(5)}`;
+        }
+        const metadataResponse = await fetch(metadataJsonUri);
+        const metadataJson = await metadataResponse.json();
+        
+        // Call the success callback with the mint address and image URL!
+        onMintSuccess?.(nftMint.publicKey.toString(), metadataJson.image);
+
+      } catch (metadataError) {
+        console.error("Mint was successful, but failed to fetch metadata:", metadataError);
+        // Still report success, but maybe without an image
+        onMintSuccess?.(nftMint.publicKey.toString(), null);
+      }
+      // ---------------------------------------------
 
     } catch (error) {
       console.error('Mint failed:', error);
-      const msg = error?.message || 'Unknown error';
-      onMintError?.(msg.includes('User rejected') ? 'You rejected the transaction' : msg);
-    } finally {
-      setIsMinting(false);
-    }
+      let userMessage = error.message;
+      if (userMessage.includes('User rejected')) {
+        userMessage = 'Transaction rejected in wallet.';
+      }
+        onMintError?.(userMessage || 'An unknown error occurred.'); // 5. Report error to parent
+      } finally {
+        setIsMinting(false);
+      }
   }, [wallet, umi, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
 
   // Calculate items remaining and price
