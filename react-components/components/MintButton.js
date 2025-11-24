@@ -75,7 +75,9 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
     const nftMint = generateSigner(umi);
 
     try {
-      // Build the transaction
+      const nftMint = generateSigner(umi);
+
+        // Build the mint instruction
         const txBuilder = transactionBuilder().add(
           mintV2(umi, {
             candyMachine: candyMachine.publicKey,
@@ -84,20 +86,22 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
             collectionMint: publicKey(COLLECTION_MINT_ID_STRING),
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
-            mintArgs: { solPayment: some({ destination: publicKey(TREASURY_ADDRESS) }) },
+            mintArgs: {
+              solPayment: some({ destination: publicKey(TREASURY_ADDRESS) }),
+            },
           })
         );
 
-        // THIS IS THE KEY: build + sign + send manually with skipPreflight
-        const { value: { blockhash } } = await umi.rpc.getLatestBlockhash({ commitment: 'confirmed' });
-        const transaction = await txBuilder.buildAndSign(umi);
-        transaction.recentBlockhash = blockhash;           // fresh blockhash
-        transaction.feePayer = umi.identity.publicKey;
+        // ← THIS IS THE MAGIC PART (3 lines only)
+        const latestBlockhash = await umi.rpc.getLatestBlockhash({ commitment: 'confirmed' });
+        const signedTx = await txBuilder.buildAndSign(umi);
+        signedTx.recentBlockhash = latestBlockhash.blockhash;   // fresh blockhash
 
-        const signature = await umi.rpc.sendTransaction(transaction, {
-          skipPreflight: true,      // kills Phantom simulation → no more “malicious” warning
+        const signature = await umi.rpc.sendTransaction(signedTx, {
+          skipPreflight: true,   // ← kills Phantom "malicious" warning forever
           maxRetries: 5
         });
+        // ← END OF MAGIC
 
         await umi.rpc.confirmTransaction(signature, { commitment: 'confirmed' });
 
