@@ -75,41 +75,20 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
     const nftMint = generateSigner(umi);
 
     try {
-      const nftMint = generateSigner(umi);
+      const transaction = await transactionBuilder()
+        .add(mintV2(umi, {
+          candyMachine: candyMachine.publicKey,
+          candyGuard: candyGuard?.publicKey,
+          nftMint,
+          collectionMint: publicKey(COLLECTION_MINT_ID_STRING),
+          collectionUpdateAuthority: candyMachine.authority,
+          tokenStandard: TokenStandard.ProgrammableNonFungible,
+          mintArgs: {
+            solPayment: some({ destination: publicKey(TREASURY_ADDRESS) }),
+          },
+        }));
 
-        // Build the mint instruction
-        const txBuilder = transactionBuilder().add(
-          mintV2(umi, {
-            candyMachine: candyMachine.publicKey,
-            candyGuard: candyGuard?.publicKey,
-            nftMint,
-            collectionMint: publicKey(COLLECTION_MINT_ID_STRING),
-            collectionUpdateAuthority: candyMachine.authority,
-            tokenStandard: TokenStandard.ProgrammableNonFungible,
-            mintArgs: {
-              solPayment: some({ destination: publicKey(TREASURY_ADDRESS) }),
-            },
-          })
-        );
-
-        // ← THIS IS THE MAGIC PART (3 lines only)
-        const latestBlockhash = await umi.rpc.getLatestBlockhash({ commitment: 'confirmed' });
-        const signedTx = await txBuilder.buildAndSign(umi);
-        signedTx.recentBlockhash = latestBlockhash.blockhash;   // fresh blockhash
-
-        const signature = await umi.rpc.sendTransaction(signedTx, {
-          skipPreflight: true,   // ← kills Phantom "malicious" warning forever
-          maxRetries: 5
-        });
-        // ← END OF MAGIC
-
-        await umi.rpc.confirmTransaction(signature, { commitment: 'confirmed' });
-
-        console.log(`Mint successful! https://solana.fm/tx/${bs58.encode(signature)}`);
-
-        // rest of your metadata fetch stays exactly the same
-        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-
+      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
       // 4. --- FETCH METADATA AND REPORT SUCCESS ---
       try {
