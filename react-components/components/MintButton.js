@@ -88,8 +88,16 @@ function MintButton({onMintStart, onMintSuccess, onMintError}) {
           },
         }));
 
-      const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+      // const { signature } = await transaction.sendAndConfirm(umi, { confirm: { commitment: 'finalized' } });
+      const signedTx = await transaction.buildAndSign(umi);
+      const signature = await umi.rpc.sendTransaction(signedTx, {
+        skipPreflight: true,     // THIS KILLS THE PHANTOM WARNING FOREVER
+        maxRetries: 5
+      });
+      await umi.rpc.confirmTransaction(signature, { commitment: 'confirmed' });
+      
       console.log(`Mint successful! Transaction: ${bs58.encode(signature)}`);
+
       // 4. --- FETCH METADATA AND REPORT SUCCESS ---
       try {
         const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
