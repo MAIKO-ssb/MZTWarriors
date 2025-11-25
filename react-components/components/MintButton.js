@@ -78,7 +78,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     try {
       // FIX 2: Use transactionBuilder + .add() → this includes ALL required accounts
       const tx = transactionBuilder()
-        .add(setComputeUnitLimit(umi, { units: 600_000 }))           // Critical for pNFTs
+        .add(setComputeUnitLimit(umi, { units: 800_000 }))           // Critical for pNFTs
         .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))   // Priority fee
         .add(
           mintV2(umi, {
@@ -88,11 +88,9 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
             collectionMint: COLLECTION_MINT,
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
-            // CRITICAL: Pass mintArgs with correct destination
+            group: 'public',
             mintArgs: {
-              solPayment: {
-                destination: TREASURY, // ← This is REQUIRED
-              },
+              solPayment: { destination: candyGuard.default?.guards?.solPayment?.value?.destination || candyMachine.authority },
             },
           })
         );
