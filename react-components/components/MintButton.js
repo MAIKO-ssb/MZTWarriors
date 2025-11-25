@@ -98,7 +98,10 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           })
         );
 
-      const { signature } = await tx.sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
+      const { signature } = await tx.sendAndConfirm(umi, {
+        send: { skipPreflight: true, maxRetries: 3 },
+        confirm: { commitment: 'confirmed' },
+      });
       console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
       onMintSuccess?.(nftMint.publicKey.toString());
     } catch (error) {
@@ -129,19 +132,22 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       {wallet.connected && (
         <>
           <p>Connected: {wallet.publicKey?.toBase58().slice(0,4)}...{wallet.publicKey?.toBase58().slice(-4)}</p>
-          <p style={{ fontSize: '20px' }}>
-            Warriors Remaining: <strong style={{ color: '#00ff9d', fontSize: '32px' }}>{itemsLeft}</strong> / 1111
-          </p>
           <p style={{ fontSize: '42px', fontWeight: 'bold', margin: '20px 0' }}>
             {price} SOL
           </p>
+          <p style={{ fontSize: '20px' }}>
+            Warriors Remaining: <strong style={{ color: '#00ff9d', fontSize: '32px' }}>{itemsLeft}</strong> / 1111
+          </p>
+
           <button
             onClick={mint}
             disabled={isMinting || itemsLeft === 0}
             style={{
               padding: '20px 80px',
               fontSize: '28px',
-              background: itemsLeft === 0 ? '#444' : '#00ff9d',
+              backgroundColor: '#98e0c5',
+              background: itemsLeft === 0 ? '#444' : '',
+              background: 'url("/img/bg-forest-button.png") no-repeat center/cover',
               color: 'black',
               border: 'none',
               borderRadius: '16px',

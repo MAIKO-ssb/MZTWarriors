@@ -43,7 +43,8 @@ a {
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 2em;
-  background-color: rgba(20, 83, 45, 0.8); /* bg-green-900 bg-opacity-80 */
+  /*background-color: rgba(20, 83, 45, 0.8); /* bg-green-900 bg-opacity-80 */
+  background-color: rgb(4, 20, 22, 0.8);
   border-radius: 1rem; /* rounded-2xl */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
   padding: 1.5rem 2.5rem; /* p-6 sm:p-10 (default to p-6, add media query for sm:p-10) */

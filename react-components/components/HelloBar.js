@@ -12,7 +12,7 @@ export default function HelloBar() {
     paddingRight: '1rem', // px-4
     textAlign: 'center',
     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', // shadow-lg
-    background: 'url("/img/forest-bg-pattern2.png")',
+    background: 'url("/img/bg-forest-pattern.png") repeat-x top/contain',
     borderBottom: '2px solid #0e2c1c'
   };
 
