@@ -84,7 +84,6 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
             collectionMint: COLLECTION_MINT,
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
-            group: 'public', // Your public group with 0.111 SOL
           })
         );
 
