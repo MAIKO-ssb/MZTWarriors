@@ -13,6 +13,7 @@ import {
   mintV2 
 } from '@metaplex-foundation/mpl-candy-machine';
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 import { 
   publicKey, 
   generateSigner,
@@ -79,6 +80,10 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
 
     const nftMint = generateSigner(umi);
 
+    // Detect if connected wallet is the owner (free mint)
+    const isOwnerWallet = wallet.publicKey?.toBase58() === 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
+    const activeGroup = isOwnerWallet ? 'owner' : 'public';
+
     try {
       const tx = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 800_000 }))
@@ -91,10 +96,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
             collectionMint: COLLECTION_MINT,
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
-            group: some('public'),
-            mintArgs: {
-              solPayment: some({ destination: TREASURY }),
-            },
+            group: some(activeGroup),
           })
         );
 
@@ -103,7 +105,19 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
         confirm: { commitment: 'confirmed' },
       });
       console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
-      onMintSuccess?.(nftMint.publicKey.toString());
+      // Fetch the metadata to get the image URL
+      try {
+        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+        const imageUrl = asset.metadata.uri.replace(/\0/g, '');
+        const finalImageUrl = imageUrl.startsWith('ar://') 
+          ? `https://arweave.net/${imageUrl.slice(5)}`
+          : imageUrl;
+
+        onMintSuccess?.(nftMint.publicKey.toString(), finalImageUrl);
+      } catch (e) {
+        console.error("Failed to fetch metadata, but mint succeeded", e);
+        onMintSuccess?.(nftMint.publicKey.toString(), null); // fallback
+      }
     } catch (error) {
       console.error('Mint failed:', error);
       console.error('Full error:', JSON.stringify(error, null, 2));
