@@ -6,9 +6,19 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplCandyMachine, fetchCandyMachine, safeFetchCandyGuard, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
+import { mplCandyMachine, fetchCandyMachine, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
+import { safeFetchCandyGuard } from '@metaplex-foundation/mpl-candy-machine';
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
-import { publicKey, some, generateSigner } from '@metaplex-foundation/umi';
+import { 
+  publicKey, 
+  generateSigner,
+  transactionBuilder 
+} from '@metaplex-foundation/umi';
+import { 
+  setComputeUnitLimit, 
+  setComputeUnitPrice,
+  mplToolbox 
+} from '@metaplex-foundation/mpl-toolbox';
 import bs58 from 'bs58';
 
 const CANDY_MACHINE_ID = publicKey('33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK');
@@ -24,30 +34,37 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
 
   // Create umi directly — no context hell
   const umi = useMemo(() => {
-    if (!connection || !wallet.publicKey) return null;
-    return createUmi(connection)
+    if (!connection.rpcEndpoint || !wallet.publicKey) return null;
+    return createUmi(connection.rpcEndpoint)
       .use(walletAdapterIdentity(wallet))
       .use(mplCandyMachine())
-      .use(mplTokenMetadata());
-  }, [connection, wallet]);
+      .use(mplTokenMetadata())
+      .use(mplToolbox()); // Required for compute units
+  }, [connection.rpcEndpoint, wallet]);
 
   // Load candy machine
   useEffect(() => {
     if (!umi) return;
+    
     (async () => {
       try {
         const cm = await fetchCandyMachine(umi, CANDY_MACHINE_ID);
-        const guard = await safeFetchCandyGuard(umi, cm.mintAuthority);
+        const guard = await safeFetchCandyGuard(umi, cm.mintAuthority); // ← THIS LINE
         setCandyMachine(cm);
-        setCandyGuard(guard);
+        setCandyGuard(guard); // ← now guard.groups exists!
+        console.log('Guard loaded:', guard); // ← you will see groups here
       } catch (e) {
         console.error('Failed to load CM:', e);
       }
     })();
+
   }, [umi]);
 
   const mint = useCallback(async () => {
-    if (!wallet.connected || !umi || !candyMachine || !candyGuard) return;
+    if (!umi || !wallet.connected || !candyMachine) {
+      onMintError?.('Not ready yet...');
+      return;
+    }
 
     setIsMinting(true);
     onMintStart?.();
@@ -55,33 +72,50 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const nftMint = generateSigner(umi);
 
     try {
-      const { signature } = await mintV2(umi, {
-        candyMachine: candyMachine.publicKey,
-        candyGuard: candyMachine.mintAuthority,
-        nftMint,
-        collectionMint: COLLECTION_MINT,
-        collectionUpdateAuthority: candyMachine.authority,
-        tokenStandard: TokenStandard.ProgrammableNonFungible,
-        group: 'public',
-      }).sendAndConfirm(umi, { confirm: { commitment: 'confirmed' } });
+      // FIX 2: Use transactionBuilder + .add() → this includes ALL required accounts
+      const tx = transactionBuilder()
+        .add(setComputeUnitLimit(umi, { units: 600_000 }))           // Critical for pNFTs
+        .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))   // Priority fee
+        .add(
+          mintV2(umi, {
+            candyMachine: candyMachine.publicKey,
+            candyGuard: candyMachine.mintAuthority, // Guard PDA
+            nftMint,
+            collectionMint: COLLECTION_MINT,
+            collectionUpdateAuthority: candyMachine.authority,
+            tokenStandard: TokenStandard.ProgrammableNonFungible,
+            group: 'public', // Your public group with 0.111 SOL
+          })
+        );
+
+      const { signature } = await tx.sendAndConfirm(umi, {
+        confirm: { commitment: 'confirmed' },
+      });
 
       console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
-      onMintSuccess?.(nftMint.publicKey.toString(), null);
+      onMintSuccess?.(nftMint.publicKey.toString());
+
     } catch (error) {
-      console.error(error);
-      onMintError?.(error.message || 'Mint failed');
+      console.error('Mint failed:', error);
+      console.error('Logs:', error.logs?.join('\n') || 'No logs');
+      const msg = error.logs?.join(' ') || error.message || 'Unknown error';
+      onMintError?.(
+        msg.includes('User rejected') || msg.includes('rejected')
+          ? 'You rejected the transaction'
+          : 'Mint failed — try again'
+      );
     } finally {
       setIsMinting(false);
     }
-  }, [wallet, umi, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
+  }, [umi, wallet, candyMachine, onMintStart, onMintSuccess, onMintError]);
 
   const itemsLeft = candyMachine ? Number(candyMachine.data.itemsAvailable - candyMachine.itemsRedeemed) : 0;
   // Dynamic price from the "public" guard group
   const publicGroup = candyGuard?.groups?.find(g => g.label === 'public');
-  const priceLamports = publicGroup?.guards.solPayment?.value?.lamports?.basisPoints;
+  const priceLamports = publicGroup?.guards?.solPayment?.value?.lamports.basisPoints; 
   const price = priceLamports
     ? (Number(priceLamports) / 1_000_000_000).toFixed(3)
-    : 'Loading...';
+    : '...';
 
   return (
     <div style={{ textAlign: 'center', color: 'white' }}>
@@ -89,8 +123,14 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       {wallet.connected && (
         <>
           <p>Connected: {wallet.publicKey?.toBase58().slice(0,4)}...{wallet.publicKey?.toBase58().slice(-4)}</p>
-          <p>Remaining: {itemsLeft}/1111</p>
-          <p>Price: {price} SOL</p>
+          <p style={{ fontSize: '20px', margin: '20px 0' }}>
+            Warriors Remaining: <br/><strong style={{ color: '#00ff9d', fontSize: '28px' }}>
+              {itemsLeft !== null ? itemsLeft : 'Loading...'}
+            </strong> / 1111
+          </p>
+          <p style={{ fontSize: '36px', fontWeight: 'bold', margin: '20px 0' }}>
+            {price} SOL
+          </p>
           <button
             onClick={mint}
             disabled={isMinting || itemsLeft === 0}
