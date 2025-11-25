@@ -6,8 +6,12 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { mplCandyMachine, fetchCandyMachine, mintV2 } from '@metaplex-foundation/mpl-candy-machine';
-import { safeFetchCandyGuard } from '@metaplex-foundation/mpl-candy-machine';
+import { 
+  mplCandyMachine, 
+  fetchCandyMachine, 
+  safeFetchCandyGuard,
+  mintV2 
+} from '@metaplex-foundation/mpl-candy-machine';
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { 
   publicKey, 
