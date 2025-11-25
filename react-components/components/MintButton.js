@@ -88,6 +88,12 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
             collectionMint: COLLECTION_MINT,
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
+            // CRITICAL: Pass mintArgs with correct destination
+            mintArgs: {
+              solPayment: {
+                destination: TREASURY, // ← This is REQUIRED
+              },
+            },
           })
         );
 
