@@ -27,7 +27,7 @@ const network = WalletAdapterNetwork.MainnetBeta;
 // const endpoint = "https://mainnet.helius-rpc.com/?api-key=b51522ca-f265-4967-829a-fb829f1878a4"; 
 const endpoint = "https://powerful-sly-forest.solana-mainnet.quiknode.pro/ceffec3dc86a9b23f99b2d97493c7ce70244b990/";
 // const endpoint = clusterApiUrl(network);
-const connectionConfig = { commitment: 'confirmed', disableSimulation: true };
+const connectionConfig = { commitment: 'confirmed' };
 
 const wallets = [
   new PhantomWalletAdapter(),
