@@ -81,9 +81,19 @@ export default function HelloBar() {
         //   color: #facc15; /* hover:text-yellow-400 */
         //   cursor: default;
         // }
+
+        /* Mobile default: COVER */
+        .hello-bar {
+          background-size: cover !important;
+          background-repeat: no-repeat;
+        }
         
         /* md breakpoint (768px and up) */
         @media (min-width: 768px) {
+          .hello-bar {
+            background-size: contain !important;
+            background-repeat: repeat-x;
+          }
           .main-headline {
             font-size: 1.25rem; /* md:text-xl */
           }

@@ -108,12 +108,11 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       // Fetch the metadata to get the image URL
       try {
         const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-        const imageUrl = asset.metadata.uri.replace(/\0/g, '');
-        const finalImageUrl = imageUrl.startsWith('ar://') 
-          ? `https://arweave.net/${imageUrl.slice(5)}`
-          : imageUrl;
+        // THIS IS THE CORRECT WAY FOR pNFTs
+        const imageUrl = asset.metadata.image;
+        console.log('NFT Image URL:', imageUrl);
 
-        onMintSuccess?.(nftMint.publicKey.toString(), finalImageUrl);
+        onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
       } catch (e) {
         console.error("Failed to fetch metadata, but mint succeeded", e);
         onMintSuccess?.(nftMint.publicKey.toString(), null); // fallback
