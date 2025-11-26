@@ -10,6 +10,8 @@ export default function Document() {
           rel="stylesheet"
         />
         <meta name="solana:dapp" content="trusted" />
+        <meta name="solana:dapp-name" content="Manzanita Tribe Warriors" />
+        <meta name="solana:dapp-icon" content="https://mztwarriors.com/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
       </Head>
       <body>
