@@ -48,7 +48,7 @@ export default function HelloBar() {
   };
 
   return (
-    <div style={barStyle}>
+    <div className='hello-bar' style={barStyle}>
       <div style={containerStyle}>
         <p style={mainHeadlineStyle} className="main-headline">
           Adventurer, Welcome to the Tribe!

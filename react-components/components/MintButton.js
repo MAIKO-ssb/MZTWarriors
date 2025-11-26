@@ -101,7 +101,11 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
         );
 
       const { signature } = await tx.sendAndConfirm(umi, {
-        send: { skipPreflight: true, maxRetries: 3 },
+        send: {
+          skipPreflight: true,
+          maxRetries: 3,
+          commitment: 'confirmed',
+        },
         confirm: { commitment: 'confirmed' },
       });
       console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
