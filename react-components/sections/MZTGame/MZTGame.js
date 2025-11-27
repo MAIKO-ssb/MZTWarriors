@@ -297,82 +297,186 @@ class MainScene extends Phaser.Scene {
     }
 
     createTouchControls() {
-        // Calculate scale factor for touch controls
-        const scaleFactor = Math.min(this.scale.width / 1280, this.scale.height / 720);
+        // Create a DOM overlay for controls — this is the ONLY reliable way on mobile
+        // Phaser canvas scaling breaks world-space UI below the viewport
 
-        // Position relative to screen, not world
-        this.joystickCenterX = 150 * scaleFactor;
-        this.joystickCenterY = this.scale.height - (150 * scaleFactor);
+        const canvas = this.game.canvas;
+        const parent = canvas.parentElement;
 
-        const radius = 70 * scaleFactor;
-        this.joystickBase = this.add.circle(this.joystickCenterX, this.joystickCenterY, radius, 0x333333, 0.4)
-            .setDepth(101)
-            .setScrollFactor(0); // Stays fixed on screen
-        this.joystickThumb = this.add.circle(this.joystickCenterX, this.joystickCenterY, radius * 0.5, 0x666666, 0.7)
-            .setDepth(102)
-            .setScrollFactor(0);
+        // Remove old controls if exist
+        const old = document.getElementById('mobile-controls');
+        if (old) old.remove();
 
-        this.attackButton = this.add.circle(this.scale.width - (120 * scaleFactor), this.scale.height - (120 * scaleFactor), 60 * scaleFactor, 0xff4444, 0.8)
-            .setDepth(101)
-            .setScrollFactor(0)
-            .setInteractive()
-            .on('pointerdown', () => this.onAttackTouch())
-            .on('pointerover', () => this.attackButton.setAlpha(1))
-            .on('pointerout', () => this.attackButton.setAlpha(0.8));
+        const controls = document.createElement('div');
+        controls.id = 'mobile-controls';
+        controls.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 140px;
+            background: rgba(0,0,0,0.65);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            pointer-events: auto;
+            z-index: 999;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        `;
 
-        console.log('Touch controls created - Joystick at:', this.joystickCenterX, this.joystickCenterY, 'Attack at:', this.scale.width - (120 * scaleFactor), this.scale.height - (120 * scaleFactor));
+        // LEFT: D-PAD
+        const dpad = document.createElement('div');
+        dpad.style.cssText = `
+            width: 140px;
+            height: 140px;
+            background: rgba(26,26,26,0.9);
+            border-radius: 28px;
+            border: 8px solid #000;
+            position: relative;
+        `;
 
-        this.touchLeft = false;
-        this.touchRight = false;
-        this.touchJump = false;
-        this.joystickActive = false;
+        // Cross
+        const crossH = document.createElement('div');
+        const crossV = document.createElement('div');
+        Object.assign(crossH.style, {
+            position: 'absolute',
+            width: '90px',
+            height: '16px',
+            background: 'white',
+            borderRadius: '8px',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: '0.95'
+        });
+        Object.assign(crossV.style, {
+            position: 'absolute',
+            width: '16px',
+            height: '90px',
+            background: 'white',
+            borderRadius: '8px',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: '0.95'
+        });
+        dpad.appendChild(crossH);
+        dpad.appendChild(crossV);
 
-        this.input.addPointer(2);
+        // RIGHT: B BUTTON
+        const bButton = document.createElement('div');
+        bButton.textContent = 'B';
+        bButton.style.cssText = `
+            width: 110px;
+            height: 110px;
+            background: #ff3333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial Black', sans-serif;
+            font-size: 48px;
+            color: white;
+            text-shadow: 0 0 10px black;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            transition: all 0.1s;
+            pointer-events: auto;
+        `;
 
-        this.input.on('pointerdown', this.onTouchStart, this);
-        this.input.on('pointermove', this.onTouchMove, this);
-        this.input.on('pointerup', this.onTouchEnd, this);
+        // Press effect
+        const pressButton = () => {
+            bButton.style.transform = 'scale(0.9)';
+            bButton.style.background = '#ff6666';
+            this.onAttackTouch();
+        };
+        const releaseButton = () => {
+            bButton.style.transform = 'scale(1)';
+            bButton.style.background = '#ff3333';
+        };
+        bButton.addEventListener('touchstart', pressButton);
+        bButton.addEventListener('mousedown', pressButton);
+        bButton.addEventListener('touchend', releaseButton);
+        bButton.addEventListener('mouseup', releaseButton);
+        bButton.addEventListener('touchcancel', releaseButton);
+
+        // Add to controls
+        controls.appendChild(dpad);
+        controls.appendChild(bButton);
+        parent.appendChild(controls);
+
+        // D-PAD TOUCH LOGIC
+        let activeTouch = null;
+
+        const handleTouch = (e) => {
+            e.preventDefault();
+            if (!e.touches) return;
+
+            const touch = Array.from(e.touches).find(t => 
+                t.clientX < window.innerWidth / 2
+            );
+
+            if (touch) {
+                activeTouch = touch.identifier;
+                const rect = dpad.getBoundingClientRect();
+                const dx = touch.clientX - (rect.left + rect.width / 2);
+                const dy = touch.clientY - (rect.top + rect.height / 2);
+
+                this.touchLeft = dx < -35;
+                this.touchRight = dx > 35;
+                this.touchJump = dy < -40;
+
+                if (this.touchJump) this.triggerJumpIfPossible();
+            } else if (activeTouch !== null) {
+                this.touchLeft = this.touchRight = this.touchJump = false;
+                activeTouch = null;
+            }
+        };
+
+        const handleMove = (e) => {
+            if (activeTouch === null) return;
+            handleTouch(e);
+        };
+
+        const handleEnd = () => {
+            this.touchLeft = this.touchRight = this.touchJump = false;
+            activeTouch = null;
+        };
+
+        document.addEventListener('touchstart', handleTouch, { passive: false });
+        document.addEventListener('touchmove', handleMove, { passive: false });
+        document.addEventListener('touchend', handleEnd);
+        document.addEventListener('touchcancel', handleEnd);
+
+        // Store for cleanup
+        this.mobileControls = {
+            element: controls,
+            listeners: { handleTouch, handleMove, handleEnd }
+        };
     }
 
-    onTouchStart(pointer) {
-        if (pointer.x < this.scale.width * 0.5 && !this.joystickActive) {
-            this.joystickActive = true;
-            this.updateJoystick(pointer);
+    triggerJumpIfPossible() {
+        if (this.player && this.jumpCount < this.maxJumps && !this.isAttacking) {
+            this.player.setVelocityY(this.jumpVelocity);
+            this.jumpCount++;
+
+            if (this.refs.socket.current) {
+                this.refs.socket.current.emit('playerJump', {
+                    id: this.refs.myId.current,
+                    position: { x: this.player.x, y: this.player.y },
+                    direction: this.facingDirection,
+                    velocityY: this.jumpVelocity,
+                });
+            }
+
+            if (this.anims.exists('jump')) {
+                this.player.anims.play('jump', true);
+                this.lastAnimation = 'jump';
+            }
         }
-    }
-
-    onTouchMove(pointer) {
-        if (this.joystickActive) {
-            this.updateJoystick(pointer);
-        }
-    }
-
-    onTouchEnd() {
-        if (this.joystickActive) {
-            this.joystickActive = false;
-            this.resetJoystick();
-        }
-    }
-
-    updateJoystick(pointer) {
-        const scaleFactor = Math.min(this.scale.width / 1280, this.scale.height / 720);
-        const dx = pointer.x - this.joystickCenterX;
-        const dy = pointer.y - this.joystickCenterY;
-        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 70 * scaleFactor);
-        const angle = Math.atan2(dy, dx);
-
-        this.joystickThumb.x = this.joystickCenterX + Math.cos(angle) * dist;
-        this.joystickThumb.y = this.joystickCenterY + Math.sin(angle) * dist;
-
-        this.touchLeft = angle > 0.5 || angle < -2.6;
-        this.touchRight = Math.abs(angle) < 1.2;
-        this.touchJump = dist > 50 * scaleFactor && dy < 0;
-    }
-
-    resetJoystick() {
-        this.joystickThumb.x = this.joystickCenterX;
-        this.joystickThumb.y = this.joystickCenterY;
-        this.touchLeft = this.touchRight = this.touchJump = false;
     }
 
     onAttackTouch() {
@@ -761,7 +865,7 @@ const PhaserGame = () => {
     const sceneRef = useRef(null);
     const isGameInitialized = useRef(false);
     const enemies = useRef([]);
-    const [isPortrait, setIsPortrait] = useState(false);
+    // const [isPortrait, setIsPortrait] = useState(false);
 
     useEffect(() => {
         if (!containerRef.current || isGameInitialized.current) {
@@ -782,19 +886,19 @@ const PhaserGame = () => {
         const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
                         window.matchMedia("(pointer: coarse)").matches;
 
-        const checkOrientation = () => {
-            const orientation = window.screen.orientation ? window.screen.orientation.type : (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait');
-            setIsPortrait(orientation.includes('portrait'));
-            console.log('Orientation:', orientation);
-        };
+        // const checkOrientation = () => {
+        //     const orientation = window.screen.orientation ? window.screen.orientation.type : (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait');
+        //     setIsPortrait(orientation.includes('portrait'));
+        //     console.log('Orientation:', orientation);
+        // };
 
-        const lockOrientation = () => {
-            if (isMobile && window.screen.orientation && window.screen.orientation.lock) {
-                window.screen.orientation.lock('landscape').catch((err) => {
-                    console.warn('Orientation lock failed:', err);
-                });
-            }
-        };
+        // const lockOrientation = () => {
+        //     if (isMobile && window.screen.orientation && window.screen.orientation.lock) {
+        //         window.screen.orientation.lock('landscape').catch((err) => {
+        //             console.warn('Orientation lock failed:', err);
+        //         });
+        //     }
+        // };
 
         const requestFullscreen = () => {
             if (isMobile && containerRef.current) {
@@ -810,19 +914,19 @@ const PhaserGame = () => {
         };
 
         // Initial checks
-        checkOrientation();
-        if (isMobile) {
-            lockOrientation();
-            requestFullscreen();
-        }
+        // checkOrientation();
+        // if (isMobile) {
+        //     lockOrientation();
+        //     requestFullscreen();
+        // }
 
         // Listen for orientation changes
-        window.addEventListener('orientationchange', () => {
-            checkOrientation();
-            if (!isPortrait) {
-                requestFullscreen();
-            }
-        });
+        // window.addEventListener('orientationchange', () => {
+        //     checkOrientation();
+        //     if (!isPortrait) {
+        //         requestFullscreen();
+        //     }
+        // });
 
         const SOCKET_URL = process.env.NODE_ENV === 'development'
             ? 'https://mztwarriors-backend-production.up.railway.app'
@@ -1008,8 +1112,8 @@ const PhaserGame = () => {
 
         const config = {
             type: Phaser.AUTO,
-            width: 1280,
-            height: 720,
+            width: 800,
+            height: 600,
             parent: containerRef.current,
             scale: {
                 mode: Phaser.Scale.FIT,
@@ -1018,7 +1122,7 @@ const PhaserGame = () => {
             callbacks: {
                 postBoot: (game) => {
                     if (isMobile) {
-                        lockOrientation();
+                        // lockOrientation();
                         requestFullscreen();
                     }
                     console.log('Canvas size:', game.scale.width, game.scale.height);
@@ -1062,7 +1166,7 @@ const PhaserGame = () => {
             isGameInitialized.current = false;
             document.removeEventListener('touchstart', () => {});
             document.removeEventListener('gesturestart', () => {});
-            window.removeEventListener('orientationchange', checkOrientation);
+            // window.removeEventListener('orientationchange', checkOrientation);
         };
     }, []);
 
@@ -1115,7 +1219,7 @@ const PhaserGame = () => {
                 alignItems: 'center'
             }}
         >
-            {isPortrait && (
+            {/* {isPortrait && (
                 <div
                     style={{
                         position: 'fixed',
@@ -1137,7 +1241,7 @@ const PhaserGame = () => {
                 >
                     Please rotate your device to landscape mode to play the game.
                 </div>
-            )}
+            )} */}
             <div
                 ref={containerRef}
                 style={{
