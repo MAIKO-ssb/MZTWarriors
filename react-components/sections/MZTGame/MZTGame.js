@@ -43,7 +43,6 @@ class MainScene extends Phaser.Scene {
         // Detect mobile device
         this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
                         window.matchMedia("(pointer: coarse)").matches;
-        this.input.addPointer(2);
 
         // Set world bounds to fixed 1280x720
         this.physics.world.setBounds(0, 0, 1280, 720);
@@ -296,147 +295,180 @@ class MainScene extends Phaser.Scene {
         };
     }
 
-    createTouchControls() {
-        const canvas = this.game.canvas;
-        const parent = canvas.parentElement;
+createTouchControls() {
+    // Remove old controls
+    const old = document.getElementById('mobile-controls');
+    if (old) old.remove();
 
-        // Remove old controls
-        const old = document.getElementById('mobile-controls');
-        if (old) old.remove();
+    const controls = document.createElement('div');
+    controls.id = 'mobile-controls';
+    controls.style.cssText = `
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        height: 280px;
+        padding-bottom: max(90px, env(safe-area-inset-bottom));
+        pointer-events: none;
+        z-index: 9999;
+        user-select: none;
+        touch-action: none;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+        font-family: -apple-system, sans-serif;
+    `;
 
-        const controls = document.createElement('div');
-        controls.id = 'mobile-controls';
-        
-        // MAGIC: Use env(safe-area-inset-bottom) so controls sit ABOVE the browser UI
-        controls.style.cssText = `
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 160px;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6));
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 30px;
-            box-sizing: border-box;
-            pointer-events: none; /* Let touches pass through background */
-            z-index: 9999;
-            font-family: 'Arial Black', sans-serif;
-            user-select: none;
-            touch-action: manipulation;
-        `;
+    // LEFT JOYSTICK BASE + KNOB
+    const joystickBase = document.createElement('div');
+    joystickBase.style.cssText = `
+        position: absolute;
+        left: 40px; bottom: 80px;
+        width: 140px; height: 140px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 6px solid rgba(100, 180, 255, 0.6);
+        border-radius: 50%;
+        pointer-events: auto;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 0 40px rgba(100, 180, 255, 0.3);
+    `;
 
-        // LEFT: D-PAD
-        const dpad = document.createElement('div');
-        dpad.style.cssText = `
-            width: 150px;
-            height: 150px;
-            background: rgba(30,30,30,0.95);
-            border-radius: 30px;
-            border: 10px solid #000;
-            position: relative;
-            pointer-events: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        `;
+    const knob = document.createElement('div');
+    knob.style.cssText = `
+        position: absolute;
+        width: 60px; height: 60px;
+        background: radial-gradient(circle at 30% 30%, #ffffff, #88ccff);
+        border-radius: 50%;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.7), inset 0 -4px 12px rgba(0,0,0,0.4), 0 0 20px rgba(100, 200, 255, 0.6);
+        transition: transform 0.08s ease-out;
+    `;
+    joystickBase.appendChild(knob);
 
-        const crossH = document.createElement('div');
-        const crossV = document.createElement('div');
-        Object.assign(crossH.style, { position:'absolute', width:'100px', height:'20px', background:'white', borderRadius:'10px', top:'50%', left:'50%', transform:'translate(-50%,-50%)', opacity:'0.9' });
-        Object.assign(crossV.style, { position:'absolute', width:'20px', height:'100px', background:'white', borderRadius:'10px', top:'50%', left:'50%', transform:'translate(-50%,-50%)', opacity:'0.9' });
-        dpad.appendChild(crossH);
-        dpad.appendChild(crossV);
+    // RIGHT ATTACK BUTTON
+    const attackBtn = document.createElement('div');
+    attackBtn.innerHTML = 'B';
+    attackBtn.style.cssText = `
+        position: absolute;
+        right: 50px; bottom: 90px;
+        width: 110px; height: 110px;
+        background: rgba(220, 40, 60, 0.9);
+        border: 8px solid rgba(255, 80, 100, 0.7);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 52px; color: white; font-weight: 900;
+        text-shadow: 0 4px 12px black;
+        pointer-events: auto;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.7), inset 0 -8px 20px rgba(0,0,0,0.4), 0 0 30px rgba(255, 100, 120, 0.5);
+        transition: all 0.12s ease;
+    `;
 
-        // RIGHT: B BUTTON (Attack)
-        const bButton = document.createElement('div');
-        bButton.innerHTML = 'B';
-        bButton.style.cssText = `
-            width: 120px;
-            height: 120px;
-            background: #ff3333;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 56px;
-            color: white;
-            font-weight: 900;
-            text-shadow: 0 4px 10px black;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.7), inset 0 -8px 20px rgba(0,0,0,0.4);
-            pointer-events: auto;
-            transition: all 0.08s;
-            transform: translateY(0);
-        `;
+    controls.appendChild(joystickBase);
+    controls.appendChild(attackBtn);
+    document.body.appendChild(controls);
 
-        const press = () => {
-            bButton.style.transform = 'scale(0.88) translateY(4px)';
-            bButton.style.background = '#ff5555';
-            this.onAttackTouch?.();
-        };
-        const release = () => {
-            bButton.style.transform = 'scale(1) translateY(0)';
-            bButton.style.background = '#ff3333';
-        };
+    // === STATE ===
+    this.touchLeft = this.touchRight = false;
+    this.mobileJumpPressed = false;   // new flag
+    let activeTouchId = null;
+    const maxDist = 40;
+    const deadzone = 25;
 
-        bButton.addEventListener('touchstart', press, { passive: true });
-        bButton.addEventListener('touchend', release);
-        bButton.addEventListener('touchcancel', release);
+    const resetKnob = () => {
+        knob.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.4, 1)';
+        knob.style.transform = 'translate(-50%, -50%)';
+        setTimeout(() => knob.style.transition = 'transform 0.08s ease-out', 200);
+    };
 
-        // Add to DOM
-        controls.appendChild(dpad);
-        controls.appendChild(bButton);
-        document.body.appendChild(controls); // ← Put on <body>, not canvas parent
+    const updateKnob = (dx, dy) => {
+        const dist = Math.min(maxDist, Math.hypot(dx, dy));
+        const angle = Math.atan2(dy, dx);
+        const x = Math.cos(angle) * dist;
+        const y = Math.sin(angle) * dist;
+        knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    };
 
-        // D-PAD LOGIC
-        let activeTouch = null;
+    const moveHandler = (e) => {
+        e.preventDefault();
+        if (activeTouchId === null) return;
 
-        const updateDPad = (e) => {
-            if (!e.touches?.length) return;
-            const touch = Array.from(e.touches).find(t => t.clientX < window.innerWidth * 0.5);
-            if (!touch) {
-                this.touchLeft = this.touchRight = this.touchJump = false;
-                activeTouch = null;
-                return;
-            }
+        const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
+        if (!touch) return;
 
-            activeTouch = touch.identifier;
-            const rect = dpad.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dx = touch.clientX - cx;
-            const dy = touch.clientY - cy;
+        const rect = joystickBase.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = touch.clientX - cx;
+        let dy = touch.clientY - cy;
 
-            this.touchLeft  = dx < -40;
-            this.touchRight = dx > 40;
-            this.touchJump  = dy < -50;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 70) {
+            dx = (dx / dist) * 70;
+            dy = (dy / dist) * 70;
+        }
 
-            if (this.touchJump) this.triggerJumpIfPossible();
-        };
+        updateKnob(dx, dy);
 
-        const touchStart = updateDPad;
-        const touchMove = updateDPad;
-        const touchEnd = () => {
-            this.touchLeft = this.touchRight = this.touchJump = false;
-            activeTouch = null;
-        };
+        // Horizontal movement
+        this.touchLeft  = dx < -deadzone;
+        this.touchRight = dx > deadzone;
 
-        document.addEventListener('touchstart', touchStart, { passive: false });
-        document.addEventListener('touchmove', touchMove, { passive: false });
-        document.addEventListener('touchend', touchEnd);
-        document.addEventListener('touchcancel', touchEnd);
+        // Jump = strong upward pull
+        const wantsJump = dy < -deadzone * 1.4;
+        if (wantsJump && !this.mobileJumpPressed) {
+            this.mobileJumpPressed = true;
+            this.triggerJumpIfPossible();  // ← this is the key line
+        }
+        if (!wantsJump) {
+            this.mobileJumpPressed = false;
+        }
+    };
 
-        // Store for cleanup
-        this.mobileControls = {
-            element: controls,
-            cleanup: () => {
-                document.removeEventListener('touchstart', touchStart);
-                document.removeEventListener('touchmove', touchMove);
-                document.removeEventListener('touchend', touchEnd);
-                document.removeEventListener('touchcancel', touchEnd);
-            }
-        };
-    }
+    const startHandler = (e) => {
+        if (activeTouchId !== null) return;
+        const touch = e.changedTouches[0];
+        const rect = joystickBase.getBoundingClientRect();
+        const dx = touch.clientX - (rect.left + rect.width / 2);
+        const dy = touch.clientY - (rect.top + rect.height / 2);
+
+        if (Math.hypot(dx, dy) < 80) {
+            e.preventDefault();
+            activeTouchId = touch.identifier;
+            moveHandler(e);
+        }
+    };
+
+    const endHandler = () => {
+        if (activeTouchId === null) return;
+        activeTouchId = null;
+        this.touchLeft = this.touchRight = false;
+        this.mobileJumpPressed = false;
+        resetKnob();
+    };
+
+    joystickBase.addEventListener('touchstart', startHandler, { passive: false });
+    joystickBase.addEventListener('touchmove', moveHandler, { passive: false });
+    joystickBase.addEventListener('touchend', endHandler);
+    joystickBase.addEventListener('touchcancel', endHandler);
+
+    attackBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        attackBtn.style.transform = 'scale(0.88)';
+        this.onAttackTouch();
+    }, { passive: false });
+
+    attackBtn.addEventListener('touchend', () => {
+        attackBtn.style.transform = 'scale(1)';
+    });
+
+    this.mobileControls = {
+        cleanup: () => {
+            joystickBase.removeEventListener('touchstart', startHandler);
+            joystickBase.removeEventListener('touchmove', moveHandler);
+            joystickBase.removeEventListener('touchend', endHandler);
+            joystickBase.removeEventListener('touchcancel', endHandler);
+            controls.remove();
+        }
+    };
+}
 
     triggerJumpIfPossible() {
         if (this.player && this.jumpCount < this.maxJumps && !this.isAttacking) {
@@ -530,11 +562,12 @@ class MainScene extends Phaser.Scene {
         }
 
         const isLeftPressed = this.cursors.left.isDown ||
-                             this.WASD?.A.isDown ||
-                             (this.isMobile && this.touchLeft);
+                     this.WASD?.A.isDown ||
+                     (this.isMobile && this.touchLeft);
+
         const isRightPressed = this.cursors.right.isDown ||
-                              this.WASD?.D.isDown ||
-                              (this.isMobile && this.touchRight);
+                      this.WASD?.D.isDown ||
+                      (this.isMobile && this.touchRight);
         let moving = false;
         let speed = 350;
 
@@ -551,10 +584,8 @@ class MainScene extends Phaser.Scene {
                     moving = true;
                     this.facingDirection = 'right';
                 } else {
-                    if (!this.isAttacking) {
-                        this.player.setVelocityX(0);
-                    }
-                    moving = false;
+                    this.player.setVelocityX(0);
+                    // moving = false;
                 }
 
                 if (this.player.flipX) {
@@ -832,16 +863,8 @@ class MainScene extends Phaser.Scene {
     }
 
     shutdown() {
-        // Remove DOM element
-        const controls = document.getElementById('mobile-controls');
-        if (controls?.parentElement) {
-            controls.parentElement.removeChild(controls);
-        }
-
-        // Remove listeners
         this.mobileControls?.cleanup?.();
-
-        console.log('Mobile controls fully cleaned up');
+        super.shutdown?.();
     }
 }
 
