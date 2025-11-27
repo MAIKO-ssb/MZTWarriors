@@ -83,19 +83,19 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     // Detect if connected wallet is the owner (free mint)
     const isOwnerWallet = wallet.publicKey?.toBase58() === 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
     const activeGroup = isOwnerWallet ? 'owner' : 'public';
+    const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
       const tx = transactionBuilder()
-        .add(setComputeUnitLimit(umi, { units: 800_000 }))
         .add(
           mintV2(umi, {
             candyMachine: candyMachine.publicKey,
-            candyGuard: candyMachine.mintAuthority,
+            candyGuard: candyGuard?.publicKey, //candyMachine.mintAuthority,
             nftMint,
             collectionMint: COLLECTION_MINT,
             collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: TokenStandard.ProgrammableNonFungible,
-            group: some(activeGroup),
+            mintArgs: mintArgs,
           })
         );
 
@@ -119,7 +119,6 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       console.error('Mint failed:', error);
       console.error('Full error:', JSON.stringify(error, null, 2));
       console.error('Logs:', error.logs?.join('\n') || 'No logs');
-      // ADD THIS: Check if transaction actually succeeded
       if (error.logs && error.logs.some(log => log.includes('Program log: Instruction: MintV2'))) {
         console.log('MINT ACTUALLY SUCCEEDED — IGNORE ERROR');
         onMintSuccess?.(nftMint.publicKey.toString());
