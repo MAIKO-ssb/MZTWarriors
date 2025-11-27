@@ -858,6 +858,8 @@ const PhaserGame = () => {
     const sceneRef = useRef(null);
     const isGameInitialized = useRef(false);
     const enemies = useRef([]);
+    const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+                        window.matchMedia("(pointer: coarse)").matches;
     // const [isPortrait, setIsPortrait] = useState(false);
 
     useEffect(() => {
@@ -876,8 +878,8 @@ const PhaserGame = () => {
         document.addEventListener('gesturestart', (e) => e.preventDefault());
 
         // Handle orientation and fullscreen
-        const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-                        window.matchMedia("(pointer: coarse)").matches;
+        // const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+        //                 window.matchMedia("(pointer: coarse)").matches;
 
         // const checkOrientation = () => {
         //     const orientation = window.screen.orientation ? window.screen.orientation.type : (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait');
