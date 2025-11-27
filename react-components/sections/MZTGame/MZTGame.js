@@ -297,164 +297,144 @@ class MainScene extends Phaser.Scene {
     }
 
     createTouchControls() {
-        // Create a DOM overlay for controls — this is the ONLY reliable way on mobile
-        // Phaser canvas scaling breaks world-space UI below the viewport
-
         const canvas = this.game.canvas;
         const parent = canvas.parentElement;
 
-        // Remove old controls if exist
+        // Remove old controls
         const old = document.getElementById('mobile-controls');
         if (old) old.remove();
 
         const controls = document.createElement('div');
         controls.id = 'mobile-controls';
+        
+        // MAGIC: Use env(safe-area-inset-bottom) so controls sit ABOVE the browser UI
         controls.style.cssText = `
-            position: absolute;
-            bottom: 0;
+            position: fixed;
             left: 0;
-            width: 100%;
-            height: 140px;
-            background: rgba(0,0,0,0.65);
+            right: 0;
+            bottom: 0;
+            height: 160px;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6));
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0 30px;
             box-sizing: border-box;
-            pointer-events: auto;
-            z-index: 999;
+            pointer-events: none; /* Let touches pass through background */
+            z-index: 9999;
+            font-family: 'Arial Black', sans-serif;
             user-select: none;
-            -webkit-user-select: none;
             touch-action: manipulation;
         `;
 
         // LEFT: D-PAD
         const dpad = document.createElement('div');
         dpad.style.cssText = `
-            width: 140px;
-            height: 140px;
-            background: rgba(26,26,26,0.9);
-            border-radius: 28px;
-            border: 8px solid #000;
+            width: 150px;
+            height: 150px;
+            background: rgba(30,30,30,0.95);
+            border-radius: 30px;
+            border: 10px solid #000;
             position: relative;
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         `;
 
-        // Cross
         const crossH = document.createElement('div');
         const crossV = document.createElement('div');
-        Object.assign(crossH.style, {
-            position: 'absolute',
-            width: '90px',
-            height: '16px',
-            background: 'white',
-            borderRadius: '8px',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            opacity: '0.95'
-        });
-        Object.assign(crossV.style, {
-            position: 'absolute',
-            width: '16px',
-            height: '90px',
-            background: 'white',
-            borderRadius: '8px',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            opacity: '0.95'
-        });
+        Object.assign(crossH.style, { position:'absolute', width:'100px', height:'20px', background:'white', borderRadius:'10px', top:'50%', left:'50%', transform:'translate(-50%,-50%)', opacity:'0.9' });
+        Object.assign(crossV.style, { position:'absolute', width:'20px', height:'100px', background:'white', borderRadius:'10px', top:'50%', left:'50%', transform:'translate(-50%,-50%)', opacity:'0.9' });
         dpad.appendChild(crossH);
         dpad.appendChild(crossV);
 
-        // RIGHT: B BUTTON
+        // RIGHT: B BUTTON (Attack)
         const bButton = document.createElement('div');
-        bButton.textContent = 'B';
+        bButton.innerHTML = 'B';
         bButton.style.cssText = `
-            width: 110px;
-            height: 110px;
+            width: 120px;
+            height: 120px;
             background: #ff3333;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Arial Black', sans-serif;
-            font-size: 48px;
+            font-size: 56px;
             color: white;
-            text-shadow: 0 0 10px black;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-            transition: all 0.1s;
+            font-weight: 900;
+            text-shadow: 0 4px 10px black;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.7), inset 0 -8px 20px rgba(0,0,0,0.4);
             pointer-events: auto;
+            transition: all 0.08s;
+            transform: translateY(0);
         `;
 
-        // Press effect
-        const pressButton = () => {
-            bButton.style.transform = 'scale(0.9)';
-            bButton.style.background = '#ff6666';
-            this.onAttackTouch();
+        const press = () => {
+            bButton.style.transform = 'scale(0.88) translateY(4px)';
+            bButton.style.background = '#ff5555';
+            this.onAttackTouch?.();
         };
-        const releaseButton = () => {
-            bButton.style.transform = 'scale(1)';
+        const release = () => {
+            bButton.style.transform = 'scale(1) translateY(0)';
             bButton.style.background = '#ff3333';
         };
-        bButton.addEventListener('touchstart', pressButton);
-        bButton.addEventListener('mousedown', pressButton);
-        bButton.addEventListener('touchend', releaseButton);
-        bButton.addEventListener('mouseup', releaseButton);
-        bButton.addEventListener('touchcancel', releaseButton);
 
-        // Add to controls
+        bButton.addEventListener('touchstart', press, { passive: true });
+        bButton.addEventListener('touchend', release);
+        bButton.addEventListener('touchcancel', release);
+
+        // Add to DOM
         controls.appendChild(dpad);
         controls.appendChild(bButton);
-        parent.appendChild(controls);
+        document.body.appendChild(controls); // ← Put on <body>, not canvas parent
 
-        // D-PAD TOUCH LOGIC
+        // D-PAD LOGIC
         let activeTouch = null;
 
-        const handleTouch = (e) => {
-            e.preventDefault();
-            if (!e.touches) return;
-
-            const touch = Array.from(e.touches).find(t => 
-                t.clientX < window.innerWidth / 2
-            );
-
-            if (touch) {
-                activeTouch = touch.identifier;
-                const rect = dpad.getBoundingClientRect();
-                const dx = touch.clientX - (rect.left + rect.width / 2);
-                const dy = touch.clientY - (rect.top + rect.height / 2);
-
-                this.touchLeft = dx < -35;
-                this.touchRight = dx > 35;
-                this.touchJump = dy < -40;
-
-                if (this.touchJump) this.triggerJumpIfPossible();
-            } else if (activeTouch !== null) {
+        const updateDPad = (e) => {
+            if (!e.touches?.length) return;
+            const touch = Array.from(e.touches).find(t => t.clientX < window.innerWidth * 0.5);
+            if (!touch) {
                 this.touchLeft = this.touchRight = this.touchJump = false;
                 activeTouch = null;
+                return;
             }
+
+            activeTouch = touch.identifier;
+            const rect = dpad.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = touch.clientX - cx;
+            const dy = touch.clientY - cy;
+
+            this.touchLeft  = dx < -40;
+            this.touchRight = dx > 40;
+            this.touchJump  = dy < -50;
+
+            if (this.touchJump) this.triggerJumpIfPossible();
         };
 
-        const handleMove = (e) => {
-            if (activeTouch === null) return;
-            handleTouch(e);
-        };
-
-        const handleEnd = () => {
+        const touchStart = updateDPad;
+        const touchMove = updateDPad;
+        const touchEnd = () => {
             this.touchLeft = this.touchRight = this.touchJump = false;
             activeTouch = null;
         };
 
-        document.addEventListener('touchstart', handleTouch, { passive: false });
-        document.addEventListener('touchmove', handleMove, { passive: false });
-        document.addEventListener('touchend', handleEnd);
-        document.addEventListener('touchcancel', handleEnd);
+        document.addEventListener('touchstart', touchStart, { passive: false });
+        document.addEventListener('touchmove', touchMove, { passive: false });
+        document.addEventListener('touchend', touchEnd);
+        document.addEventListener('touchcancel', touchEnd);
 
         // Store for cleanup
         this.mobileControls = {
             element: controls,
-            listeners: { handleTouch, handleMove, handleEnd }
+            cleanup: () => {
+                document.removeEventListener('touchstart', touchStart);
+                document.removeEventListener('touchmove', touchMove);
+                document.removeEventListener('touchend', touchEnd);
+                document.removeEventListener('touchcancel', touchEnd);
+            }
         };
     }
 
@@ -849,6 +829,19 @@ class MainScene extends Phaser.Scene {
         } catch (error) {
             console.error('Error creating local player:', error);
         }
+    }
+
+    shutdown() {
+        // Remove DOM element
+        const controls = document.getElementById('mobile-controls');
+        if (controls?.parentElement) {
+            controls.parentElement.removeChild(controls);
+        }
+
+        // Remove listeners
+        this.mobileControls?.cleanup?.();
+
+        console.log('Mobile controls fully cleaned up');
     }
 }
 

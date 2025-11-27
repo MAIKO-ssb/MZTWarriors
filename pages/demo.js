@@ -17,6 +17,25 @@ export default function Home() {
         <title>MZT Warriors</title>
         <meta name="description" content="The Manzanita Forest Demo" />
         <link rel="icon" href="/favicon.ico" />
+        {/* CRITICAL: This fixes zoom + bottom bar */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+
+        {/* Safe area + body reset */}
+        <style>{`
+          html, body, #__next {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            background: black;
+          }
+          #mobile-controls {
+            padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+          }
+        `}</style>
       </Head>
 
       <div>
