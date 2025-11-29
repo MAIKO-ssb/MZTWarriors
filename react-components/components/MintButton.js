@@ -7,20 +7,20 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
 import { 
-  mplCandyMachine, 
-  fetchCandyMachine, 
+  mplCandyMachine,
+  fetchCandyMachine,
   safeFetchCandyGuard,
-  mintV2 
+  mintV2
 } from '@metaplex-foundation/mpl-candy-machine';
 import { mplTokenMetadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
 import { 
-  publicKey, 
+  publicKey,
   generateSigner,
   some,
-  transactionBuilder 
+  transactionBuilder
 } from '@metaplex-foundation/umi';
-import { 
+import {
   setComputeUnitLimit, 
   setComputeUnitPrice,
   mplToolbox 
@@ -99,26 +99,23 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs,
         }));
-    
-      // THIS IS THE MAGIC LINE THAT MAKES PHANTOM HAPPY IN 2025
-      const { signature } = await tx.sendAndConfirm(umi, {
-        send: {
-          // This forces Umi to give Phantom a truly unsigned transaction
-          signAndSendTransaction: async (transaction) => {
-            // transaction here is already a real @solana/web3.js VersionedTransaction (unsigned)
-            return await wallet.sendTransaction(transaction, connection);
-          }
-        },
-        confirm: { commitment: 'confirmed' }
-      });
-    
-      console.log('MINTED → https://solscan.io/tx/' + signature);
-    
-      // Fetch image
-      const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-      const imageUrl = asset.metadata.image || null;
-      onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
-    
+
+        const { signature } = await tx.sendAndConfirm(umi, {
+          send: {
+            signAndSendTransaction: async (transaction) => {
+              // Phantom receives unsigned VersionedTransaction → adds guards → signs + sends
+              const rawSignature = await wallet.sendTransaction(transaction, connection);
+              return { signature: rawSignature };
+            }
+          },
+          confirm: { commitment: 'confirmed' } // confirmed is fine and faster
+        });
+      
+        console.log('MINTED → https://solscan.io/tx/' + signature);
+      
+        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+        const imageUrl = asset.metadata.image || null;
+        onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
     } catch (error) {
       console.error('Mint failed:', error);
       if (error?.logs?.some?.(log => log.includes('MintV2'))) {
@@ -131,6 +128,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     }
   }, [umi, wallet, connection, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
     
+    // MINT CODE WORKING HERE:
     // try {
     //   const tx = transactionBuilder()
     //     .add(
