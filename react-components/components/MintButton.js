@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { VersionedTransaction } from '@solana/web3.js';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -87,10 +86,10 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
-      // Build transaction with Umi
+      // Build the transaction the normal Umi way
       const tx = transactionBuilder()
-        .add(setComputeUnitLimit(umi, { units: 400_000 }))
-        .add(setComputeUnitPrice(umi, { microLamports: 50_000 }))
+        .add(setComputeUnitLimit(umi, { units: 600_000 }))
+        .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))
         .add(mintV2(umi, {
           candyMachine: candyMachine.publicKey,
           candyGuard: candyGuard?.publicKey,
@@ -100,34 +99,33 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs,
         }));
-  
-      // THIS IS THE ONLY LINE THAT WORKS 100% WITH PHANTOM TODAY
+    
+      // THIS IS THE MAGIC LINE THAT MAKES PHANTOM HAPPY IN 2025
       const { signature } = await tx.sendAndConfirm(umi, {
-        send: { 
-          // This forces Umi to use wallet-adapter's sendTransaction with signAndSendTransaction support
-          signAndSendTransaction: (transaction) => wallet.sendTransaction(transaction, connection)
+        send: {
+          // This forces Umi to give Phantom a truly unsigned transaction
+          signAndSendTransaction: async (transaction) => {
+            // transaction here is already a real @solana/web3.js VersionedTransaction (unsigned)
+            return await wallet.sendTransaction(transaction, connection);
+          }
         },
         confirm: { commitment: 'confirmed' }
       });
-  
+    
       console.log('MINTED → https://solscan.io/tx/' + signature);
-  
+    
       // Fetch image
       const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
       const imageUrl = asset.metadata.image || null;
-  
       onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
-  
+    
     } catch (error) {
       console.error('Mint failed:', error);
-  
-      // Sometimes mint succeeds but confirm fails
       if (error?.logs?.some?.(log => log.includes('MintV2'))) {
         onMintSuccess?.(nftMint.publicKey.toString());
-        return;
+      } else {
+        onMintError?.(error.message || 'Mint failed — try again');
       }
-  
-      onMintError?.(error.message || 'Mint failed — try again');
     } finally {
       setIsMinting(false);
     }
