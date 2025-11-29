@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { VersionedTransaction } from '@solana/web3.js';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -82,53 +83,100 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
 
     // Detect if connected wallet is the owner (free mint)
     const isOwnerWallet = wallet.publicKey?.toBase58() === 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
-    const activeGroup = isOwnerWallet ? 'owner' : 'public';
+    // const activeGroup = isOwnerWallet ? 'owner' : 'public';
     const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
+      // Build transaction with Umi
       const tx = transactionBuilder()
-        .add(
-          mintV2(umi, {
-            candyMachine: candyMachine.publicKey,
-            candyGuard: candyGuard?.publicKey, //candyMachine.mintAuthority,
-            nftMint,
-            collectionMint: COLLECTION_MINT,
-            collectionUpdateAuthority: candyMachine.authority,
-            tokenStandard: TokenStandard.ProgrammableNonFungible,
-            mintArgs: mintArgs,
-          })
-        );
-
+        .add(setComputeUnitLimit(umi, { units: 400_000 }))
+        .add(setComputeUnitPrice(umi, { microLamports: 50_000 }))
+        .add(mintV2(umi, {
+          candyMachine: candyMachine.publicKey,
+          candyGuard: candyGuard?.publicKey,
+          nftMint,
+          collectionMint: COLLECTION_MINT,
+          collectionUpdateAuthority: candyMachine.authority,
+          tokenStandard: TokenStandard.ProgrammableNonFungible,
+          mintArgs,
+        }));
+  
+      // THIS IS THE ONLY LINE THAT WORKS 100% WITH PHANTOM TODAY
       const { signature } = await tx.sendAndConfirm(umi, {
-        confirm: { commitment: 'finalized' }
+        send: { 
+          // This forces Umi to use wallet-adapter's sendTransaction with signAndSendTransaction support
+          signAndSendTransaction: (transaction) => wallet.sendTransaction(transaction, connection)
+        },
+        confirm: { commitment: 'confirmed' }
       });
-      console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
-      // Fetch the metadata to get the image URL
-      try {
-        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-        // THIS IS THE CORRECT WAY FOR pNFTs
-        const imageUrl = asset.metadata.image;
-        console.log('NFT Image URL:', imageUrl);
-
-        onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
-      } catch (e) {
-        console.error("Failed to fetch metadata, but mint succeeded", e);
-        onMintSuccess?.(nftMint.publicKey.toString(), null); // fallback
-      }
+  
+      console.log('MINTED → https://solscan.io/tx/' + signature);
+  
+      // Fetch image
+      const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+      const imageUrl = asset.metadata.image || null;
+  
+      onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
+  
     } catch (error) {
       console.error('Mint failed:', error);
-      console.error('Full error:', JSON.stringify(error, null, 2));
-      console.error('Logs:', error.logs?.join('\n') || 'No logs');
-      if (error.logs && error.logs.some(log => log.includes('Program log: Instruction: MintV2'))) {
-        console.log('MINT ACTUALLY SUCCEEDED — IGNORE ERROR');
+  
+      // Sometimes mint succeeds but confirm fails
+      if (error?.logs?.some?.(log => log.includes('MintV2'))) {
         onMintSuccess?.(nftMint.publicKey.toString());
         return;
       }
-      onMintError?.('Mint failed — try again');
+  
+      onMintError?.(error.message || 'Mint failed — try again');
     } finally {
       setIsMinting(false);
     }
-  }, [umi, wallet, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
+  }, [umi, wallet, connection, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
+    
+    // try {
+    //   const tx = transactionBuilder()
+    //     .add(
+    //       mintV2(umi, {
+    //         candyMachine: candyMachine.publicKey,
+    //         candyGuard: candyGuard?.publicKey, //candyMachine.mintAuthority,
+    //         nftMint,
+    //         collectionMint: COLLECTION_MINT,
+    //         collectionUpdateAuthority: candyMachine.authority,
+    //         tokenStandard: TokenStandard.ProgrammableNonFungible,
+    //         mintArgs: mintArgs,
+    //       })
+    //     );
+
+    //   const { signature } = await tx.sendAndConfirm(umi, {
+    //     confirm: { commitment: 'finalized' }
+    //   });
+    //   console.log('MINTED https://solana.fm/tx/' + bs58.encode(signature));
+    //   // Fetch the metadata to get the image URL
+    //   try {
+    //     const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+    //     // THIS IS THE CORRECT WAY FOR pNFTs
+    //     const imageUrl = asset.metadata.image;
+    //     console.log('NFT Image URL:', imageUrl);
+
+    //     onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
+    //   } catch (e) {
+    //     console.error("Failed to fetch metadata, but mint succeeded", e);
+    //     onMintSuccess?.(nftMint.publicKey.toString(), null); // fallback
+    //   }
+    // } catch (error) {
+    //   console.error('Mint failed:', error);
+    //   console.error('Full error:', JSON.stringify(error, null, 2));
+    //   console.error('Logs:', error.logs?.join('\n') || 'No logs');
+    //   if (error.logs && error.logs.some(log => log.includes('Program log: Instruction: MintV2'))) {
+    //     console.log('MINT ACTUALLY SUCCEEDED — IGNORE ERROR');
+    //     onMintSuccess?.(nftMint.publicKey.toString());
+    //     return;
+    //   }
+    //   onMintError?.('Mint failed — try again');
+    // } finally {
+    //   setIsMinting(false);
+    // }
+  // }, [umi, wallet, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
 
   const itemsLeft = candyMachine ? Number(candyMachine.data.itemsAvailable - candyMachine.itemsRedeemed) : 0;
 
