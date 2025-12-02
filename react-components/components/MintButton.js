@@ -103,9 +103,11 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
         const { signature } = await tx.sendAndConfirm(umi, {
           send: {
             signAndSendTransaction: async (transaction) => {
+              // Return the raw string — NOT { signature: ... }
               // Phantom receives unsigned VersionedTransaction → adds guards → signs + sends
-              const rawSignature = await wallet.sendTransaction(transaction, connection);
-              return { signature: rawSignature };
+              const sig = await wallet.sendTransaction(transaction, connection);
+              console.log('Phantom sent tx →', sig); // You will see this in console
+              return sig; // ← JUST THE STRING
             }
           },
           confirm: { commitment: 'confirmed' } // confirmed is fine and faster
