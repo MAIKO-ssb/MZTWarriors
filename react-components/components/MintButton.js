@@ -25,6 +25,7 @@ import {
   setComputeUnitPrice,
   mplToolbox 
 } from '@metaplex-foundation/mpl-toolbox';
+import { toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
 import bs58 from 'bs58';
 
 const CANDY_MACHINE_ID = publicKey('33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK');
@@ -100,34 +101,40 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           mintArgs,
         }));
 
-        const { signature } = await tx.sendAndConfirm(umi, {
-          send: {
-            signAndSendTransaction: async (transaction) => {
-              // Return the raw string — NOT { signature: ... }
-              // Phantom receives unsigned VersionedTransaction → adds guards → signs + sends
-              const sig = await wallet.sendTransaction(transaction, connection);
-              console.log('Phantom sent tx →', sig); // You will see this in console
-              return sig; // ← JUST THE STRING
-            }
-          },
-          confirm: { commitment: 'confirmed' } // confirmed is fine and faster
-        });
-      
+        // 2. Get the unsigned Umi tx with blockhash
+        const umiTx = await tx.buildWithLatestBlockhash(umi);
+
+        // 3. Convert to web3.js VersionedTransaction (unsigned)
+        const versionedTx = toWeb3JsTransaction(umiTx);
+
+        // 4. Send with wallet adapter (Phantom uses signAndSendTransaction)
+        const signature = await wallet.sendTransaction(versionedTx, connection, { skipPreflight: false, maxRetries: 3 });
+
         console.log('MINTED → https://solscan.io/tx/' + signature);
-      
+
+        // 5. Confirm with finalized (your preference)
+        const latestBlockhash = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({
+          signature,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        }, 'finalized');
+
+        // Fetch image
         const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
         const imageUrl = asset.metadata.image || null;
         onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
-    } catch (error) {
-      console.error('Mint failed:', error);
-      if (error?.logs?.some?.(log => log.includes('MintV2'))) {
-        onMintSuccess?.(nftMint.publicKey.toString());
-      } else {
-        onMintError?.(error.message || 'Mint failed — try again');
+        
+      } catch (error) {
+        console.error('Mint failed:', error);
+        if (error?.logs?.some?.(log => log.includes('MintV2'))) {
+          onMintSuccess?.(nftMint.publicKey.toString());
+        } else {
+          onMintError?.(error.message || 'Mint failed — try again');
+        }
+      } finally {
+        setIsMinting(false);
       }
-    } finally {
-      setIsMinting(false);
-    }
   }, [umi, wallet, connection, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
     
     // MINT CODE WORKING HERE:
