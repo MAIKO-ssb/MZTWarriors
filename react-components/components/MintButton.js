@@ -82,15 +82,12 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const nftMint = generateSigner(umi);
 
     // Detect if connected wallet is the owner (free mint)
-    const isOwnerWallet = wallet.publicKey?.toBase58() === 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
+    // const isOwnerWallet = wallet.publicKey?.toBase58() === 'FEYHjkQpvjkQuy8DuhwQNQBj9VtdThadkJBnB6T4iUGX';
     // const activeGroup = isOwnerWallet ? 'owner' : 'public';
-    const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
+    // const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
-      const nftMint = generateSigner(umi);
-    
-      // Detect which group to use
-      const isOwnerWallet = wallet.publicKey?.toBase58() === TREASURY.toBase58();
+      const isOwnerWallet = wallet.publicKey && wallet.publicKey.toString() === TREASURY.toString();
       const groupLabel = isOwnerWallet ? 'owner' : 'public';  // change 'owner' if your group has a different label
     
       const mintArgs = isOwnerWallet
