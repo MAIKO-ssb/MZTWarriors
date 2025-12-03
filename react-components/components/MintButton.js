@@ -87,8 +87,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
-      // Build the transaction the normal Umi way
-      const tx = transactionBuilder()
+      const txBuilder = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 600_000 }))
         .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))
         .add(mintV2(umi, {
@@ -100,41 +99,40 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs,
         }));
-
-        // 2. Get the unsigned Umi tx with blockhash
-        const umiTx = await tx.buildWithLatestBlockhash(umi);
-
-        // 3. Convert to web3.js VersionedTransaction (unsigned)
-        const versionedTx = toWeb3JsTransaction(umiTx);
-
-        // 4. Send with wallet adapter (Phantom uses signAndSendTransaction)
-        const signature = await wallet.sendTransaction(versionedTx, connection, { skipPreflight: false, maxRetries: 3 });
-
-        console.log('MINTED → https://solscan.io/tx/' + signature);
-
-        // 5. Confirm with finalized (your preference)
-        const latestBlockhash = await connection.getLatestBlockhash();
-        await connection.confirmTransaction({
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        }, 'finalized');
-
-        // Fetch image
-        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-        const imageUrl = asset.metadata.image || null;
-        onMintSuccess?.(nftMint.publicKey.toString(), imageUrl);
-        
-      } catch (error) {
-        console.error('Mint failed:', error);
-        if (error?.logs?.some?.(log => log.includes('MintV2'))) {
-          onMintSuccess?.(nftMint.publicKey.toString());
-        } else {
-          onMintError?.(error.message || 'Mint failed — try again');
-        }
-      } finally {
-        setIsMinting(false);
-      }
+    
+      // Build unsigned Umi transaction with fresh blockhash
+      const unsignedUmiTx = await txBuilder.buildWithLatestBlockhash(umi);
+    
+      // Convert to real unsigned web3.js VersionedTransaction
+      const versionedTx = toWeb3JsTransaction(unsignedUmiTx);
+    
+      console.log('Sending unsigned VersionedTransaction to Phantom...');
+    
+      // This triggers Phantom's signAndSendTransaction → NO RED WARNING
+      const signature = await wallet.sendTransaction(versionedTx, connection, {
+        skipPreflight: false,
+        maxRetries: 3
+      });
+    
+      console.log('MINTED → https://solscan.io/tx/' + signature);
+    
+      // Confirm with finalized (you were right)
+      await connection.confirmTransaction({
+        signature,
+        blockhash: unsignedUmiTx.message.recentBlockhash,
+        lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight
+      }, 'finalized');
+    
+      // Fetch image
+      const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+      onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
+    
+    } catch (error) {
+      console.error('Mint failed:', error);
+      onMintError?.(error.message || 'Transaction rejected by wallet');
+    } finally {
+      setIsMinting(false);
+    }
   }, [umi, wallet, connection, candyMachine, candyGuard, onMintStart, onMintSuccess, onMintError]);
     
     // MINT CODE WORKING HERE:
