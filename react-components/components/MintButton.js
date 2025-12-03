@@ -40,7 +40,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
   const [isMinting, setIsMinting] = useState(false);
 
   const umi = useMemo(() => {
-    if (!connection?.rpcEndpoint || !wallet?.publicKey) return null;
+    if (!connection?.rpcEndpoint) return null;
     return createUmi(connection.rpcEndpoint)
       .use(walletAdapterIdentity(wallet))
       .use(mplCandyMachine())
@@ -49,7 +49,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
   }, [connection?.rpcEndpoint, wallet]);
 
   useEffect(() => {
-    if (!umi) return;
+    if (!umi || !wallet.connected) return;
     (async () => {
       try {
         const cm = await fetchCandyMachine(umi, CANDY_MACHINE_ID);
@@ -61,7 +61,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
         console.error('Load failed:', e);
       }
     })();
-  }, [umi]);
+  }, [umi, wallet.connected]);
 
   const mint = useCallback(async () => {
     if (!umi || !wallet.connected || !candyMachine || !candyGuard) {
