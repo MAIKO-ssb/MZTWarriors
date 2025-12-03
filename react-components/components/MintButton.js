@@ -88,10 +88,10 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
 
     try {
       const isOwnerWallet = wallet.publicKey && wallet.publicKey.toString() === TREASURY.toString();
-      const groupLabel = isOwnerWallet ? 'owner' : 'public';  // change 'owner' if your group has a different label
+      const groupLabel = isOwnerWallet ? 'owner' : 'public'; // Group Guard
     
       const mintArgs = isOwnerWallet
-        ? {}  // free mint — no solPayment
+        ? {}  // Owner mints free
         : { solPayment: some({ destination: TREASURY }) };  // public pays
     
       const tx = transactionBuilder()
@@ -105,10 +105,9 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           collectionUpdateAuthority: candyMachine.authority,
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs,
-          group: some(groupLabel),  // THIS IS REQUIRED WHEN USING GROUPS
+          group: some(groupLabel),
         }));
-    
-      // This is the only working method in 2025 with Phantom + no red warning
+  
       const { signature } = await tx.sendAndConfirm(umi, {
         confirm: { commitment: 'finalized' },
         send: { skip: true }, // disables Umi signer → Phantom does signAndSendTransaction
@@ -116,17 +115,25 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     
       console.log('MINTED → https://solscan.io/tx/' + signature);
 
-      // Give the network 2 seconds to index the new mint
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    
-      try {
-        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-        onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
-      } catch (fetchError) {
-        // This is totally fine — just means indexing isn't ready yet
-        console.log('Mint succeeded but metadata not indexed yet — this is normal');
-        onMintSuccess?.(nftMint.publicKey.toString(), null);
-      }
+      // 1. IMMEDIATELY tell parent: mint succeeded (show success message + address)
+      onMintSuccess?.(nftMint.publicKey.toString(), null);
+
+      // 2. Then keep trying to fetch the newly minted image in the background until it works
+      (async () => {
+        for (let i = 0; i < 20; i++) {  // try for ~30 seconds
+          try {
+            const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+            if (asset.metadata.image) {
+              console.log('Image loaded!', asset.metadata.image);
+              onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image);
+              break;
+            }
+          } catch (e) {
+            // still indexing...
+          }
+          await new Promise(r => setTimeout(r, 1500));
+        }
+      })();
     
     } catch (error) {
       console.error('Mint failed:', error),
