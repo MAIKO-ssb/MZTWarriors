@@ -87,7 +87,16 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
-      // Build exactly like your old working version
+      const nftMint = generateSigner(umi);
+    
+      // Detect which group to use
+      const isOwnerWallet = wallet.publicKey?.toBase58() === TREASURY.toBase58();
+      const groupLabel = isOwnerWallet ? 'owner' : 'public';  // change 'owner' if your group has a different label
+    
+      const mintArgs = isOwnerWallet
+        ? {}  // free mint — no solPayment
+        : { solPayment: some({ destination: TREASURY }) };  // public pays
+    
       const tx = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 600_000 }))
         .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))
@@ -99,13 +108,13 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           collectionUpdateAuthority: candyMachine.authority,
           tokenStandard: TokenStandard.ProgrammableNonFungible,
           mintArgs,
+          group: some(groupLabel),  // THIS IS REQUIRED WHEN USING GROUPS
         }));
     
-      // THIS IS THE ONLY LINE THAT MATTERS
+      // This is the only working method in 2025 with Phantom + no red warning
       const { signature } = await tx.sendAndConfirm(umi, {
         confirm: { commitment: 'finalized' },
-        // This disables Umi’s internal signer completely
-        send: { skip: true }
+        send: { skip: true }, // disables Umi signer → Phantom does signAndSendTransaction
       });
     
       console.log('MINTED → https://solscan.io/tx/' + signature);
@@ -114,7 +123,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
     
     } catch (error) {
-      console.error('Mint failed:', error);
+      console.error('Mint failed:', error),
       onMintError?.(error.message || 'Mint failed');
     } finally {
       setIsMinting(false);
