@@ -25,7 +25,6 @@ import {
   setComputeUnitPrice,
   mplToolbox 
 } from '@metaplex-foundation/mpl-toolbox';
-import { toWeb3JsTransaction } from '@metaplex-foundation/umi-web3js-adapters';
 import bs58 from 'bs58';
 
 const CANDY_MACHINE_ID = publicKey('33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK');
@@ -100,36 +99,39 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           mintArgs,
         }));
     
-      // Build unsigned Umi transaction with fresh blockhash
-      const unsignedUmiTx = await txBuilder.buildWithLatestBlockhash(umi);
+      // Build the transaction
+      const tx = await txBuilder.build(umi);
+      
+      // Add latest blockhash manually
+      const { blockhash } = await connection.getLatestBlockhash();
+      tx.message.recentBlockhash = blockhash;
     
-      // Convert to real unsigned web3.js VersionedTransaction
-      const versionedTx = toWeb3JsTransaction(unsignedUmiTx);
+      // Convert Umi transaction to raw bytes (unsigned)
+      const serializedTx = tx.serialize();
     
-      console.log('Sending unsigned VersionedTransaction to Phantom...');
+      // Create real web3.js VersionedTransaction from raw bytes
+      const versionedTx = VersionedTransaction.deserialize(serializedTx);
+    
+      console.log('Sending REAL unsigned VersionedTransaction to Phantom...');
     
       // This triggers Phantom's signAndSendTransaction → NO RED WARNING
-      const signature = await wallet.sendTransaction(versionedTx, connection, {
-        skipPreflight: false,
-        maxRetries: 3
-      });
+      const signature = await wallet.sendTransaction(versionedTx, connection);
     
       console.log('MINTED → https://solscan.io/tx/' + signature);
     
-      // Confirm with finalized (you were right)
+      // Confirm with finalized
       await connection.confirmTransaction({
         signature,
-        blockhash: unsignedUmiTx.message.recentBlockhash,
+        blockhash,
         lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight
       }, 'finalized');
     
-      // Fetch image
       const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
       onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
     
     } catch (error) {
       console.error('Mint failed:', error);
-      onMintError?.(error.message || 'Transaction rejected by wallet');
+      onMintError?.(error.message || 'Mint failed — try again');
     } finally {
       setIsMinting(false);
     }
