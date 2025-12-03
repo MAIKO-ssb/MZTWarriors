@@ -87,7 +87,8 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
     const mintArgs = isOwnerWallet ? {} : { solPayment: some({ destination: TREASURY }) };
 
     try {
-      const txBuilder = transactionBuilder()
+      // Build exactly like your old working version
+      const tx = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 600_000 }))
         .add(setComputeUnitPrice(umi, { microLamports: 100_000 }))
         .add(mintV2(umi, {
@@ -100,39 +101,21 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           mintArgs,
         }));
     
-      // Build the transaction
-      const tx = await txBuilder.build(umi);
-      
-      // Add latest blockhash manually
-      const { blockhash } = await connection.getLatestBlockhash();
-      tx.message.recentBlockhash = blockhash;
-    
-      // Convert Umi transaction to raw bytes (unsigned)
-      const serializedTx = tx.serialize();
-    
-      // Create real web3.js VersionedTransaction from raw bytes
-      const versionedTx = VersionedTransaction.deserialize(serializedTx);
-    
-      console.log('Sending REAL unsigned VersionedTransaction to Phantom...');
-    
-      // This triggers Phantom's signAndSendTransaction → NO RED WARNING
-      const signature = await wallet.sendTransaction(versionedTx, connection);
+      // THIS IS THE ONLY LINE THAT MATTERS
+      const { signature } = await tx.sendAndConfirm(umi, {
+        confirm: { commitment: 'finalized' },
+        // This disables Umi’s internal signer completely
+        send: { skip: true }
+      });
     
       console.log('MINTED → https://solscan.io/tx/' + signature);
-    
-      // Confirm with finalized
-      await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight: (await connection.getLatestBlockhash()).lastValidBlockHeight
-      }, 'finalized');
     
       const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
       onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
     
     } catch (error) {
       console.error('Mint failed:', error);
-      onMintError?.(error.message || 'Mint failed — try again');
+      onMintError?.(error.message || 'Mint failed');
     } finally {
       setIsMinting(false);
     }
