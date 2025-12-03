@@ -120,12 +120,12 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
 
       // 2. Then keep trying to fetch the newly minted image in the background until it works
       (async () => {
-        for (let i = 0; i < 20; i++) {  // try for ~30 seconds
+        for (let i = 0; i < 30; i++) {  // try for ~30 seconds
           try {
             const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
             if (asset.metadata.image) {
               console.log('Image loaded!', asset.metadata.image);
-              onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image);
+              onMintSuccess?.(nftMint.publicKey.toString() + '-final', asset.metadata.image);
               break;
             }
           } catch (e) {
