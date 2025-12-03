@@ -167,7 +167,7 @@ export default function Intro() {
               <div className='u-animated -pulse' style={{ textAlign: 'center', marginBottom: '20px', border: '2px solid #aeffa2', padding:'1em 1.5em', borderRadius:'4px' }}>
                 <h3 style={{color: 'white', marginBottom:'12px'}}>Your New MZT Warrior!</h3>
                 <Image
-                  key={lastMintedNftAddress || mintedNftImageUri}  // Forces remount every mint 
+                  key={lastMintedNftAddress + (mintedNftImageUri || '')}  // Forcing Remount on mint
                   src={mintedNftImageUri}
                   alt="Newly Minted NFT"
                   width={420} // Adjust size as needed
