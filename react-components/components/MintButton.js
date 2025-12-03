@@ -6,6 +6,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+import { VersionedTransaction } from '@solana/web3.js';
 import { 
   mplCandyMachine,
   fetchCandyMachine,
