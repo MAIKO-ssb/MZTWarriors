@@ -115,9 +115,18 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       });
     
       console.log('MINTED → https://solscan.io/tx/' + signature);
+
+      // Give the network 2 seconds to index the new mint
+      await new Promise(resolve => setTimeout(resolve, 2000));
     
-      const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-      onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
+      try {
+        const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
+        onMintSuccess?.(nftMint.publicKey.toString(), asset.metadata.image || null);
+      } catch (fetchError) {
+        // This is totally fine — just means indexing isn't ready yet
+        console.log('Mint succeeded but metadata not indexed yet — this is normal');
+        onMintSuccess?.(nftMint.publicKey.toString(), null);
+      }
     
     } catch (error) {
       console.error('Mint failed:', error),
