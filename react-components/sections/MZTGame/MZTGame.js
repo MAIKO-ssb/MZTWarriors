@@ -344,7 +344,7 @@ createTouchControls() {
 
     // RIGHT ATTACK BUTTON
     const attackBtn = document.createElement('div');
-    attackBtn.innerHTML = 'B';
+    attackBtn.innerHTML = 'A';
     attackBtn.style.cssText = `
         position: absolute;
         right: 50px; bottom: 90px;
