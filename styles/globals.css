@@ -27,15 +27,13 @@ a {
   position:relative;
   z-index:222;
   min-height: 100vh;
-  background: linear-gradient(to bottom right, #14532d, #0d301b); /* from-green-800 to-green-950 */
+  background: black;
   color: #fff;
   font-family: 'Inter', sans-serif;
   padding: 1rem; /* p-4 */
   display: flex;
   align-items: center;
   justify-content: center;
-  /* background-image: url("/img/forest-bg-pattern2.png"); */
-  background: none; 
 }
 
 .lore-content-wrapper {

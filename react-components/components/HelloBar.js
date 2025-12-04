@@ -4,6 +4,9 @@ export default function HelloBar() {
   const barStyle = {
     position: 'relative',
     zIndex: '222',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#052e16', // bg-green-950
     color: '#ffffff', // text-white
     paddingTop: '1rem', // py-4
@@ -18,8 +21,8 @@ export default function HelloBar() {
 
   const containerStyle = {
     maxWidth: '80rem', // max-w-7xl
-    marginLeft: 'auto',
-    marginRight: 'auto',
+    marginLeft: '2em',
+    marginRight: '2em',
   };
 
   const mainHeadlineStyle = {
@@ -49,6 +52,7 @@ export default function HelloBar() {
 
   return (
     <div className='hello-bar' style={barStyle}>
+      <img src="/img/flaming-manzanita-warrior-icon.png" width="70" className="hidden md:block"/>
       <div style={containerStyle}>
         <p style={mainHeadlineStyle} className="main-headline">
           Adventurer, Welcome to the Tribe!
@@ -70,6 +74,7 @@ export default function HelloBar() {
           </span>
         </div>
       </div>
+      <img src="/img/flaming-manzanita-warrior-icon.png" width="70" className="hidden md:block scale-x-[-1]"/>
 
       {/* This block handles the responsive and hover styles that inline styles cannot */}
       <style>{`
