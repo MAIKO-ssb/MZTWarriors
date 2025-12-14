@@ -13,7 +13,6 @@ export default function Document() {
         <meta name="solana:dapp-name" content="Manzanita Tribe Warriors" />
         <meta name="solana:dapp-description" content="Indie Solana NFT mint for MZT Warriors. Candy Machine v3, 1111 pNFTs, 0.111 SOL ea." />
         <meta name="solana:dapp-icon" content="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
       </Head>
       <body>
         <Main />

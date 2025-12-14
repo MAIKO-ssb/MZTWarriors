@@ -1,7 +1,7 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true, // Or your preferred setting
+  reactStrictMode: false, // Or your preferred setting
   images: {
     domains: [
       'arweave.net',

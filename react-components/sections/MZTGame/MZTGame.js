@@ -13,28 +13,28 @@ class MainScene extends Phaser.Scene {
         if (!this.textures.exists('manzanita')) {
             this.load.atlas('manzanita', '/images/characters/manzanita.png', '/images/characters/manzanita.json');
         }
-        this.load.image('sky', '/images/backgrounds/mzt-bg-village.png');
+        this.load.image('sceneBg', '/images/backgrounds/bg-mzt-scene-village.png');
         this.load.image('teepee', '/images/items/mzt-fg-village-teepee.png');
         this.load.spritesheet('firepit', '/images/items/firepit.png', {
             frameWidth: 316,
             frameHeight: 463.3,
         });
-        this.load.image('enemy', '/images/enemies/enemy.png');
-        this.load.on('filecomplete', (key) => {
-            console.log(`Asset loaded: ${key}`);
-            if (key === 'manzanita') {
-                console.log('Manzanita atlas loaded successfully');
-            }
-        });
-        this.load.on('loaderror', (file) => {
-            console.error(`Error loading asset: ${file.key}. URL: ${file.url}`);
-            if (file.key === 'manzanita') {
-                console.error('Manzanita atlas failed to load. Animations will not work.');
-            }
-        });
-        this.load.once('complete', () => {
-            console.log('All assets loaded successfully');
-        });
+        // this.load.image('enemy', '/images/enemies/enemy.png');
+        // this.load.on('filecomplete', (key) => {
+        //     console.log(`Asset loaded: ${key}`);
+        //     if (key === 'manzanita') {
+        //         console.log('Manzanita atlas loaded successfully');
+        //     }
+        // });
+        // this.load.on('loaderror', (file) => {
+        //     console.error(`Error loading asset: ${file.key}. URL: ${file.url}`);
+        //     if (file.key === 'manzanita') {
+        //         console.error('Manzanita atlas failed to load. Animations will not work.');
+        //     }
+        // });
+        // this.load.once('complete', () => {
+        //     console.log('All assets loaded successfully');
+        // });
     }
 
     create() {
@@ -44,80 +44,94 @@ class MainScene extends Phaser.Scene {
         this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
                         window.matchMedia("(pointer: coarse)").matches;
 
-        // Set world bounds to fixed 1280x720
-        this.physics.world.setBounds(0, 0, 1280, 720);
-        console.log('World bounds set:', this.physics.world.bounds);
+        // Dynamic world size based on aspect ratio
+        const gameWidth = this.scale.gameSize.width;
+        const gameHeight = this.scale.gameSize.height;
+        const isPortrait = gameHeight > gameWidth;
+        // Mobile = taller → vertical world, zoomed in
+        // Desktop = wider → classic horizontal world
 
-        // Set up camera
-        this.cameras.main.setBounds(0, 0, 1280, 720);
-        if (this.isMobile) {
-            // Mobile: Smaller viewport for camera follow
-            this.cameras.main.setSize(800, 600); // Adjusted for mobile focus
-        } else {
-            // Desktop: Full world view by default
-            this.cameras.main.setSize(1280, 720);
+       // Use consistent world size on ALL devices
+        const worldWidth = 1280;
+        const worldHeight = 1000;
+
+        if (!this.isMobile && !isPortrait) {
+            // Desktop: expand width to fill browser, keep height fixed
+            
         }
-        this.cameras.main.setDeadzone(100, 100); // Smooth follow
-        console.log('Camera bounds:', this.cameras.main.getBounds());
-        console.log('Camera size:', this.cameras.main.width, this.cameras.main.height);
 
-        // Toggle camera follow on desktop (for testing)
-        this.isCameraFollowing = this.isMobile; // Mobile follows by default, desktop doesn't
-        this.input.keyboard.on('keydown-C', () => {
-            if (!this.isMobile) {
-                this.isCameraFollowing = !this.isCameraFollowing;
-                if (this.isCameraFollowing && this.player) {
-                    this.cameras.main.startFollow(this.player, false, 0.1, 0.1);
-                    this.cameras.main.setSize(800, 600);
-                } else {
-                    this.cameras.main.stopFollow();
-                    this.cameras.main.setSize(1280, 720);
-                    this.cameras.main.setPosition(0, 0);
-                }
-                console.log('Camera follow toggled:', this.isCameraFollowing);
-            }
+        // Set world
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+        
+
+        // Background — fit perfectly, no stretch
+        this.add.image(worldWidth / 2, worldHeight / 2, 'sceneBg')
+            .setDisplaySize(worldWidth, worldHeight)
+            .setDepth(-10);
+
+        // Ground
+        const groundY = worldHeight - 280;
+        this.ground = this.add.rectangle(worldWidth / 2, groundY, worldWidth, 160, 0x0000ff, 0);
+        this.physics.add.existing(this.ground, true);
+        this.platforms = this.physics.add.staticGroup();
+        this.platforms.add(this.ground);
+
+        // Foreground Scaling — use positions relative to new world size
+        const scaleX = worldWidth / 1280;
+        const scaleY = worldHeight / 1000;
+
+        // FIREPIT
+        this.firepit = this.physics.add.sprite(700 * scaleX, groundY - 160, 'firepit')
+            .setScale(0.42)
+            .setDepth(1);
+        this.firepit.body.setImmovable(true);
+        this.firepit.body.setAllowGravity(false);
+        this.firepit.body.setSize(315 * 0.3, 464 * 0.3);
+        this.firepit.body.offset.set(100, 280);
+        this.firepit.play('burning');
+
+        // daTEEPEE
+        this.teepee = this.add.image(175, groundY - 27, 'teepee')
+            .setOrigin(0.5, 1)
+            .setScale(1)
+            .setDepth(3);
+
+        // Camera
+        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        this.cameras.main.setBackgroundColor('#010701ff');
+
+        // Mobile gets extra zoom for that focused feel
+        if (this.isMobile || isPortrait) {
+            this.cameras.main.setZoom(1.4);
+        } else {
+            this.cameras.main.setZoom(1.5);
+        }
+
+        // Always follow player
+        this.cameras.main.startFollow(this.player || { x: worldWidth/2, y: groundY - 200 }, false, 0.09, 0.09);
+        if (this.isMobile || isPortrait) {
+            this.cameras.main.setDeadzone(20, 20);  // tighter feel on mobile
+        } else {
+            this.cameras.main.setDeadzone(120, 420);  // wider deadzone on desktop for cinematic panning
+        }
+
+        this.cameras.main.setLerp(0.15, 0.15);
+
+        if (this.isMobile) {
+            this.createTouchControls();
+        }
+
+        if (this.refs.isConnected.current && this.refs.myId.current && !this.refs.players.current[this.refs.myId.current]) {
+            this.createPlayer(this);
+        }
+
+        // Fullscreen on F
+        this.input.keyboard.on('keydown-F', () => {
+            if (this.scale.isFullscreen) this.scale.stopFullscreen();
+            else this.scale.startFullscreen();
         });
 
         console.log('Scene created, container:', this.refs.containerRef.current);
-
-        if (!this.textures.exists('manzanita')) {
-            console.error('Manzanita texture not loaded. Animations will not work.');
-        } else {
-            console.log('Manzanita texture loaded successfully');
-        }
-
-        // Background
-        const background = this.add.image(0, 0, 'sky').setDepth(0);
-        background.setOrigin(0, 0);
-        background.setDisplaySize(1280, 720); // Fixed world size
-        console.log('Background set at 0,0, size: 1280x720');
-
-        this.enemy = null;
-        this.attackHitbox = null;
-
-        // Platforms
-        this.platforms = this.physics.add.staticGroup();
-        let ground = this.add.rectangle(640, 655, 1280, 32, 0x000000, 0);
-        this.physics.add.existing(ground, true);
-        this.platforms.add(ground);
-        console.log('Ground created at y=655, width=1280');
-
-        // Firepit
-        this.firepit = this.physics.add.sprite(700, 555, 'firepit').setScale(0.42);
-        this.firepit.setDepth(1);
-        this.firepit.body.setImmovable(true);
-        this.firepit.body.setAllowGravity(false);
-        const bodyWidth = 315 * 0.3;
-        const bodyHeight = 464 * 0.3;
-        this.firepit.body.setSize(bodyWidth, bodyHeight);
-        this.firepit.body.offset.set(100, 280);
-        console.log('Firepit created at 700,555');
-
-        // Teepee
-        this.teepee = this.add.image(174, 695, 'teepee').setDepth(3);
-        this.teepee.setOrigin(0.5, 1);
-        this.teepee.setScale(1);
-        console.log('Teepee created at 174,695');
 
         // Animations
         this.anims.create({
@@ -295,180 +309,231 @@ class MainScene extends Phaser.Scene {
         };
     }
 
-createTouchControls() {
-    // Remove old controls
-    const old = document.getElementById('mobile-controls');
-    if (old) old.remove();
+    createTouchControls() {
+        // Remove old controls
+        const old = document.getElementById('mobile-controls');
+        if (old) old.remove();
 
-    const controls = document.createElement('div');
-    controls.id = 'mobile-controls';
-    controls.style.cssText = `
-        position: fixed;
-        left: 0; right: 0; bottom: 0;
-        height: 280px;
-        padding-bottom: max(90px, env(safe-area-inset-bottom));
-        pointer-events: none;
-        z-index: 9999;
-        user-select: none;
-        touch-action: none;
-        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
-        font-family: -apple-system, sans-serif;
-    `;
+        const controls = document.createElement('div');
+        controls.id = 'mobile-controls';
+        controls.style.cssText = `
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            height: 28%;
+            padding-bottom: max(90px, env(safe-area-inset-bottom));
+            pointer-events: none;
+            z-index: 9999;
+            user-select: none;
+            touch-action: none;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+            font-family: -apple-system, sans-serif;
+            display: ${this.isMobile ? 'block' : 'none'};
+        `;
 
-    // LEFT JOYSTICK BASE + KNOB
-    const joystickBase = document.createElement('div');
-    joystickBase.style.cssText = `
-        position: absolute;
-        left: 40px; bottom: 80px;
-        width: 140px; height: 140px;
-        background: rgba(255, 255, 255, 0.15);
-        border: 6px solid rgba(100, 180, 255, 0.6);
-        border-radius: 50%;
-        pointer-events: auto;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 0 40px rgba(100, 180, 255, 0.3);
-    `;
+        // LEFT JOYSTICK BASE + KNOB
+        const joystickBase = document.createElement('div');
+        joystickBase.style.cssText = `
+            position: absolute;
+            left: 20px; bottom: 25px;
+            width: 140px; height: 140px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 6px solid rgba(35, 68, 34, 0.6);
+            border-radius: 50%;
+            pointer-events: auto;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 0 40px rgba(100, 255, 152, 0.3);
+        `;
 
-    const knob = document.createElement('div');
-    knob.style.cssText = `
-        position: absolute;
-        width: 60px; height: 60px;
-        background: radial-gradient(circle at 30% 30%, #ffffff, #88ccff);
-        border-radius: 50%;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.7), inset 0 -4px 12px rgba(0,0,0,0.4), 0 0 20px rgba(100, 200, 255, 0.6);
-        transition: transform 0.08s ease-out;
-    `;
-    joystickBase.appendChild(knob);
+        const knob = document.createElement('div');
+        knob.style.cssText = `
+            position: absolute;
+            width: 60px; height: 60px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #88ffa6ff);
+            border-radius: 50%;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7), inset 0 -4px 12px rgba(0,0,0,0.4), 0 0 20px rgba(100, 255, 221, 0.6);
+            transition: transform 0.08s ease-out;
+        `;
+        joystickBase.appendChild(knob);
 
-    // RIGHT ATTACK BUTTON
-    const attackBtn = document.createElement('div');
-    attackBtn.innerHTML = 'A';
-    attackBtn.style.cssText = `
-        position: absolute;
-        right: 50px; bottom: 90px;
-        width: 110px; height: 110px;
-        background: rgba(220, 40, 60, 0.9);
-        border: 8px solid rgba(255, 80, 100, 0.7);
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 52px; color: white; font-weight: 900;
-        text-shadow: 0 4px 12px black;
-        pointer-events: auto;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.7), inset 0 -8px 20px rgba(0,0,0,0.4), 0 0 30px rgba(255, 100, 120, 0.5);
-        transition: all 0.12s ease;
-    `;
+        // RIGHT ATTACK BUTTON
+        const attackBtn = document.createElement('div');
+        attackBtn.innerHTML = 'A';
+        attackBtn.style.cssText = `
+            position: absolute;
+            right: 30px; bottom: 40px;
+            width: 110px; height: 110px;
+            background: rgba(220, 40, 60, 0.9);
+            border: 8px solid rgba(255, 80, 100, 0.7);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 52px; color: white; font-weight: 900;
+            text-shadow: 0 4px 12px black;
+            pointer-events: auto;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7), inset 0 -8px 20px rgba(0,0,0,0.4), 0 0 30px rgba(255, 100, 120, 0.5);
+            transition: all 0.12s ease;
+        `;
 
-    controls.appendChild(joystickBase);
-    controls.appendChild(attackBtn);
-    document.body.appendChild(controls);
+        controls.appendChild(joystickBase);
+        controls.appendChild(attackBtn);
+        document.body.appendChild(controls);
 
-    // === STATE ===
-    this.touchLeft = this.touchRight = false;
-    this.mobileJumpPressed = false;   // new flag
-    let activeTouchId = null;
-    const maxDist = 40;
-    const deadzone = 25;
-
-    const resetKnob = () => {
-        knob.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.4, 1)';
-        knob.style.transform = 'translate(-50%, -50%)';
-        setTimeout(() => knob.style.transition = 'transform 0.08s ease-out', 200);
-    };
-
-    const updateKnob = (dx, dy) => {
-        const dist = Math.min(maxDist, Math.hypot(dx, dy));
-        const angle = Math.atan2(dy, dx);
-        const x = Math.cos(angle) * dist;
-        const y = Math.sin(angle) * dist;
-        knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-    };
-
-    const moveHandler = (e) => {
-        e.preventDefault();
-        if (activeTouchId === null) return;
-
-        const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
-        if (!touch) return;
-
-        const rect = joystickBase.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        let dx = touch.clientX - cx;
-        let dy = touch.clientY - cy;
-
-        const dist = Math.hypot(dx, dy);
-        if (dist > 70) {
-            dx = (dx / dist) * 70;
-            dy = (dy / dist) * 70;
-        }
-
-        updateKnob(dx, dy);
-
-        // Horizontal movement
-        this.touchLeft  = dx < -deadzone;
-        this.touchRight = dx > deadzone;
-
-        // Jump = strong upward pull
-        const wantsJump = dy < -deadzone * 1.4;
-        if (wantsJump && !this.mobileJumpPressed) {
-            this.mobileJumpPressed = true;
-            this.triggerJumpIfPossible();  // ← this is the key line
-        }
-        if (!wantsJump) {
-            this.mobileJumpPressed = false;
-        }
-    };
-
-    const startHandler = (e) => {
-        if (activeTouchId !== null) return;
-        const touch = e.changedTouches[0];
-        const rect = joystickBase.getBoundingClientRect();
-        const dx = touch.clientX - (rect.left + rect.width / 2);
-        const dy = touch.clientY - (rect.top + rect.height / 2);
-
-        if (Math.hypot(dx, dy) < 80) {
-            e.preventDefault();
-            activeTouchId = touch.identifier;
-            moveHandler(e);
-        }
-    };
-
-    const endHandler = () => {
-        if (activeTouchId === null) return;
-        activeTouchId = null;
+        // === STATE ===
         this.touchLeft = this.touchRight = false;
-        this.mobileJumpPressed = false;
-        resetKnob();
-    };
+        this.mobileJumpPressed = false;   // new flag
+        let activeTouchId = null;
+        const maxDist = 40;
+        const deadzone = 25;
 
-    joystickBase.addEventListener('touchstart', startHandler, { passive: false });
-    joystickBase.addEventListener('touchmove', moveHandler, { passive: false });
-    joystickBase.addEventListener('touchend', endHandler);
-    joystickBase.addEventListener('touchcancel', endHandler);
+        const resetKnob = () => {
+            knob.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.4, 1)';
+            knob.style.transform = 'translate(-50%, -50%)';
+            setTimeout(() => knob.style.transition = 'transform 0.08s ease-out', 200);
+        };
 
-    attackBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        attackBtn.style.transform = 'scale(0.88)';
-        this.onAttackTouch();
-    }, { passive: false });
+        const updateKnob = (dx, dy) => {
+            const dist = Math.min(maxDist, Math.hypot(dx, dy));
+            const angle = Math.atan2(dy, dx);
+            const x = Math.cos(angle) * dist;
+            const y = Math.sin(angle) * dist;
+            knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        };
 
-    attackBtn.addEventListener('touchend', () => {
-        attackBtn.style.transform = 'scale(1)';
-    });
+        const moveHandler = (e) => {
+            e.preventDefault();
+            if (activeTouchId === null) return;
 
-    this.mobileControls = {
-        cleanup: () => {
-            joystickBase.removeEventListener('touchstart', startHandler);
-            joystickBase.removeEventListener('touchmove', moveHandler);
-            joystickBase.removeEventListener('touchend', endHandler);
-            joystickBase.removeEventListener('touchcancel', endHandler);
-            controls.remove();
+            const touch = Array.from(e.touches).find(t => t.identifier === activeTouchId);
+            if (!touch) return;
+
+            const rect = joystickBase.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            let dx = touch.clientX - cx;
+            let dy = touch.clientY - cy;
+
+            const dist = Math.hypot(dx, dy);
+            if (dist > 70) {
+                dx = (dx / dist) * 70;
+                dy = (dy / dist) * 70;
+            }
+
+            updateKnob(dx, dy);
+
+            // Horizontal movement
+            this.touchLeft  = dx < -deadzone;
+            this.touchRight = dx > deadzone;
+
+            // Jump = strong upward pull
+            const wantsJump = dy < -deadzone * 1.4;
+            if (wantsJump && !this.mobileJumpPressed) {
+                this.mobileJumpPressed = true;
+                this.triggerJumpIfPossible();  // ← this is the key line
+            }
+            if (!wantsJump) {
+                this.mobileJumpPressed = false;
+            }
+        };
+
+        const startHandler = (e) => {
+            if (activeTouchId !== null) return;
+            const touch = e.changedTouches[0];
+            const rect = joystickBase.getBoundingClientRect();
+            const dx = touch.clientX - (rect.left + rect.width / 2);
+            const dy = touch.clientY - (rect.top + rect.height / 2);
+
+            if (Math.hypot(dx, dy) < 80) {
+                e.preventDefault();
+                activeTouchId = touch.identifier;
+                moveHandler(e);
+            }
+        };
+
+        const endHandler = () => {
+            if (activeTouchId === null) return;
+            activeTouchId = null;
+            this.touchLeft = this.touchRight = false;
+            this.mobileJumpPressed = false;
+            resetKnob();
+        };
+
+        joystickBase.addEventListener('touchstart', startHandler, { passive: false });
+        joystickBase.addEventListener('touchmove', moveHandler, { passive: false });
+        joystickBase.addEventListener('touchend', endHandler);
+        joystickBase.addEventListener('touchcancel', endHandler);
+
+        attackBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            attackBtn.style.transform = 'scale(0.88)';
+            this.onAttackTouch();
+        }, { passive: false });
+
+        attackBtn.addEventListener('touchend', () => {
+            attackBtn.style.transform = 'scale(1)';
+        });
+
+        this.mobileControls = {
+            cleanup: () => {
+                joystickBase.removeEventListener('touchstart', startHandler);
+                joystickBase.removeEventListener('touchmove', moveHandler);
+                joystickBase.removeEventListener('touchend', endHandler);
+                joystickBase.removeEventListener('touchcancel', endHandler);
+                controls.remove();
+            }
+        };
+    }
+    
+    handleResize(gameSize) {
+        const width = gameSize.width;
+        const height = gameSize.height;
+        const isPortrait = height > width;
+
+        let worldWidth, worldHeight;
+
+        if (isPortrait || this.isMobile) {
+            worldWidth = 900;
+            worldHeight = 1200;
+        } else {
+            worldWidth = 1280;
+            worldHeight = 720;
         }
-    };
-}
+
+        this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+
+        // Reposition background
+        this.bg.setPosition(worldWidth / 2, worldHeight / 2);
+        this.bg.setDisplaySize(worldWidth, worldHeight);
+
+        // Reposition ground
+        const groundY = worldHeight - 80;
+        this.ground.setPosition(worldWidth / 2, groundY);
+
+        // Reposition foreground
+        const scaleX = worldWidth / 1280;
+        const scaleY = worldHeight / 720;
+
+        this.firepit.setPosition(700 * scaleX, 555 * scaleY);
+        this.firepit.setScale(0.42 * scaleX);
+
+        this.teepee.setPosition(172 * scaleX, 695 * scaleY);
+        this.teepee.setScale(1 * scaleX);
+
+        // Camera
+        this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+        if (this.isMobile || isPortrait) {
+            this.cameras.main.setZoom(1.4);
+        } else {
+            this.cameras.main.setZoom(1.0);
+        }
+
+        // Controls
+        const controls = document.getElementById('mobile-controls');
+        if (controls) {
+            controls.style.display = this.isMobile ? 'block' : 'none';
+        }
+    }
 
     triggerJumpIfPossible() {
         if (this.player && this.jumpCount < this.maxJumps && !this.isAttacking) {
@@ -793,16 +858,22 @@ createTouchControls() {
         }
 
         try {
-            scene.player = this.createRemotePlayer(scene, 100, 50);
+            // Get world dimensions from the scene (they exist now)
+            const worldWidth = scene.physics.world.bounds.width;
+            const worldHeight = scene.physics.world.bounds.height;
+            const groundY = worldHeight - 80;  // same as in create()
+            const spawnY = groundY - 800;       // safe above ground
+            const spawnX = Phaser.Math.Between(300, worldWidth);
+
+            scene.player = this.createRemotePlayer(scene, spawnX, spawnY);
             scene.player.body.setAllowGravity(true);
             scene.player.body.setDragX(3000);
             this.refs.players.current[this.refs.myId.current] = scene.player;
 
-            // Start camera follow on mobile
-            if (this.isMobile) {
-                scene.cameras.main.startFollow(scene.player, false, 0.1, 0.1);
-                console.log('Camera following player on mobile');
-            }
+            // Start camera follow
+            scene.cameras.main.startFollow(scene.player, false, 0.1, 0.1);
+            console.log('Camera following player');
+
 
             console.log('Local player created at 100,50:', this.refs.myId.current);
 
@@ -855,7 +926,11 @@ createTouchControls() {
                 }
             });
 
-            this.refs.socket.current.emit('newPlayer', { id: this.refs.myId.current, x: 100, y: 50 });
+            this.refs.socket.current.emit('newPlayer', { 
+                id: this.refs.myId.current, 
+                x: worldWidth / 2, 
+                y: spawnY 
+            });
 
         } catch (error) {
             console.error('Error creating local player:', error);
@@ -947,8 +1022,10 @@ const PhaserGame = () => {
         // });
 
         const SOCKET_URL = process.env.NODE_ENV === 'development'
-            ? 'https://mztwarriors-backend-production.up.railway.app'
-            : 'https://mztwarriors-backend-production.up.railway.app';
+            ? 'http://localhost:3001'
+            : 'https://mztwarriors-backend.onrender.com';
+
+        console.log('Connecting to socket:', SOCKET_URL); // ← ADD THIS LINE FOR DEBUG
 
         socket.current = io(SOCKET_URL, {
             transports: ['websocket'],
@@ -1130,29 +1207,25 @@ const PhaserGame = () => {
 
         const config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 600,
             parent: containerRef.current,
+            backgroundColor: '#000000',
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: '100%',
+                height: '100%',
             },
-            callbacks: {
-                postBoot: (game) => {
-                    if (isMobile) {
-                        // lockOrientation();
-                        requestFullscreen();
-                    }
-                    console.log('Canvas size:', game.scale.width, game.scale.height);
-                    console.log('Display size:', game.scale.displaySize.width, game.scale.displaySize.height);
-                }
+            render: {
+                pixelArt: false,
+                antialias: true,
+                roundPixels: false,
             },
             physics: {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 1200 },
                     debug: false,
-                    tileBias: 32,
+                    // tileBias: 32,
                 },
             },
             scene: new MainScene({}, {
