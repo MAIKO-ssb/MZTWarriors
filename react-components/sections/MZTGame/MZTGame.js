@@ -44,6 +44,9 @@ class MainScene extends Phaser.Scene {
         this.isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
                         window.matchMedia("(pointer: coarse)").matches;
 
+        // Initialize chat bubble tracking
+        this.activeChatBubbles = {};
+
         // Dynamic world size based on aspect ratio
         const gameWidth = this.scale.gameSize.width;
         const gameHeight = this.scale.gameSize.height;
@@ -55,10 +58,9 @@ class MainScene extends Phaser.Scene {
         const worldWidth = 1280;
         const worldHeight = 1000;
 
-        if (!this.isMobile && !isPortrait) {
-            // Desktop: expand width to fill browser, keep height fixed
-            
-        }
+        // if (!this.isMobile && !isPortrait) {
+        //     // Desktop: expand width to fill browser, keep height fixed
+        // }
 
         // Set world
         this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
@@ -90,11 +92,19 @@ class MainScene extends Phaser.Scene {
         this.firepit.body.offset.set(100, 280);
         this.firepit.play('burning');
 
-        // daTEEPEE
+        // TEEPEE
         this.teepee = this.add.image(175, groundY - 27, 'teepee')
             .setOrigin(0.5, 1)
             .setScale(1)
-            .setDepth(3);
+            .setDepth(10);
+        this.teepeeInsidePlat = this.add.rectangle(100, groundY - 165, 60, 180, 0x0000ff, 0);
+        this.teepeeTopPlat = this.add.rectangle(170, groundY - 420, 30, 60, 0x000fff, 0)
+        this.teepeeDoorWallPlat = this.add.rectangle(200, groundY - 320, 20, 150, 0x000fff, 0)
+        this.teepeeDoorCeilPlat = this.add.rectangle(235, groundY - 280, 50, 100, 0x000fff, 0)
+        this.platforms.add(this.teepeeInsidePlat);
+        this.platforms.add(this.teepeeTopPlat);
+        this.platforms.add(this.teepeeDoorWallPlat);
+        this.platforms.add(this.teepeeDoorCeilPlat);
 
         // Camera
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -124,6 +134,9 @@ class MainScene extends Phaser.Scene {
         if (this.refs.isConnected.current && this.refs.myId.current && !this.refs.players.current[this.refs.myId.current]) {
             this.createPlayer(this);
         }
+
+        // Track last flip
+        this.lastFlipX = null;
 
         // Fullscreen on F
         this.input.keyboard.on('keydown-F', () => {
@@ -277,7 +290,7 @@ class MainScene extends Phaser.Scene {
             const popupText = this.add.text(x, y, text, {
                 fontSize: '16px',
                 fill: color,
-                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                // backgroundColor: 'rgba(0, 0, 0, 0.85)',
                 padding: { x: 10, y: 5 },
                 align: 'center',
             }).setOrigin(0.5).setDepth(4);
@@ -571,7 +584,7 @@ class MainScene extends Phaser.Scene {
     onAttackTouch() {
         if (!this.isAttacking && this.player) {
             this.isAttacking = true;
-            this.player.body.setDragX(500);
+            // this.player.body.setDragX(500);
             this.player.removeAllListeners('animationcomplete');
             this.player.baseX = this.player.x;
 
@@ -652,24 +665,32 @@ class MainScene extends Phaser.Scene {
             if (!this.isAttacking) {
                 if (isLeftPressed) {
                     this.player.setVelocityX(-speed);
-                    this.player.flipX = true;
-                    moving = true;
+                    if (!this.player.flipX) {
+                        this.player.flipX = true;
+                        this.updateBodyOffset(this.player);
+                    }
                     this.facingDirection = 'left';
+                    moving = true;
                 } else if (isRightPressed) {
                     this.player.setVelocityX(speed);
-                    this.player.flipX = false;
-                    moving = true;
+                    if (this.player.flipX) {
+                        this.player.flipX = false;
+                        this.updateBodyOffset(this.player);
+                    }
                     this.facingDirection = 'right';
+                    moving = true;
                 } else {
                     this.player.setVelocityX(0);
                     // moving = false;
                 }
 
-                if (this.player.flipX) {
-                    this.player.body.setOffset(47, 10);
-                } else {
-                    this.player.body.setOffset(28, 10);
-                }
+                // this.updateBodyOffset(this.player);
+                // if (this.player.flipX) {
+                //     this.player.body.setOffset(45, 10);
+                // }
+                // else {
+                //     this.player.body.setOffset(40, 10);
+                // }
 
                 if (!this.isAttacking && this.jumpCount < this.maxJumps) {
                     if (
@@ -733,7 +754,7 @@ class MainScene extends Phaser.Scene {
             if (!this.isAttacking && (Phaser.Input.Keyboard.JustDown(this.attackKey) ||
                                       Phaser.Input.Keyboard.JustDown(this.WASD.attackKey))) {
                 this.isAttacking = true;
-                this.player.body.setDragX(500);
+                // this.player.body.setDragX(500);
                 this.player.removeAllListeners('animationcomplete');
                 this.player.baseX = this.player.x;
 
@@ -855,8 +876,9 @@ class MainScene extends Phaser.Scene {
         player.body.setAllowGravity(false);
         player.setCollideWorldBounds(true);
         scene.physics.add.collider(player, scene.platforms, null, null, scene);
-        player.body.setSize(55, 55);
-        player.body.setOffset(25, 10);
+        player.body.setSize(40, 55);
+        this.updateBodyOffset(player);
+        // player.body.setOffset(40, 10);
         player.body.debugShowBody = false;
         player.isAttacking = false;
         player.lastIsAirborne = false;
@@ -885,6 +907,7 @@ class MainScene extends Phaser.Scene {
             const spawnX = Phaser.Math.Between(300, worldWidth);
 
             scene.player = this.createRemotePlayer(scene, spawnX, spawnY);
+            scene.player.setDepth(3);
             scene.player.body.setAllowGravity(true);
             scene.player.body.setDragX(3000);
             this.refs.players.current[this.refs.myId.current] = scene.player;
@@ -915,7 +938,8 @@ class MainScene extends Phaser.Scene {
                 if (animation.key === 'attack') {
                     const offset = scene.attackOffsets[frame.textureFrame] || 0;
                     const dir = scene.player.flipX ? -1 : 1;
-                    scene.player.x = scene.player.baseX + offset * dir;
+                    // scene.player.x = scene.player.baseX + offset * dir;
+                    // scene.player.x = scene.player.baseX;
                     const hitboxOffsetX = 30;
                     scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
                     scene.attackHitbox.y = scene.player.y + 15;
@@ -955,6 +979,21 @@ class MainScene extends Phaser.Scene {
             console.error('Error creating local player:', error);
         }
     }
+
+    updateBodyOffset(player) {
+        const offsetX = 40;
+        const offsetY = 10;
+
+        if (player.flipX) {
+            player.body.setOffset(
+            player.displayWidth - player.body.width - offsetX,
+            offsetY
+            );
+        } else {
+            player.body.setOffset(offsetX, offsetY);
+        }
+    }
+
 
     shutdown() {
         this.mobileControls?.cleanup?.();
@@ -1044,7 +1083,7 @@ const PhaserGame = () => {
             ? 'http://localhost:3001'
             : 'https://mztwarriors-backend.onrender.com';
 
-        console.log('Connecting to socket:', SOCKET_URL); // ← ADD THIS LINE FOR DEBUG
+        console.log('Connecting to socket:', SOCKET_URL);
 
         socket.current = io(SOCKET_URL, {
             transports: ['websocket'],
@@ -1127,6 +1166,7 @@ const PhaserGame = () => {
                     existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
                     existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
                     existingPlayer.flipX = (data.direction === 'left');
+                    scene.updateBodyOffset(existingPlayer);
                     existingPlayer.lastIsAirborne = data.isAirborne ?? existingPlayer.lastIsAirborne;
                     existingPlayer.lastIsMoving = data.isMoving ?? existingPlayer.lastIsMoving;
                     if (!existingPlayer.isAttacking) {
@@ -1140,12 +1180,14 @@ const PhaserGame = () => {
 
         socket.current.on('playerJumped', (data) => {
             if (!players.current[data.id]) return;
+            const scene = sceneRef.current;
 
             const player = players.current[data.id];
             // Update position and direction (same as movement)
             player.targetX = data.position?.x ?? player.targetX;
             player.targetY = data.position?.y ?? player.targetY;
             player.flipX = (data.direction === 'left');
+            scene.updateBodyOffset(player);
 
             // Always play jump animation for visual feedback
             if (sceneRef.current && sceneRef.current.anims.exists('jump')) {
@@ -1163,10 +1205,12 @@ const PhaserGame = () => {
 
         socket.current.on('playerAttacked', (data) => {
             if (players.current[data.id]) {
+                const scene = sceneRef.current;
                 const existingPlayer = players.current[data.id];
                 existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
                 existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
                 existingPlayer.flipX = (data.direction === 'left');
+                scene.updateBodyOffset(existingPlayer);
                 existingPlayer.isAttacking = true;
                 existingPlayer.anims.play('attack', true);
                 existingPlayer.once('animationcomplete', () => {
@@ -1196,50 +1240,80 @@ const PhaserGame = () => {
             }
         });
 
+        // Track active chat bubbles per player
+        // this.activeChatBubbles = this.activeChatBubbles || {};
         socket.current.on('chatMessageReceived', (data) => {
             console.log('Received message via socket:', data, 'from player', data.id);
-            if (sceneRef.current) {
-                const scene = sceneRef.current;
-                let player = players.current[data.id];
-                if (!player) {
-                    console.log('Player not found for message:', data.message);
-                    return;
-                }
-
-                const fontSize = scene.isMobile ? '11px' : '16px';
-
-                // Create wrapped chat text
-                const chatText = scene.add.text(player.x, player.y - 50, data.message, {
-                    fontSize: fontSize,
-                    fill: '#ffff00',
-                    backgroundColor: '#000000',
-                    padding: { x: 12, y: 8 },
-                    align: 'center',
-                    wordWrap: { width: 200, useAdvancedWrap: true }
-                })
-                .setOrigin(0.5)
-                .setDepth(10);
-                
-                // Text Follow player
-                const textUpdate = scene.time.addEvent({
-                    delay: 16,
-                    callback: () => {
-                        chatText.setPosition(player.x, player.y - 50);
-                    },
-                    loop: true,
-                });
-
-                // Auto-remove after 3 seconds
-                scene.time.addEvent({
-                    delay: 6000,
-                    callback: () => {
-                        chatText.destroy();
-                        textUpdate.remove(false);
-                    },
-                });
-            } else {
+            if (!sceneRef.current) {
                 console.warn('Scene not ready for chatMessageReceived event');
+                return;
             }
+
+            const scene = sceneRef.current;
+            let player = players.current[data.id];
+            if (!player) {
+                console.log('Player not found for message:', data.message);
+                return;
+            }
+
+            const playerId = data.id;
+
+            // Destroy previous chat bubble for this player (if exists)
+            if (scene.activeChatBubbles[playerId]) {
+                const old = scene.activeChatBubbles[playerId];
+                old.text.destroy();
+                if (old.updateEvent) old.updateEvent.remove(false);
+                if (old.timer) old.timer.remove(false);
+                delete scene.activeChatBubbles[playerId];
+            }
+            
+            // Create Chat Message text
+            const fontSize = scene.isMobile ? '12px' : '16px';
+
+            const chatText = scene.add.text(player.x, player.y - 50, data.message, {
+                fontSize: fontSize,
+                fill: '#ffff00',
+                padding: { x: 12, y: 8 },
+                align: 'center',
+                wordWrap: { width: 200, useAdvancedWrap: true },
+                stroke: '#000000',
+                strokeThickness: 6,
+                roundPixels: true
+            })
+            .setOrigin(0.5)
+            .setDepth(10);
+            
+            // Text Follow player
+            const textUpdate = scene.time.addEvent({
+                delay: 16,
+                callback: () => {
+                    chatText.setPosition(player.x, player.y - 50);
+                },
+                loop: true,
+            });
+
+            // Auto-remove after 6 seconds
+            // scene.time.addEvent({
+            //     delay: 6000,
+            //     callback: () => {
+            //         chatText.destroy();
+            //         textUpdate.remove(false);
+            //     },
+            // });
+
+            // Auto-remove after 6 seconds
+            const removalTimer = scene.time.delayedCall(6000, () => {
+                chatText.destroy();
+                textUpdate.remove(false);
+                delete scene.activeChatBubbles[playerId];
+            });
+
+            // Store references so we can clean up on next message
+            scene.activeChatBubbles[playerId] = {
+                text: chatText,
+                updateEvent: textUpdate,
+                timer: removalTimer
+            };
         });
 
         const config = {
@@ -1385,7 +1459,7 @@ const PhaserGame = () => {
                             isChatFocused.current = false;
                             if (gameRef.current) gameRef.current.input.keyboard.enabled = true;
                         }}
-                        placeholder={isChatFocused.current ? 'ENTER to send, ESC to cancel' : 'Press ENTER to chat...'}
+                        placeholder={isChatFocused.current ? 'ENTER to send, ESC to cancel' : 'ENTER to chat & send'}
                         onKeyDown={(e) => handleChatKeyDown(e)}
                         style={{
                             backgroundColor: isChatFocused.current ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.42)',
