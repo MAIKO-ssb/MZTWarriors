@@ -490,45 +490,57 @@ class MainScene extends Phaser.Scene {
         const height = gameSize.height;
         const isPortrait = height > width;
 
-        let worldWidth, worldHeight;
+        // World stays fixed — never changes
+        const worldWidth = 1280;
+        const worldHeight = 1000;
 
-        if (isPortrait || this.isMobile) {
-            worldWidth = 900;
-            worldHeight = 1200;
-        } else {
-            worldWidth = 1280;
-            worldHeight = 720;
-        }
-
+        // Update world bounds (safe, even if same)
         this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
-        // Reposition background
-        this.bg.setPosition(worldWidth / 2, worldHeight / 2);
-        this.bg.setDisplaySize(worldWidth, worldHeight);
+        // Background — always fit to fixed world
+        if (this.bg) {
+            this.bg.setPosition(worldWidth / 2, worldHeight / 2);
+            this.bg.setDisplaySize(worldWidth, worldHeight);
+        }
 
-        // Reposition ground
-        const groundY = worldHeight - 80;
-        this.ground.setPosition(worldWidth / 2, groundY);
+        // Ground — anchored
+        const groundY = worldHeight - 280;
+        if (this.ground) {
+            this.ground.setPosition(worldWidth / 2, groundY);
+        }
 
-        // Reposition foreground
-        const scaleX = worldWidth / 1280;
-        const scaleY = worldHeight / 720;
+        // Foreground — fixed positions (no scaling!)
+        if (this.firepit) {
+            this.firepit.setPosition(700, groundY - 160);
+        }
+        if (this.teepee) {
+            this.teepee.setPosition(175, groundY - 27);
+        }
 
-        this.firepit.setPosition(700 * scaleX, 555 * scaleY);
-        this.firepit.setScale(0.42 * scaleX);
-
-        this.teepee.setPosition(172 * scaleX, 695 * scaleY);
-        this.teepee.setScale(1 * scaleX);
-
-        // Camera
+        // Camera bounds
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+
+        // Zoom
         if (this.isMobile || isPortrait) {
             this.cameras.main.setZoom(1.4);
         } else {
-            this.cameras.main.setZoom(1.0);
+            this.cameras.main.setZoom(1.5);
         }
 
-        // Controls
+        // Deadzone
+        if (this.isMobile || isPortrait) {
+            this.cameras.main.setDeadzone(20, 20);
+        } else {
+            this.cameras.main.setDeadzone(120, 420);
+        }
+
+        // Ensure follow is active
+        if (this.player) {
+            this.cameras.main.startFollow(this.player, false, 0.09, 0.09);
+            this.cameras.main.setLerp(0.15, 0.15);
+        }
+
+        // Mobile controls visibility
         const controls = document.getElementById('mobile-controls');
         if (controls) {
             controls.style.display = this.isMobile ? 'block' : 'none';
@@ -800,6 +812,12 @@ class MainScene extends Phaser.Scene {
             if (id !== this.refs.myId.current && p.targetX !== undefined && p.targetY !== undefined) {
                 p.x = Phaser.Math.Linear(p.x, p.targetX, 0.2);
                 p.y = Phaser.Math.Linear(p.y, p.targetY, 0.2);
+                // Auto-switch to idle/walk when grounded
+                const isGrounded = p.body.blocked.down || p.body.touching.down;
+                if (isGrounded && p.anims.currentAnim?.key === 'jump') {
+                    const isMoving = Math.abs(p.body.velocity.x) > 10;
+                    p.anims.play(isMoving ? 'walk' : 'idle', true);
+                }
             }
         });
     }
@@ -852,7 +870,8 @@ class MainScene extends Phaser.Scene {
     }
 
     createPlayer(scene) {
-        if (!this.refs.myId.current || this.refs.players.current[this.refs.myId.current]) {
+        if (!this.refs.myId.current) return;
+        if (this.refs.players.current[this.refs.myId.current]) {
             console.log('Player creation skipped:', { id: this.refs.myId.current, exists: !!this.refs.players.current[this.refs.myId.current] });
             return;
         }
@@ -1036,22 +1055,37 @@ const PhaserGame = () => {
         });
 
         socket.current.on('connect', () => {
-            myId.current = socket.current.id;
-            console.log('Connected to server with ID:', myId.current);
+            const newId = socket.current.id;
+            console.log('Socket connected with ID:', newId);
+
+            // If ID changed (rare, but possible), clean old player
+            if (myId.current && myId.current !== newId && players.current[myId.current]) {
+                console.log('Socket ID changed, cleaning old player');
+                players.current[myId.current].destroy();
+                delete players.current[myId.current];
+            }
+
+            myId.current = newId;
             isConnected.current = true;
 
-            const tryCreatePlayer = () => {
-                if (!players.current[myId.current] && sceneRef.current) {
-                    console.log('Creating new player with ID:', myId.current);
-                    sceneRef.current.createPlayer(sceneRef.current);
-                } else if (!sceneRef.current) {
-                    console.log('Scene not ready, retrying player creation...');
-                    setTimeout(tryCreatePlayer, 100);
-                } else {
-                    console.log('Player already exists:', myId.current);
+            // ONLY Create Player if we don't already have one
+            if (!players.current[myId.current] && sceneRef.current) {
+                console.log('Creating local player after (re)connect');
+                sceneRef.current.createPlayer(sceneRef.current);
+            } else {
+                console.log('Player already exists, skipping creation');
+                // Optional: re-follow camera in case it got lost
+                if (sceneRef.current && sceneRef.current.player) {
+                    sceneRef.current.cameras.main.startFollow(sceneRef.current.player);
                 }
-            };
-            tryCreatePlayer();
+            }
+        });
+
+        socket.current.on('disconnect', () => {
+            console.log('Socket disconnected');
+            isConnected.current = false;
+            // Do NOT destroy player here — server will send playerDisconnected
+            // We'll recreate cleanly on reconnect
         });
 
         socket.current.on('connect_error', (error) => {
@@ -1107,31 +1141,23 @@ const PhaserGame = () => {
         socket.current.on('playerJumped', (data) => {
             if (!players.current[data.id]) return;
 
-            const existingPlayer = players.current[data.id];
-            existingPlayer.targetX = data.position?.x ?? existingPlayer.targetX;
-            existingPlayer.targetY = data.position?.y ?? existingPlayer.targetY;
-            existingPlayer.flipX = (data.direction === 'left');
+            const player = players.current[data.id];
+            // Update position and direction (same as movement)
+            player.targetX = data.position?.x ?? player.targetX;
+            player.targetY = data.position?.y ?? player.targetY;
+            player.flipX = (data.direction === 'left');
 
-            if (data.id === myId.current) {
-                if (existingPlayer.body) {
-                    existingPlayer.body.setAllowGravity(true);
-                    existingPlayer.setVelocityY(data.velocityY);
-                }
-            } else {
-                if (sceneRef.current && sceneRef.current.anims.exists('jump')) {
-                    existingPlayer.anims.play('jump', true);
-                }
-                if (sceneRef.current && sceneRef.current.tweens) {
-                    const scene = sceneRef.current;
-                    scene.tweens.killTweensOf(existingPlayer);
-                    scene.tweens.add({
-                        targets: existingPlayer,
-                        y: (data.position?.y ?? existingPlayer.targetY) - 40,
-                        duration: 140,
-                        yoyo: true,
-                        ease: 'Quad.easeOut'
-                    });
-                }
+            // Always play jump animation for visual feedback
+            if (sceneRef.current && sceneRef.current.anims.exists('jump')) {
+                player.anims.play('jump', true);
+            }
+            
+            // ONLY for remote players: apply the actual jump velocity
+            // Local player already applied it when they pressed jump
+            if (data.id !== myId.current && player.body) {
+                player.body.setVelocityY(data.velocityY || -500);
+                // Ensure gravity is on
+                player.body.setAllowGravity(true);
             }
         });
 
@@ -1179,22 +1205,33 @@ const PhaserGame = () => {
                     console.log('Player not found for message:', data.message);
                     return;
                 }
+
+                const fontSize = scene.isMobile ? '11px' : '16px';
+
+                // Create wrapped chat text
                 const chatText = scene.add.text(player.x, player.y - 50, data.message, {
-                    fontSize: '18px',
+                    fontSize: fontSize,
                     fill: '#ffff00',
                     backgroundColor: '#000000',
-                    padding: { x: 10, y: 5 },
+                    padding: { x: 12, y: 8 },
                     align: 'center',
-                }).setOrigin(0.5);
+                    wordWrap: { width: 200, useAdvancedWrap: true }
+                })
+                .setOrigin(0.5)
+                .setDepth(10);
+                
+                // Text Follow player
                 const textUpdate = scene.time.addEvent({
-                    delay: 25,
+                    delay: 16,
                     callback: () => {
                         chatText.setPosition(player.x, player.y - 50);
                     },
                     loop: true,
                 });
+
+                // Auto-remove after 3 seconds
                 scene.time.addEvent({
-                    delay: 3000,
+                    delay: 6000,
                     callback: () => {
                         chatText.destroy();
                         textUpdate.remove(false);
@@ -1210,7 +1247,7 @@ const PhaserGame = () => {
             parent: containerRef.current,
             backgroundColor: '#000000',
             scale: {
-                mode: Phaser.Scale.FIT,
+                mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
                 width: '100%',
                 height: '100%',
@@ -1242,9 +1279,19 @@ const PhaserGame = () => {
         };
 
         gameRef.current = new Phaser.Game(config);
-        console.log('Phaser game initialized');
+        
+        const handleWindowResize = () => {
+            if (gameRef.current && gameRef.current.scale) {
+                gameRef.current.scale.resize(window.innerWidth, window.innerHeight);
+            }
+        };
+        window.addEventListener('resize', handleWindowResize);
+        handleWindowResize(); // initial resize
 
+        console.log('Phaser game initialized');
+        
         return () => {
+            window.removeEventListener('resize', handleWindowResize);
             if (gameRef.current) {
                 gameRef.current.destroy(true);
                 gameRef.current = null;
@@ -1310,29 +1357,7 @@ const PhaserGame = () => {
                 alignItems: 'center'
             }}
         >
-            {/* {isPortrait && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 9999,
-                        color: 'white',
-                        fontSize: '24px',
-                        textAlign: 'center',
-                        padding: '20px',
-                        fontFamily: '-apple-system, monospace'
-                    }}
-                >
-                    Please rotate your device to landscape mode to play the game.
-                </div>
-            )} */}
+            
             <div
                 ref={containerRef}
                 style={{
