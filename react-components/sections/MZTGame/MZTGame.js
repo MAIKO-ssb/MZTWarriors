@@ -7,6 +7,7 @@ class MainScene extends Phaser.Scene {
     constructor(config, refs) {
         super({ key: 'mainScene' });
         this.refs = refs;
+        this.refs.setConnectionStatus = refs.setConnectionStatus;
     }
 
     preload() {
@@ -918,6 +919,10 @@ class MainScene extends Phaser.Scene {
 
 
             console.log('Local player created at 100,50:', this.refs.myId.current);
+            // Notify React to hide loading overlay
+            if (scene.refs.setConnectionStatus) {
+                scene.refs.setConnectionStatus('connected');
+            }
 
             scene.attackOffsets = {};
             const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
@@ -1001,7 +1006,7 @@ class MainScene extends Phaser.Scene {
     }
 }
 
-const PhaserGame = () => {
+const MZTGame = () => {
     const players = useRef({});
     const myId = useRef(null);
     const socket = useRef(null);
@@ -1010,13 +1015,13 @@ const PhaserGame = () => {
     const chatInputRef = useRef(null);
     const isChatFocused = useRef(false);
     const [message, setMessage] = useState('');
+    const [connectionStatus, setConnectionStatus] = useState('connecting'); // 'connecting' | 'connected' | 'failed'
     const isConnected = useRef(false);
     const sceneRef = useRef(null);
     const isGameInitialized = useRef(false);
     const enemies = useRef([]);
     const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
                         window.matchMedia("(pointer: coarse)").matches;
-    // const [isPortrait, setIsPortrait] = useState(false);
 
     useEffect(() => {
         if (!containerRef.current || isGameInitialized.current) {
@@ -1033,24 +1038,6 @@ const PhaserGame = () => {
         }, { passive: false });
         document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-        // Handle orientation and fullscreen
-        // const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-        //                 window.matchMedia("(pointer: coarse)").matches;
-
-        // const checkOrientation = () => {
-        //     const orientation = window.screen.orientation ? window.screen.orientation.type : (window.innerWidth > window.innerHeight ? 'landscape' : 'portrait');
-        //     setIsPortrait(orientation.includes('portrait'));
-        //     console.log('Orientation:', orientation);
-        // };
-
-        // const lockOrientation = () => {
-        //     if (isMobile && window.screen.orientation && window.screen.orientation.lock) {
-        //         window.screen.orientation.lock('landscape').catch((err) => {
-        //             console.warn('Orientation lock failed:', err);
-        //         });
-        //     }
-        // };
-
         const requestFullscreen = () => {
             if (isMobile && containerRef.current) {
                 const elem = containerRef.current;
@@ -1063,21 +1050,6 @@ const PhaserGame = () => {
                 }
             }
         };
-
-        // Initial checks
-        // checkOrientation();
-        // if (isMobile) {
-        //     lockOrientation();
-        //     requestFullscreen();
-        // }
-
-        // Listen for orientation changes
-        // window.addEventListener('orientationchange', () => {
-        //     checkOrientation();
-        //     if (!isPortrait) {
-        //         requestFullscreen();
-        //     }
-        // });
 
         const SOCKET_URL = process.env.NODE_ENV === 'development'
             ? 'http://localhost:3001'
@@ -1123,6 +1095,7 @@ const PhaserGame = () => {
         socket.current.on('disconnect', () => {
             console.log('Socket disconnected');
             isConnected.current = false;
+            setConnectionStatus('failed');
             // Do NOT destroy player here — server will send playerDisconnected
             // We'll recreate cleanly on reconnect
         });
@@ -1130,6 +1103,7 @@ const PhaserGame = () => {
         socket.current.on('connect_error', (error) => {
             console.error('Socket connection error:', error);
             isConnected.current = false;
+            setConnectionStatus('failed');
         });
 
         socket.current.on('currentPlayers', (playersList) => {
@@ -1348,7 +1322,8 @@ const PhaserGame = () => {
                 enemies,
                 isConnected,
                 gameRef,
-                chatInputRef
+                chatInputRef,
+                setConnectionStatus
             })
         };
 
@@ -1378,7 +1353,6 @@ const PhaserGame = () => {
             isGameInitialized.current = false;
             document.removeEventListener('touchstart', () => {});
             document.removeEventListener('gesturestart', () => {});
-            // window.removeEventListener('orientationchange', checkOrientation);
         };
     }, []);
 
@@ -1431,7 +1405,55 @@ const PhaserGame = () => {
                 alignItems: 'center'
             }}
         >
-            
+            {/* === LOADING OVERLAY === */}
+            {connectionStatus !== 'connected' && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    color: '#ffff00',
+                    fontFamily: '-apple-system, sans-serif',
+                    pointerEvents: 'none'  // allows clicks to pass through if needed, but safe here
+                }}>
+                    <div style={{
+                        fontSize: '36px',
+                        fontWeight: 'bold',
+                        marginBottom: '32px',
+                        textShadow: '0 0 20px #000'
+                    }}>
+                        {connectionStatus === 'failed' ? 'Connection failed :(' : 'Connecting to server...'}
+                    </div>
+
+                    {connectionStatus !== 'failed' && (
+                        <div style={{
+                            width: '80px',
+                            height: '80px',
+                            border: '8px solid rgba(255,255,0,0.3)',
+                            borderTop: '8px solid #ffff00',
+                            borderRadius: '50%',
+                            animation: 'spin 1.2s linear infinite'
+                        }} />
+                    )}
+
+                    {connectionStatus === 'failed' && (
+                        <div style={{
+                            marginTop: '30px',
+                            fontSize: '20px',
+                            textAlign: 'center',
+                            maxWidth: '80%'
+                        }}>
+                            Try refreshing the page
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* === GAME CONTAINER === */}           
             <div
                 ref={containerRef}
                 style={{
@@ -1482,8 +1504,9 @@ const PhaserGame = () => {
                     />
                 </div>
             </div>
+
         </div>
     );
 };
 
-export default PhaserGame;
+export default MZTGame;
