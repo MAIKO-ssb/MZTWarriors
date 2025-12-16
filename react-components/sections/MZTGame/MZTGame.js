@@ -128,10 +128,6 @@ class MainScene extends Phaser.Scene {
 
         this.cameras.main.setLerp(0.15, 0.15);
 
-        if (this.isMobile) {
-            this.createTouchControls();
-        }
-
         if (this.refs.isConnected.current && this.refs.myId.current && !this.refs.players.current[this.refs.myId.current]) {
             this.createPlayer(this);
         }
@@ -200,12 +196,6 @@ class MainScene extends Phaser.Scene {
             frameRate: 20,
             repeat: -1
         });
-
-        // Create touch controls after world setup
-        if (this.isMobile) {
-            console.log('Mobile detected - enabling touch controls');
-            this.createTouchControls();
-        }
 
         // Create player
         if (this.refs.isConnected.current && this.refs.myId.current && !this.refs.players.current[this.refs.myId.current]) {
@@ -924,6 +914,11 @@ class MainScene extends Phaser.Scene {
                 scene.refs.setConnectionStatus('connected');
             }
 
+            // Create mobile controls if on mobile
+            if (this.isMobile) {
+                this.createTouchControls();
+            }
+
             scene.attackOffsets = {};
             const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
             manzanitaFrames.forEach(frameName => {
@@ -1418,21 +1413,69 @@ const MZTGame = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 9999,
+                    zIndex: 99999,
                     color: '#62b95a',
-                    fontFamily: '-apple-system, sans-serif',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    padding: '16px',
+                    boxSizing: 'border-box',
                     pointerEvents: 'none'  // allows clicks to pass through if needed, but safe here
                 }}>
-                    <div style={{
-                        fontSize: '36px',
-                        fontWeight: 'bold',
-                        marginBottom: '32px',
-                        textShadow: '0 0 20px #000',
-                        textAlign: 'center'
-                    }}>
-                        {connectionStatus === 'failed' ? 'Server Connection Failed.' : 'Connecting to server...(may take up to 45 seconds)'}
-                    </div>
+                    {connectionStatus === 'failed' ? (
+                        // FAILURE STATE
+                        <div style={{
+                            textAlign: 'center',
+                            maxWidth: '90%'
+                        }}>
+                            <div style={{
+                                fontSize: '36px',
+                                fontWeight: 'bold',
+                                color: '#ff4444',
+                                textShadow: '0 0 20px #000',
+                                marginBottom: '20px'
+                            }}>
+                                Connection Failed
+                            </div>
+                            <div style={{
+                                fontSize: '20px',
+                                color: '#ffffff',
+                                marginBottom: '30px'
+                            }}>
+                                Unable to reach the game server.
+                            </div>
+                            <div style={{
+                                fontSize: '18px',
+                                color: '#aaaaaa'
+                            }}>
+                                Try refreshing the page in a few seconds.
+                            </div>
+                        </div>
+                    ) : (
+                        // CONNECTING STATE
+                        <div style={{
+                            textAlign: 'center',
+                            marginBottom: '40px',
+                            maxWidth: '90%'
+                        }}>
+                            <div style={{
+                                fontSize: '36px',
+                                fontWeight: 'bold',
+                                color: '#62b95a',
+                                textShadow: '0 0 20px #000',
+                                marginBottom: '12px'
+                            }}>
+                                Connecting to server...
+                            </div>
+                            <div style={{
+                                fontSize: '18px',
+                                color: '#aaaaaa',
+                                fontWeight: 'normal'
+                            }}>
+                                (may take up to 45 seconds)
+                            </div>
+                        </div>
+                    )}
 
+                    {/* Spinner — only show when connecting, not on failure */}
                     {connectionStatus !== 'failed' && (
                         <div style={{
                             width: '80px',
@@ -1442,17 +1485,6 @@ const MZTGame = () => {
                             borderRadius: '50%',
                             animation: 'spin 1.2s linear infinite'
                         }} />
-                    )}
-
-                    {connectionStatus === 'failed' && (
-                        <div style={{
-                            marginTop: '30px',
-                            fontSize: '20px',
-                            textAlign: 'center',
-                            maxWidth: '80%'
-                        }}>
-                            Try refreshing the page
-                        </div>
                     )}
                 </div>
             )}
