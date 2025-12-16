@@ -140,10 +140,10 @@ class MainScene extends Phaser.Scene {
         this.lastFlipX = null;
 
         // Fullscreen on F
-        this.input.keyboard.on('keydown-F', () => {
-            if (this.scale.isFullscreen) this.scale.stopFullscreen();
-            else this.scale.startFullscreen();
-        });
+        // this.input.keyboard.on('keydown-F', () => {
+        //     if (this.scale.isFullscreen) this.scale.stopFullscreen();
+        //     else this.scale.startFullscreen();
+        // });
 
         console.log('Scene created, container:', this.refs.containerRef.current);
 
@@ -254,7 +254,7 @@ class MainScene extends Phaser.Scene {
         this.jumpKeyUpArrow = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
         this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-        this.fullscreen = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
+        // this.fullscreen = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
         this.enterKeyPressed = false;
 
         this.WASD = {
@@ -276,14 +276,14 @@ class MainScene extends Phaser.Scene {
         this.lastAnimation = null;
         this.lastSendTime = 0;
 
-        this.input.keyboard.on('keydown-F', () => {
-            this.scale.fullscreenTarget = this.refs.containerRef.current;
-            if (this.scale.isFullscreen) {
-                this.scale.stopFullscreen();
-            } else {
-                this.scale.startFullscreen();
-            }
-        });
+        // this.input.keyboard.on('keydown-F', () => {
+        //     this.scale.fullscreenTarget = this.refs.containerRef.current;
+        //     if (this.scale.isFullscreen) {
+        //         this.scale.stopFullscreen();
+        //     } else {
+        //         this.scale.startFullscreen();
+        //     }
+        // });
 
         // Popup text
         this.activePopups = [];
@@ -1038,18 +1038,18 @@ const MZTGame = () => {
         }, { passive: false });
         document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-        const requestFullscreen = () => {
-            if (isMobile && containerRef.current) {
-                const elem = containerRef.current;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch((err) => {
-                        console.warn('Fullscreen request failed:', err);
-                    });
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                }
-            }
-        };
+        // const requestFullscreen = () => {
+        //     if (isMobile && containerRef.current) {
+        //         const elem = containerRef.current;
+        //         if (elem.requestFullscreen) {
+        //             elem.requestFullscreen().catch((err) => {
+        //                 console.warn('Fullscreen request failed:', err);
+        //             });
+        //         } else if (elem.webkitRequestFullscreen) {
+        //             elem.webkitRequestFullscreen();
+        //         }
+        //     }
+        // };
 
         const SOCKET_URL = process.env.NODE_ENV === 'development'
             ? 'http://localhost:3001'
@@ -1062,7 +1062,7 @@ const MZTGame = () => {
             reconnection: true,
             reconnectionAttempts: 10,
             reconnectionDelay: 1000,
-            timeout: 20000
+            timeout: 60000
         });
 
         socket.current.on('connect', () => {
@@ -1416,7 +1416,7 @@ const MZTGame = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 9999,
-                    color: '#ffff00',
+                    color: '#62b95a',
                     fontFamily: '-apple-system, sans-serif',
                     pointerEvents: 'none'  // allows clicks to pass through if needed, but safe here
                 }}>
@@ -1426,15 +1426,15 @@ const MZTGame = () => {
                         marginBottom: '32px',
                         textShadow: '0 0 20px #000'
                     }}>
-                        {connectionStatus === 'failed' ? 'Connection failed :(' : 'Connecting to server...'}
+                        {connectionStatus === 'failed' ? 'Server Connection Failed.' : 'Connecting to server...(may take up to 45 seconds)'}
                     </div>
 
                     {connectionStatus !== 'failed' && (
                         <div style={{
                             width: '80px',
                             height: '80px',
-                            border: '8px solid rgba(255,255,0,0.3)',
-                            borderTop: '8px solid #ffff00',
+                            border: '8px solid rgba(98,185,90,0.3)',
+                            borderTop: '8px solid #62b95a',
                             borderRadius: '50%',
                             animation: 'spin 1.2s linear infinite'
                         }} />
