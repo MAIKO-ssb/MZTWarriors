@@ -1408,23 +1408,29 @@ const MZTGame = () => {
             {/* === LOADING OVERLAY === */}
             {connectionStatus !== 'connected' && (
                 <div style={{
-                    position: 'absolute',
-                    inset: 0,
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     backgroundColor: 'rgba(0, 0, 0, 0.95)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 9999,
-                    color: '#ffff00',
-                    fontFamily: '-apple-system, sans-serif',
+                    color: '#85fd8fff',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    padding: '16px',
+                    boxSizing: 'border-box',
                     pointerEvents: 'none'  // allows clicks to pass through if needed, but safe here
                 }}>
                     <div style={{
                         fontSize: '36px',
                         fontWeight: 'bold',
                         marginBottom: '32px',
-                        textShadow: '0 0 20px #000'
+                        textShadow: '0 0 20px #000',
+                        textAlign: 'center'
                     }}>
                         {connectionStatus === 'failed' ? 'Connection failed :(' : 'Connecting to server...'}
                     </div>
