@@ -807,8 +807,16 @@ class MainScene extends Phaser.Scene {
 
         if (this.enterKey.isDown && !this.enterKeyPressed) {
             console.log('Enter Key pressed');
-            this.refs.gameRef.current.input.keyboard.enabled = !this.refs.gameRef.current.input.keyboard.enabled;
             console.log('Keyboard Disabled:', this.refs.gameRef.current.input.keyboard.enabled);
+            // CRITICAL: Stop player movement immediately
+            if (this.player) {
+                this.player.setVelocityX(0);
+                // Force idle animation to avoid walking-in-place visuals
+                if (this.anims.exists('idle')) {
+                    this.player.anims.play('idle', true);
+                }
+            }
+            this.resetActionKeys();
             this.refs.chatInputRef.current.focus();
             this.enterKeyPressed = true;
         }
@@ -994,6 +1002,28 @@ class MainScene extends Phaser.Scene {
         }
     }
 
+    resetActionKeys() {
+        if (!this.cursors || !this.WASD || !this.attackKey) return;
+
+        // Movement keys
+        this.cursors.left.reset();
+        this.cursors.right.reset();
+        this.WASD.A.reset();
+        this.WASD.D.reset();
+
+        // Jump keys
+        this.jumpKey.reset();
+        this.jumpKeyWASD.reset();
+        this.jumpKeyUpArrow.reset();
+
+        // Attack keys — THIS FIXES THE BUG
+        this.attackKey.reset();           // X key
+        this.WASD.attackKey.reset();      // J key
+
+        // Optional: also reset arrow keys if you use them separately
+        // (your code uses createCursorKeys(), so left/right are already covered)
+    }
+
 
     shutdown() {
         this.mobileControls?.cleanup?.();
@@ -1008,7 +1038,7 @@ const MZTGame = () => {
     const gameRef = useRef(null);
     const containerRef = useRef(null);
     const chatInputRef = useRef(null);
-    const isChatFocused = useRef(false);
+    const [isChatFocused, setIsChatFocused] = useState(false);
     const [message, setMessage] = useState('');
     const [connectionStatus, setConnectionStatus] = useState('connecting'); // 'connecting' | 'connected' | 'failed'
     const isConnected = useRef(false);
@@ -1512,17 +1542,38 @@ const MZTGame = () => {
                         type='text'
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        onFocus={() => { isChatFocused.current = true; }}
+                        onFocus={() => { 
+                            setIsChatFocused(true);
+                            // if (gameRef.current) gameRef.current.input.keyboard.enabled = false;
+                            if (gameRef.current) {
+                                gameRef.current.input.keyboard.enabled = false;
+
+                                // Stop player if they're moving (in case keys are held or touch joystick active)
+                                const scene = sceneRef.current;
+                                if (scene && scene.player) {
+                                    scene.player.setVelocityX(0);
+                                    if (scene.anims.exists('idle')) {
+                                        scene.player.anims.play('idle', true);
+                                    }
+                                }
+                                scene.resetActionKeys();
+                                // Reset mobile joystick state
+                                if (scene && scene.mobileControls) {
+                                    scene.touchLeft = false;
+                                    scene.touchRight = false;
+                                }
+                            }
+                        }}
                         onBlur={() => {
-                            isChatFocused.current = false;
+                            setIsChatFocused(false);
                             if (gameRef.current) gameRef.current.input.keyboard.enabled = true;
                         }}
-                        placeholder={isChatFocused.current ? 'ENTER to send, ESC to cancel' : 'ENTER to chat & send'}
+                        placeholder={isChatFocused ? 'Type message… (Enter to send)' : 'Press Enter to chat & send'}
                         onKeyDown={(e) => handleChatKeyDown(e)}
                         style={{
-                            backgroundColor: isChatFocused.current ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.42)',
+                            backgroundColor: isChatFocused ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.42)',
                             backdropFilter: 'blur(12px)',
-                            border: isChatFocused.current ? '2px solid #ffff00' : '2px solid rgba(255,255,255,0.3)',
+                            border: isChatFocused ? '2px solid #ffff00' : '2px solid rgba(255,255,255,0.3)',
                             borderRadius: '12px',
                             padding: '14px 20px',
                             fontSize: '16px',
@@ -1530,7 +1581,7 @@ const MZTGame = () => {
                             color: '#ffff00',
                             width: '300px',
                             outline: 'none',
-                            boxShadow: isChatFocused.current
+                            boxShadow: isChatFocused
                                 ? '0 0 0 4px rgba(255,255,0,0.4), 0 12px 40px rgba(0,0,0,0.6)'
                                 : '0 8px 32px rgba(0,0,0,0.5)',
                             opacity: 1,
