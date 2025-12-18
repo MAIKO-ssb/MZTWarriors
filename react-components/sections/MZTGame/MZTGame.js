@@ -891,10 +891,17 @@ class MainScene extends Phaser.Scene {
     }
 
     createPlayer(scene) {
+        // Prevent duplicate player creation
         if (!this.refs.myId.current) return;
         if (this.refs.players.current[this.refs.myId.current]) {
-            console.log('Player creation skipped:', { id: this.refs.myId.current, exists: !!this.refs.players.current[this.refs.myId.current] });
+            console.log('Player creation skipped - already exists:', { id: this.refs.myId.current, exists: !!this.refs.players.current[this.refs.myId.current] });
             return;
+        }
+
+        // Critical: clear any stale scene.player reference
+        if (scene.player) {
+            console.warn('Stale local player reference found — clearing');
+            scene.player = null;
         }
 
         try {
@@ -1095,10 +1102,18 @@ const MZTGame = () => {
             console.log('Socket connected with ID:', newId);
 
             // If ID changed (rare, but possible), clean old player
-            if (myId.current && myId.current !== newId && players.current[myId.current]) {
-                console.log('Socket ID changed, cleaning old player');
-                players.current[myId.current].destroy();
-                delete players.current[myId.current];
+            if (myId.current && myId.current !== newId) {
+                const oldPlayer = players.current[myId.current];
+                if (oldPlayer) {
+                    console.log('Cleaning up old player on reconnect');
+                    oldPlayer.destroy();
+                    delete players.current[myId.current];
+
+                    // If this was the local player, clear the reference
+                    if (sceneRef.current && sceneRef.current.player === oldPlayer) {
+                        sceneRef.current.player = null;
+                    }
+                }
             }
 
             myId.current = newId;
@@ -1110,10 +1125,6 @@ const MZTGame = () => {
                 sceneRef.current.createPlayer(sceneRef.current);
             } else {
                 console.log('Player already exists, skipping creation');
-                // Optional: re-follow camera in case it got lost
-                if (sceneRef.current && sceneRef.current.player) {
-                    sceneRef.current.cameras.main.startFollow(sceneRef.current.player);
-                }
             }
         });
 
