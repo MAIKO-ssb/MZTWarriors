@@ -12,6 +12,10 @@ body {
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -27,7 +31,11 @@ a {
   position:relative;
   z-index:222;
   min-height: 100vh;
-  background: black;
+  background: linear-gradient(
+    to bottom,
+    #122c20 0%,    /* Very dark teal-black (subtle green hint at top) */
+    #001312 70%   /* Ties beautifully into your HelloBar green */
+  );
   color: #fff;
   font-family: 'Inter', sans-serif;
   padding: 1rem; /* p-4 */

@@ -13,6 +13,18 @@ export default function Document() {
         <meta name="solana:dapp-name" content="Manzanita Tribe Warriors" />
         <meta name="solana:dapp-description" content="Indie Solana NFT mint for MZT Warriors. Candy Machine v3, 1111 pNFTs, 0.111 SOL ea." />
         <meta name="solana:dapp-icon" content="/favicon.ico" />
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-KC79NF52Y1" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-KC79NF52Y1');
+            `,
+          }}
+        />
       </Head>
       <body>
         <Main />

@@ -7,7 +7,11 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 // Next.js UI
 import Head from 'next/head';
 import Image from 'next/image';
-import dynamic from 'next/dynamic'; // <--- 1. IMPORT dynamic
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Analytics
+import { trackEvent } from '../lib/analytics';
 
 // Component UI
 import ImageFader from '../react-components/components/ImageFader';
@@ -118,51 +122,123 @@ export default function Intro() {
       </Head>
       
       <HelloBar/>
-      <div className='s-hero'>
-        <main>
 
-          {/* LEFT COLUMN */}
-          <div className='u-flex u-flex1 l-leftCol'>
-            {/* ... Logo & Text ... */}
-            <div className='mzt-logo u-animated a-fadeIn'>
-              <div style={{display:'flex', justifyContent:'center'}}>
-                <Image className='mzt-logo__img  u-animated a-fadeIn' width="800" height="800" src="/img/mzt-logo.png" alt="Manzanita Tribe Warriors Logo" />
-              </div>
+      {/* ==================== HERO SECTION: Video + Safe, Smaller CTAs ==================== */}
+      <section className="relative w-full h-screen overflow-hidden flex flex-col">
+        {/* Background Video */}
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/img/mzt-hero-video-img-fallback.png"
+        >
+          <source src="/video/mztw-loop-dark.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Content container - pushes buttons to bottom safely */}
+        <div className="relative z-10 flex-1 flex flex-col justify-start pt-10 md:pt-10 px-6">
+          <div className="max-w-4xl mx-auto w-full">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 justify-center items-center">
               
-              <div style={{color: "white",textAlign:"center", padding: "1.5em 0"}}>
-                <h1>Manzanita Tribe Warriors <br/>
-                  <span style={{fontSize:'.5em', color:"#ffff00"}}>
-                    <span style={{color:"#ff0000"}}>( </span>Solana Digital Collectibles<span style={{color:"#ff0000"}}>* )</span> 
-                  </span>
-                </h1>
+              {/* PLAY DEMO - Primary */}
+              <Link href="/demo" className="block w-full sm:w-auto">
+                <a className="block w-full sm:w-auto px-10 py-5 text-xl md:text-xl font-bold text-black bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl hover:from-yellow-400 hover:to-orange-400 transition-all transform hover:scale-105 shadow-2xl text-center"
+                  onClick={() => trackEvent('click_play_demo', 'engagement', 'hero')}>
+                  Play Demo
+                </a>
+              </Link>
 
-                <div style={{display: 'flex', justifyContent: 'center'}}>
-                  <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
-                </div>
-                
-                <p className="mb-4" style={{fontSize:'.85em', color:"#ccc"}}>
-                  <br/> This is a self-funded indie passion project by a solo creator. 
-                  <br/> Every mint fuels the continued growth of the MZT Warriors universe. 
-                  <br/>
-                </p>
-                <div style={{marginTop: '6px'}}>
-                  <span style={{color:"red"}}>*</span>
-                  <em style={{color:"#ff0203"}}>Not a financial investment.</em> 
-                </div>
-                <em style={{fontWeight:'bold', marginTop: '0px', color:'#092e4d'}}>I can only promise you pixels. <br/>Thank you for your support!</em> 
-              </div>
+              {/* MINT NOW - Matching style */}
+              <a
+                href="#mintSection"
+                className="block w-full sm:w-auto px-10 py-5 text-xl md:text-xl font-bold text-black bg-gradient-to-r from-green-400 to-emerald-400 rounded-xl hover:from-green-300 hover:to-emerald-300 transition-all transform hover:scale-105 shadow-2xl text-center"
+                onClick={() => trackEvent('click_mint_now', 'conversion', 'hero')}
+              >
+                Mint Now
+              </a>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* RIGHT COLUMN */}
-          <div className="l-rightCol" style={{ padding: '3em' }}>
-            {/* Lead a tribe of fierce Manzanitas in the digital lands of MZT Warriors.  */}
-            <h2 className='text-center' style={{color: '#9affc6ff'}}>Claim one of the First Warriors of the <br/>Manzanita Forest!</h2>
-            <p className="max-w-[540px] mx-auto mb-6 text-center leading-relaxed">
-              <span>Mint now —<br/> ...and prepare to explore and conquer the wild depths of the forest! <span style={{color:'red'}}>*</span></span>
+      {/* NEW: DEMO TEASER SECTION */}
+      <section className="py-20 bg-gradient-to-b from-black to-gray-900">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-6xl font-bold text-[#9affc6] mb-8">
+            The Manzanita Forest Awaits
+          </h2>
+          <p className="text-xl md:text-2xl text-gray-200 mb-12 max-w-3xl mx-auto">
+            Explore a living 2D world. Lead your warrior. Join the Tribe!
+          </p>
+
+          {/* Replace with your actual gameplay video or screenshots */}
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl max-w-5xl mx-auto mb-12">
+            <video className="w-full" autoPlay muted loop playsInline>
+              <source src="/video/mzt-demo-preview.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
+          <Link href="/demo">
+            <a className="inline-block px-12 py-6 text-2xl md:text-3xl font-bold text-black bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl hover:from-yellow-400 hover:to-orange-400 transition-all transform hover:scale-105 shadow-2xl"
+              onClick={() => trackEvent('click_play_demo', 'engagement', 'teaser')} >
+              Play the Live Demo Now 🔥
+            </a>
+          </Link>
+        </div>
+      </section>
+
+      <LoreContent/>
+      
+      {/* LEFT COLUMN */}
+      {/* <div className='u-flex u-flex1 l-leftCol'>
+        <div className='mzt-logo u-animated a-fadeIn'>
+          <div style={{display:'flex', justifyContent:'center'}}>
+            <Image className='mzt-logo__img  u-animated a-fadeIn' width="800" height="800" src="/img/mzt-logo.png" alt="Manzanita Tribe Warriors Logo" />
+          </div>
+          
+          <div style={{color: "white",textAlign:"center", padding: "1.5em 0"}}>
+            <h1>Manzanita Tribe Warriors <br/>
+              <span style={{fontSize:'.5em', color:"#ffff00"}}>
+                <span style={{color:"#ff0000"}}>( </span>Solana Digital Collectibles<span style={{color:"#ff0000"}}>* )</span> 
+              </span>
+            </h1>
+
+            <div style={{display: 'flex', justifyContent: 'center'}}>
+              <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
+            </div>
+            
+            <p className="mb-4" style={{fontSize:'.85em', color:"#ccc"}}>
+              <br/> This is a self-funded indie passion project by a solo creator. 
+              <br/> Every mint fuels the continued growth of the MZT Warriors universe. 
+              <br/>
             </p>
+            <div style={{marginTop: '6px'}}>
+              <span style={{color:"red"}}>*</span>
+              <em style={{color:"#ff0203"}}>Not a financial investment.</em> 
+            </div>
+            <em style={{fontWeight:'bold', marginTop: '0px', color:'#092e4d'}}>I can only promise you pixels. <br/>Thank you for your support!</em> 
+          </div>
+        </div>
+      </div> */}
 
-            {/* Image Fader or Minted NFT */}
+      {/* MINT SECTION */}
+      <section id="mintSection" className="py-24 bg-gradient-to-b from-gray-900 to-black">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#9affc6] mb-8">
+            Claim Your MZT Warrior
+          </h2>
+          
+          <p className="text-xl md:text-2xl text-gray-200 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Mint now and own one of the first Manzanita Tribe Warriors!<br />
+            <span className="text-lg text-gray-400">( Every mint directly supports this indie passion project )</span>
+          </p>
+
+          {/* Image Fader or Minted NFT */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1em' }}>
             {mintedNftImageUri ? (
               <div className='u-animated -pulse' style={{ textAlign: 'center', marginBottom: '20px', border: '2px solid #aeffa2', padding:'1em 1.5em', borderRadius:'4px' }}>
                 <h3 style={{color: 'white', marginBottom:'12px'}}>Your New MZT Warrior!</h3>
@@ -190,40 +266,49 @@ export default function Intro() {
                 )}
               </div>
             ) : (
-              <ImageFader images={faderImages} delay={3000} />
+              <ImageFader images={faderImages} delay={1000} />
             )}
-            {/* Mint Button */}
-            <p className='text-center mt-4'>
-              <strong className="block text-[1.125em] mb-[-5px] text-[#8dffbf]">
-                LIVE MINTING NOW ON SOLANA
-              </strong>
-            </p>
-            <p className="note-text text-center text-sm mt-4 italic text-[#23ff91] opacity-90 max-w-[420px] mx-auto">
-              <span style={{color:'red'}}>*</span> The interactive Manzanita Forest demo is currently being crafted — your mint helps bring it to life.
-            </p>
-            <DynamicMintButton 
-              onMintStart={handleMintStart}
-              onMintSuccess={handleMintSuccess}
-              onMintError={handleMintError}
-            />
-            {/* Displaying minting status and errors here */}
-            <div style={{ textAlign: 'center', marginTop: '1em' }}>
-                {minting && <p style={{ color: '#b8fff1ff' }}>Minting in progress...</p>}
-                {error && <p style={{ color: '#ff8a8a' }}>Error: {error}</p>}
-                {minted && <p style={{ color: '#aeffa2' }}>Mint Successful! Check your wallet. 🍎🔥🎉</p>}
-            </div>
-            
-            {/* <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
-              <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
-            </div> */}
           </div>
-        </main>
-        <video width="100%" height="auto" autoPlay muted playsInline loop>
-          <source src="/video/starry-night-bg-wide.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-      <LoreContent/>
+
+          {/* Mint Button */}
+          <p className='text-center mt-8'>
+            <strong className="block text-[1.125em] mb-[15px] text-[#8dffbf]">
+              LIVE MINTING ON SOLANA NETWORK
+            </strong>
+            <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
+              <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
+            </div>
+          </p>
+
+          <p className="note-text text-center text-sm mt-4 italic text-[#cccccc] opacity-90 max-w-[420px] mx-auto">
+            <span style={{color:'red'}}>*</span>The interactive demo (WIP) is now live —{' '}
+            <Link href="/demo" className="text-yellow-400 hover:text-yellow-300 underline font-medium">
+              Check it out!
+            </Link><br />
+            Minting helps bring the complete game to life.
+          </p>
+        
+          <DynamicMintButton 
+            onMintStart={handleMintStart}
+            onMintSuccess={handleMintSuccess}
+            onMintError={handleMintError}
+          />
+
+          {/* Status messages */}
+          <div style={{ textAlign: 'center', marginTop: '1em' }}>
+              {minting && <p style={{ color: '#b8fff1ff' }}>Minting in progress...</p>}
+              {error && <p style={{ color: '#ff8a8a' }}>Error: {error}</p>}
+              {minted && <p style={{ color: '#aeffa2' }}>Mint Successful! Check your wallet. 🍎🔥🎉</p>}
+          </div>
+
+          <p className="text-sm text-gray-500 mt-4 opacity-80">
+           <span style={{color:'red'}}>*</span> Not a financial investment.<br/> This is an indie passion project — I can only promise you pixels. <br/> Thank you for your support 🍎🔥
+          </p>
+        
+        </div>
+      </section>
+
+
       <SocialMedia />
       <Footer />
     </div>

@@ -1,9 +1,12 @@
-import Link from "next/link";
+import Image from "next/image";
 
 const Footer = () => {
   return (
     <footer className="relative z-10 bg-[#00120c] text-white py-10 px-6 border-t border-[#333]">
         <div className="text-center md:text-center">
+          <div style={{display:'flex', justifyContent:'center', marginBottom:'10px'}}>
+            <Image className='u-animated a-fadeIn' width="160" height="160" src="/img/mzt-logo.png" alt="Manzanita Tribe Warriors Logo" />
+          </div>
           <h2 className="text-2xl font-bold text-[#23ff91] mb-2">Manzanita Tribe Warriors</h2>
           <p className="text-gray-400 text-sm mb-2">
             Claim your warrior, join the tribe.
