@@ -204,7 +204,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
           <p style={{ fontSize: '42px', fontWeight: 'bold', margin: '20px 0' }}>
             {price} SOL
           </p>
-          <p style={{ fontSize: '20px' }}>
+          <p style={{ fontSize: '20px', marginBottom: '16px' }}>
             Warriors Remaining: <strong style={{ color: '#00ff9d', fontSize: '32px' }}>{itemsLeft}</strong> / 1111
           </p>
 
