@@ -107,6 +107,47 @@ class MainScene extends Phaser.Scene {
         this.platforms.add(this.teepeeDoorWallPlat);
         this.platforms.add(this.teepeeDoorCeilPlat);
 
+// === CHIEF NPC SETUP ===
+const chiefStartX = 400;
+const chiefStartY = groundY - 150;
+
+// Create physics sprite directly
+this.chief = this.physics.add.sprite(chiefStartX, chiefStartY, 'manzanita')
+    .setScale(1.1)
+    .setTint(0xffddaa)
+    .setDepth(3);
+
+// Physics
+this.chief.body.setAllowGravity(true);
+this.chief.body.setCollideWorldBounds(true);
+this.chief.body.setDragX(3000);
+this.chief.body.setSize(40, 55);
+this.chief.body.setOffset(40, 10);
+
+// Colliders
+this.physics.add.collider(this.chief, this.platforms);
+this.physics.add.collider(this.chief, this.firepit);
+
+// Name label — closer and follows perfectly
+this.chiefName = this.add.text(chiefStartX, chiefStartY - 80, 'Manzanita Chief', {
+    fontSize: '20px',
+    fill: '#ffddaa',
+    stroke: '#331100',
+    strokeThickness: 4,
+    fontStyle: 'bold'
+}).setOrigin(0.5).setDepth(11);
+
+// Patrol data directly on chief
+this.chief.patrolLeft = 300;    // Safe left of teepee
+this.chief.patrolRight = 600;   // ← Stop well before firepit (~700)
+this.chief.patrolDirection = 1;
+this.chief.walkSpeed = 180;
+this.chief.isPatrolling = true;
+this.chief.nextPatrolSwitch = 0;
+
+// Start idle
+this.chief.anims.play('idle', true);
+
         // Camera
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
         this.cameras.main.setBackgroundColor('#010701ff');
@@ -826,6 +867,57 @@ class MainScene extends Phaser.Scene {
         }
 
         this.refs.enemies.current.forEach(enemy => enemy.update());
+
+// === CHIEF PATROL AI — NATURAL, WISE, UNSTUCKABLE ===
+if (this.chief && this.chief.isPatrolling) {
+    const chief = this.chief;
+    const now = this.time.now;
+
+    // State machine approach: are we currently walking toward a target?
+    if (!chief.currentTarget) {
+        // Pick a new random destination within safe bounds
+        const minX = 320;
+        const maxX = 580; // Safe before firepit
+        chief.currentTarget = Phaser.Math.Between(minX, maxX);
+
+        // Random walk speed for this leg
+        chief.currentSpeed = Phaser.Math.Between(120, 220);
+
+        // Random pause at end
+        chief.pauseTime = Phaser.Math.Between(1000, 4000);
+    }
+
+    // Determine direction to target
+    if (chief.x < chief.currentTarget - 10) {
+        chief.setVelocityX(chief.currentSpeed);
+        chief.flipX = false;
+        this.updateBodyOffset(chief);
+        chief.anims.play('walk', true);
+    } else if (chief.x > chief.currentTarget + 10) {
+        chief.setVelocityX(-chief.currentSpeed);
+        chief.flipX = true;
+        this.updateBodyOffset(chief);
+        chief.anims.play('walk', true);
+    } else {
+        // Close enough to target → stop and idle
+        chief.setVelocityX(0);
+        chief.anims.play('idle', true);
+
+        // Wait for pause to end before picking new target
+        if (!chief.pauseEndTime) {
+            chief.pauseEndTime = now + chief.pauseTime;
+        }
+
+        if (now >= chief.pauseEndTime) {
+            // Done pausing — pick new target
+            chief.currentTarget = null;
+            chief.pauseEndTime = null;
+        }
+    }
+
+    // Name follows
+    this.chiefName.setPosition(chief.x, chief.y - 80);
+}
 
         Object.keys(this.refs.players.current).forEach(id => {
             const p = this.refs.players.current[id];
