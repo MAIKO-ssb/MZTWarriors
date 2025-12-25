@@ -31,6 +31,20 @@ const DynamicMintButton = dynamic(() => import('../react-components/components/M
   ),
 });
 
+const DynamicImageFader = dynamic(() => import('../react-components/components/ImageFader'), {
+  ssr: false, // Key: Disable server-side rendering for this component
+  loading: () => ( // Placeholder during load
+    <div style={{ width: 420, height: 420, backgroundColor: '#333', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff' }}>
+      Loading Preview...
+    </div>
+  ),
+});
+
+const DynamicVideo = dynamic(() => import('../react-components/components/VideoClient'), {
+  ssr: false,
+  loading: () => <div style={{ backgroundColor: '#000', width: '100%', height: '100%' }} />, // Black placeholder to avoid flash
+});
+
 // *** CANDY MACHINE ***
 // const CANDY_MACHINE_ID_STRING = '33eFiEDpjjAFxM22p5PVQC3jGPzYjCEEmUEojVWYgjsK';
 // const CANDY_MACHINE_ID = new Web3JsPublicKey(CANDY_MACHINE_ID_STRING);
@@ -125,18 +139,13 @@ export default function Intro() {
 
       {/* ==================== HERO SECTION: Video + Safe, Smaller CTAs ==================== */}
       <section className="relative w-full h-screen overflow-hidden flex flex-col">
+
         {/* Background Video */}
-        <video
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
+        <DynamicVideo
+          src="/video/mztw-loop-dark.mp4"
           poster="/img/mzt-hero-video-img-fallback.png"
-        >
-          <source src="/video/mztw-loop-dark.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
         {/* Content container - pushes buttons to bottom safely */}
         <div className="relative z-10 flex-1 flex flex-col justify-start pt-10 md:pt-10 px-6">
@@ -174,12 +183,12 @@ export default function Intro() {
             Explore a living 2D world. Lead your warrior. Join the Tribe!
           </p>
 
-          {/* Replace with your actual gameplay video or screenshots */}
+          {/* Gameplay video */}
           <div className="relative rounded-2xl overflow-hidden shadow-2xl max-w-5xl mx-auto mb-12">
-            <video className="w-full" autoPlay muted loop playsInline>
-              <source src="/video/mzt-demo-preview.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            <DynamicVideo
+              src="/video/mzt-demo-preview.mp4"
+              className="w-full"
+            />
           </div>
 
           <Link href="/demo">
@@ -266,27 +275,19 @@ export default function Intro() {
                 )}
               </div>
             ) : (
-              <ImageFader images={faderImages} delay={1000} />
+              <DynamicImageFader images={faderImages} delay={1000} />
             )}
           </div>
 
           {/* Mint Button */}
-          <p className='text-center mt-8'>
+          <div className='text-center mt-8'> {/* ← Changed to <div> */}
             <strong className="block text-[1.125em] mb-[15px] text-[#8dffbf]">
-              LIVE MINTING ON SOLANA NETWORK
+              MZT WARRIORS NOW LIVE<br/> MINTING ON SOLANA NETWORK
             </strong>
             <div style={{display: 'flex', justifyContent: 'center', marginTop: '1em'}}>
               <Image src="/img/solanaLogo.png" alt="Solana Network" width={100} height={15} />
             </div>
-          </p>
-
-          <p className="note-text text-center text-sm mt-4 italic text-[#cccccc] opacity-90 max-w-[420px] mx-auto">
-            <span style={{color:'red'}}>*</span>The interactive demo (WIP) is now live —{' '}
-            <Link href="/demo" className="text-yellow-400 hover:text-yellow-300 underline font-medium">
-              Check it out!
-            </Link><br />
-            Minting helps bring the complete game to life.
-          </p>
+          </div>
         
           <DynamicMintButton 
             onMintStart={handleMintStart}
@@ -300,6 +301,14 @@ export default function Intro() {
               {error && <p style={{ color: '#ff8a8a' }}>Error: {error}</p>}
               {minted && <p style={{ color: '#aeffa2' }}>Mint Successful! Check your wallet. 🍎🔥🎉</p>}
           </div>
+
+          <p className="note-text text-center text-sm mt-4 italic text-[#cccccc] opacity-90 max-w-[420px] mx-auto">
+            <span style={{color:'red'}}>*</span>The interactive demo (WIP) is now live —{' '}
+            <Link href="/demo" className="text-yellow-400 hover:text-yellow-300 underline font-medium">
+              Check out the Demo!
+            </Link><br />
+            Minting helps bring the complete game to life.
+          </p>
 
           <p className="text-sm text-gray-500 mt-4 opacity-80">
            <span style={{color:'red'}}>*</span> Not a financial investment.<br/> This is an indie passion project — I can only promise you pixels. <br/> Thank you for your support 🍎🔥
