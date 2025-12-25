@@ -55,7 +55,6 @@ a {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
   padding: 1.5rem 2.5rem; /* p-6 sm:p-10 (default to p-6, add media query for sm:p-10) */
   border: 1px solid #166534; /* border border-green-700 */
-  background-image: url("/img/forest-bg-pattern2.png");
 }
 
 .section-title {
