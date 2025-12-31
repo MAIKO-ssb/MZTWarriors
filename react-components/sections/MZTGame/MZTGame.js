@@ -12,15 +12,15 @@ class MainScene extends Phaser.Scene {
 
     preload() {
         if (!this.textures.exists('manzanita')) {
-            this.load.atlas('manzanita', '/images/characters/manzanita.png', '/images/characters/manzanita.json');
+            this.load.atlas('manzanita', '/game/characters/manzanita.png', '/game/characters/manzanita.json');
         }
-        this.load.image('sceneBg', '/images/backgrounds/bg-mzt-scene-village.png');
-        this.load.image('teepee', '/images/items/mzt-fg-village-teepee.png');
-        this.load.spritesheet('firepit', '/images/items/firepit.png', {
+        this.load.image('sceneBg', '/game/backgrounds/bg-mzt-scene-village.png');
+        this.load.image('teepee', '/game/items/mzt-fg-village-teepee.png');
+        this.load.spritesheet('firepit', '/game/items/firepit.png', {
             frameWidth: 316,
             frameHeight: 463.3,
         });
-        // this.load.image('enemy', '/images/enemies/enemy.png');
+        // this.load.image('enemy', '/game/enemies/enemy.png');
         // this.load.on('filecomplete', (key) => {
         //     console.log(`Asset loaded: ${key}`);
         //     if (key === 'manzanita') {
@@ -108,45 +108,45 @@ class MainScene extends Phaser.Scene {
         this.platforms.add(this.teepeeDoorCeilPlat);
 
         // === CHIEF NPC SETUP ===
-        // const chiefStartX = 400;
-        // const chiefStartY = groundY - 150;
+        const chiefStartX = 400;
+        const chiefStartY = groundY - 150;
 
-        // // Create physics sprite directly
-        // this.chief = this.physics.add.sprite(chiefStartX, chiefStartY, 'manzanita')
-        //     .setScale(1.3)
-        //     .setTint(0xffddba)
-        //     .setDepth(3);
+        // Create physics sprite directly
+        this.chief = this.physics.add.sprite(chiefStartX, chiefStartY, 'manzanita')
+            .setScale(1.3)
+            .setTint(0xffddba)
+            .setDepth(3);
 
-        // // Physics
-        // this.chief.body.setAllowGravity(true);
-        // this.chief.body.setCollideWorldBounds(true);
-        // this.chief.body.setDragX(3000);
-        // this.chief.body.setSize(40, 55);
-        // this.chief.body.setOffset(40, 10);
+        // Physics
+        this.chief.body.setAllowGravity(true);
+        this.chief.body.setCollideWorldBounds(true);
+        this.chief.body.setDragX(3000);
+        this.chief.body.setSize(40, 55);
+        this.chief.body.setOffset(40, 10);
 
-        // // Colliders
-        // this.physics.add.collider(this.chief, this.platforms);
-        // this.physics.add.collider(this.chief, this.firepit);
+        // Colliders
+        this.physics.add.collider(this.chief, this.platforms);
+        this.physics.add.collider(this.chief, this.firepit);
 
-        // // Name label — closer and follows perfectly
-        // this.chiefName = this.add.text(chiefStartX, chiefStartY - 80, 'Manzanita Chief', {
-        //     fontSize: '20px',
-        //     fill: '#ffddaa',
-        //     stroke: '#331100',
-        //     strokeThickness: 4,
-        //     fontStyle: 'bold'
-        // }).setOrigin(0.5).setDepth(11);
+        // Name label — closer and follows perfectly
+        this.chiefName = this.add.text(chiefStartX, chiefStartY - 80, 'Manzanita Chief', {
+            fontSize: '20px',
+            fill: '#ffddaa',
+            stroke: '#331100',
+            strokeThickness: 4,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(11);
 
-        // // Patrol data directly on chief
-        // this.chief.patrolLeft = 300;    // Safe left of teepee
-        // this.chief.patrolRight = 600;   // ← Stop well before firepit (~700)
-        // this.chief.patrolDirection = 1;
-        // this.chief.walkSpeed = 180;
-        // this.chief.isPatrolling = true;
-        // this.chief.nextPatrolSwitch = 0;
+        // Patrol data directly on chief
+        this.chief.patrolLeft = 300;    // Safe left of teepee
+        this.chief.patrolRight = 600;   // ← Stop well before firepit (~700)
+        this.chief.patrolDirection = 1;
+        this.chief.walkSpeed = 180;
+        this.chief.isPatrolling = true;
+        this.chief.nextPatrolSwitch = 0;
 
-        // // Start idle
-        // this.chief.anims.play('idle', true);
+        // Start idle
+        this.chief.anims.play('idle', true);
 
         // Camera
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -869,55 +869,55 @@ class MainScene extends Phaser.Scene {
         this.refs.enemies.current.forEach(enemy => enemy.update());
 
         // === CHIEF PATROL AI — NATURAL, WISE, UNSTUCKABLE ===
-        // if (this.chief && this.chief.isPatrolling) {
-        //     const chief = this.chief;
-        //     const now = this.time.now;
+        if (this.chief && this.chief.isPatrolling) {
+            const chief = this.chief;
+            const now = this.time.now;
 
-        //     // State machine approach: are we currently walking toward a target?
-        //     if (!chief.currentTarget) {
-        //         // Pick a new random destination within safe bounds
-        //         const minX = 320;
-        //         const maxX = 580; // Safe before firepit
-        //         chief.currentTarget = Phaser.Math.Between(minX, maxX);
+            // State machine approach: are we currently walking toward a target?
+            if (!chief.currentTarget) {
+                // Pick a new random destination within safe bounds
+                const minX = 320;
+                const maxX = 580; // Safe before firepit
+                chief.currentTarget = Phaser.Math.Between(minX, maxX);
 
-        //         // Random walk speed for this leg
-        //         chief.currentSpeed = Phaser.Math.Between(120, 220);
+                // Random walk speed for this leg
+                chief.currentSpeed = Phaser.Math.Between(120, 220);
 
-        //         // Random pause at end
-        //         chief.pauseTime = Phaser.Math.Between(1000, 4000);
-        //     }
+                // Random pause at end
+                chief.pauseTime = Phaser.Math.Between(1000, 4000);
+            }
 
-        //     // Determine direction to target
-        //     if (chief.x < chief.currentTarget - 10) {
-        //         chief.setVelocityX(chief.currentSpeed);
-        //         chief.flipX = false;
-        //         this.updateBodyOffset(chief);
-        //         chief.anims.play('walk', true);
-        //     } else if (chief.x > chief.currentTarget + 10) {
-        //         chief.setVelocityX(-chief.currentSpeed);
-        //         chief.flipX = true;
-        //         this.updateBodyOffset(chief);
-        //         chief.anims.play('walk', true);
-        //     } else {
-        //         // Close enough to target → stop and idle
-        //         chief.setVelocityX(0);
-        //         chief.anims.play('idle', true);
+            // Determine direction to target
+            if (chief.x < chief.currentTarget - 10) {
+                chief.setVelocityX(chief.currentSpeed);
+                chief.flipX = false;
+                this.updateBodyOffset(chief);
+                chief.anims.play('walk', true);
+            } else if (chief.x > chief.currentTarget + 10) {
+                chief.setVelocityX(-chief.currentSpeed);
+                chief.flipX = true;
+                this.updateBodyOffset(chief);
+                chief.anims.play('walk', true);
+            } else {
+                // Close enough to target → stop and idle
+                chief.setVelocityX(0);
+                chief.anims.play('idle', true);
 
-        //         // Wait for pause to end before picking new target
-        //         if (!chief.pauseEndTime) {
-        //             chief.pauseEndTime = now + chief.pauseTime;
-        //         }
+                // Wait for pause to end before picking new target
+                if (!chief.pauseEndTime) {
+                    chief.pauseEndTime = now + chief.pauseTime;
+                }
 
-        //         if (now >= chief.pauseEndTime) {
-        //             // Done pausing — pick new target
-        //             chief.currentTarget = null;
-        //             chief.pauseEndTime = null;
-        //         }
-        //     }
+                if (now >= chief.pauseEndTime) {
+                    // Done pausing — pick new target
+                    chief.currentTarget = null;
+                    chief.pauseEndTime = null;
+                }
+            }
 
-        //     // Name follows
-        //     this.chiefName.setPosition(chief.x, chief.y - 80);
-        // }
+            // Name follows
+            this.chiefName.setPosition(chief.x, chief.y - 80);
+        }
 
         Object.keys(this.refs.players.current).forEach(id => {
             const p = this.refs.players.current[id];
@@ -1343,7 +1343,6 @@ const MZTGame = () => {
         });
 
         // Track active chat bubbles per player
-        // this.activeChatBubbles = this.activeChatBubbles || {};
         socket.current.on('chatMessageReceived', (data) => {
             console.log('Received message via socket:', data, 'from player', data.id);
             if (!sceneRef.current) {
