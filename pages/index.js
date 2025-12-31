@@ -3,6 +3,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // Import Wallet Stuff
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
+import { mplToolbox } from '@metaplex-foundation/mpl-toolbox';
+import { fetchDigitalAsset } from '@metaplex-foundation/mpl-token-metadata';
+import { publicKey } from '@metaplex-foundation/umi';
 
 // Next.js UI
 import Head from 'next/head';
@@ -104,6 +109,15 @@ export default function Intro() {
   const [lastMintedNftAddress, setLastMintedNftAddress] = useState(null);
   const [error, setError] = useState(null);
 
+  const { connection } = useConnection();
+
+  const umi = useMemo(() => {
+    if (!connection?.rpcEndpoint) return null;
+    return createUmi(connection.rpcEndpoint)
+      .use(mplTokenMetadata())
+      .use(mplToolbox());
+  }, [connection?.rpcEndpoint]);
+
   // 2. Define callback functions to pass to the MintButton component
   const handleMintStart = () => {
     setMinting(true);
@@ -112,13 +126,50 @@ export default function Intro() {
     setMintedNftImageUri(null); // Clear previous image on new attempt
   };
 
-  const handleMintSuccess = (mintAddress, imageUrl) => {
+  const handleMintSuccess = useCallback((mintAddress) => {
     setMinting(false);
     setMinted(true);
-    console.log("SUCCESS! Received in parent:", { mintAddress, imageUrl });
     setLastMintedNftAddress(mintAddress);
-    setMintedNftImageUri(imageUrl);
-  };
+    setMintedNftImageUri(null); // reset to show loading state
+    setError(null);
+  
+    console.log("Mint success – polling metadata for image:", mintAddress);
+  
+    if (!umi) {
+      console.warn("UMI not available");
+      return;
+    }
+  
+    const poll = async () => {
+      await new Promise(r => setTimeout(r, 3000)); // give Solana ~3s head start
+      let attempts = 0;
+      const maxAttempts = 40; // ~1 min
+  
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          const asset = await fetchDigitalAsset(umi, publicKey(mintAddress));
+          const imageUrl = asset.metadata?.image;
+  
+          if (imageUrl) {
+            console.log(`Image found after ${attempts} attempts:`, imageUrl);
+            setMintedNftImageUri(imageUrl);
+            return;
+          }
+        } catch (err) {
+          // normal during delay: "Account not found" or similar
+          console.log(`Attempt ${attempts}: metadata not ready yet`, err?.message || err);
+        }
+  
+        await new Promise(r => setTimeout(r, 1500)); // 1.5s wait
+      }
+  
+      console.warn("Image not found after polling");
+      // Optional: set fallback or leave as null
+    };
+  
+    poll();
+  }, [umi]);
 
   const handleMintError = (errorMessage) => {
     setMinting(false);
@@ -272,6 +323,23 @@ export default function Intro() {
                     <p style={{color: '#aaa', fontSize: '0.8em', marginTop: '10px'}}>
                         Mint Address: <a href={`https://solscan.io/token/${lastMintedNftAddress}?cluster=mainnet-beta`} target="_blank" rel="noopener noreferrer" style={{color: '#00ffff'}}>{lastMintedNftAddress.substring(0,4)}...{lastMintedNftAddress.substring(lastMintedNftAddress.length - 4)}</a>
                     </p>
+                )}
+              </div>
+            ) : minted ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '2em', 
+                border: '2px dashed #aeffa2', 
+                borderRadius: '8px',
+                color: '#aeffa2',
+                maxWidth: '420px'
+              }}>
+                <h3>Minted Successfully! 🍎🔥</h3>
+                <p>Loading your Warrior preview... (usually 10–60 sec)</p>
+                {lastMintedNftAddress && (
+                  <p style={{ fontSize: '0.9em', color: '#aaa', marginTop: '1em' }}>
+                    Mint: {lastMintedNftAddress.slice(0,6)}...{lastMintedNftAddress.slice(-6)}
+                  </p>
                 )}
               </div>
             ) : (

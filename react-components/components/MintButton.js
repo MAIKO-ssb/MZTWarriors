@@ -116,24 +116,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
       console.log('MINTED → https://solscan.io/tx/' + signature);
 
       // 1. IMMEDIATELY tell parent: mint succeeded (show success message + address)
-      onMintSuccess?.(nftMint.publicKey.toString(), null);
-
-      // 2. Then keep trying to fetch the newly minted image in the background until it works
-      (async () => {
-        for (let i = 0; i < 30; i++) {  // try for ~30 seconds
-          try {
-            const asset = await fetchDigitalAsset(umi, nftMint.publicKey);
-            if (asset.metadata.image) {
-              console.log('Image loaded!', asset.metadata.image);
-              onMintSuccess?.(nftMint.publicKey.toString() + '-final', asset.metadata.image);
-              break;
-            }
-          } catch (e) {
-            // still indexing...
-          }
-          await new Promise(r => setTimeout(r, 1500));
-        }
-      })();
+      onMintSuccess?.(nftMint.publicKey.toString());
     
     } catch (error) {
       console.error('Mint failed:', error),
@@ -196,7 +179,7 @@ export default function MintButton({ onMintStart, onMintSuccess, onMintError }) 
   const price = priceLamports ? (Number(priceLamports) / 1_000_000_000).toFixed(3) : '0.111';
 
   return (
-    <div style={{ textAlign: 'center', color: 'white', padding: '40px' }}>
+    <div style={{ textAlign: 'center', color: 'white', marginTop: '1em' }}>
       <WalletMultiButton style={{ marginBottom: '20px' }} />
       {wallet.connected && (
         <>
