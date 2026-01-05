@@ -3,6 +3,147 @@ import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import Enemy from '../MZTGame/enemies/Enemy';
 
+class ModularPlayer extends Phaser.GameObjects.Container {
+    constructor(scene, x, y) {
+        super(scene, x, y);
+        this.scene = scene;
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        this.body.setAllowGravity(true);
+        this.body.setCollideWorldBounds(true);
+        this.body.setDragX(4000);
+        // this.body.setSize(40, 55);
+        // this.body.setOffset(40, 10);  // Tune later
+        this.body.debugShowBody = true;
+
+        this.parts = {};
+        this.createParts();
+    }
+
+    createParts() {
+        // (bottom layer)
+        // Legs (first) 
+        const legs = this.scene.add.sprite(0, 0, 'legs').setOrigin(0.25, .25);
+        legs.setFrame('mzt_idle0000');
+        this.add(legs);
+        this.parts.legs = legs;
+
+        // Arm-lead (front arm  — behind body)
+        const armLead = this.scene.add.sprite(0, 0, 'arm_lead').setOrigin(0.25, 0.25);
+        armLead.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(armLead);
+        this.parts.arm_lead = armLead;
+
+        // Body (base, above legs)
+        const body = this.scene.add.sprite(0, 0, 'body').setOrigin(0.25, .25);
+        body.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(body);
+        this.parts.body = body;
+
+        // Mouth (face layer, above body)
+        const mouth = this.scene.add.sprite(0, 0, 'mouth').setOrigin(0.25, 0.25);
+        mouth.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(mouth);
+        this.parts.mouth = mouth;
+
+        // Eyes (face again, above mouth)
+        const eyes = this.scene.add.sprite(0, 0, 'eyes').setOrigin(0.25, 0.25);
+        eyes.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(eyes);
+        this.parts.eyes = eyes;
+
+        // Spear (held in front arm/hand — top layer for weapon)
+        const weapon = this.scene.add.sprite(0, 0, 'weapon').setOrigin(0.25, 0.25);  // ← important: pivot near grip (left side of spear)
+        weapon.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(weapon);
+        this.parts.weapon = weapon;
+
+        // Arm-rear (rear arm with white gloves — behind shoulder)
+        const armRear = this.scene.add.sprite(0, 0, 'arm_rear').setOrigin(0.25, 0.25);
+        armRear.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(armRear);
+        this.parts.arm_rear = armRear;
+
+        // Shoulder (front of face)
+        const shoulder = this.scene.add.sprite(0, 0, 'shoulder').setOrigin(0.25, 0.25);
+        shoulder.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(shoulder);
+        this.parts.shoulder = shoulder;
+
+        // Stem (Uppermost - can cover face)
+        const stem = this.scene.add.sprite(0, 0, 'stem').setOrigin(0.25, 0.25);
+        stem.setFrame('mzt_idle0000');  // ← Add this for each part
+        this.add(stem);
+        this.parts.stem = stem;
+        // (top layer)
+
+        // Optional offset if misalignment (tune visually)
+        // body.setPosition(0, -5);  // Example: shift body up/down
+        // Debug: check all parts after creation
+    
+        console.log('All player parts created:', Object.keys(this.parts));
+        Object.entries(this.parts).forEach(([name, sprite]) => {
+            if (!sprite) {
+                console.error(`Part ${name} is undefined!`);
+            } else if (!sprite.texture) {
+                console.error(`Part ${name} has no texture! Key: ${sprite.texture?.key}`);
+            } else {
+                console.log(`Part ${name} OK - texture: ${sprite.texture.key}`);
+            }
+        });
+    }
+
+    playAll(animKey, forceRestart = false) {
+        console.log('Playing:', animKey, { forceRestart });
+
+        const tryPlay = (part, animName) => {
+            if (!part?.anims) return;
+            if (!this.scene.anims.exists(animName)) {
+                console.warn(`Animation missing: ${animName} — skipping part`);
+                return;
+            }
+    
+            if (forceRestart) {
+                // SAFEST: always start from frame 0 when forcing
+                part.anims.play({ key: animName, startFrame: 0 }, true);
+            } else {
+                part.anims.play(animName, true);
+            }
+        };
+
+        tryPlay(this.parts.legs, `legs_${animKey}`);
+        tryPlay(this.parts.stem, `stem_${animKey}`);
+        tryPlay(this.parts.shoulder, `shoulder_${animKey}`);
+        tryPlay(this.parts.arm_rear, `arm_rear_${animKey}`);
+        tryPlay(this.parts.arm_lead, `arm_lead_${animKey}`);
+        tryPlay(this.parts.body, `body_${animKey}`);
+        tryPlay(this.parts.mouth, `mouth_${animKey}`);
+        tryPlay(this.parts.eyes, `eyes_${animKey}`);
+        tryPlay(this.parts.weapon, `weapon_${animKey}`);
+    }
+
+    resetToFirstFrame(animKey) {
+        console.log('Forcing reset to first frame of:', animKey);
+        this.playAll(animKey, true); 
+    }
+
+    // Add flip/updateBodyOffset later
+    setFlipX(flip) {
+        this.flipX = flip;                    // container flip (propagates)
+        // Explicitly flip children (more reliable with atlases)
+        if (this.parts.legs) this.parts.legs.flipX = flip;
+        if (this.parts.body) this.parts.body.flipX = flip;
+        if (this.parts.shoulder) this.parts.shoulder.flipX = flip;
+        if (this.parts.eyes) this.parts.eyes.flipX = flip;
+        if (this.parts.stem) this.parts.stem.flipX = flip;
+        if (this.parts.mouth) this.parts.mouth.flipX = flip;
+        if (this.parts.arm_rear) this.parts.arm_rear.flipX = flip;
+        if (this.parts.arm_lead) this.parts.arm_lead.flipX = flip;
+        if (this.parts.weapon) this.parts.weapon.flipX = flip;
+        // this.scene.updateBodyOffset(this);  // Call your existing method - dated remove soon
+    }
+}
+
 class MainScene extends Phaser.Scene {
     constructor(config, refs) {
         super({ key: 'mainScene' });
@@ -11,9 +152,19 @@ class MainScene extends Phaser.Scene {
     }
 
     preload() {
-        if (!this.textures.exists('manzanita')) {
-            this.load.atlas('manzanita', '/game/characters/manzanita.png', '/game/characters/manzanita.json');
-        }
+        // if (!this.textures.exists('manzanita')) {
+        //     this.load.atlas('manzanita', '/game/characters/manzanita.png', '/game/characters/manzanita.json');
+        // }
+        this.load.atlas('body', '/game/characters/manzanita/body-spritesheet.png', '/game/characters/manzanita/body-spritesheet.json');
+        this.load.atlas('legs', '/game/characters/manzanita/legs-spritesheet.png', '/game/characters/manzanita/legs-spritesheet.json');
+        this.load.atlas('eyes', '/game/characters/manzanita/eyes-classic.png', '/game/characters/manzanita/eyes-classic.json');
+        this.load.atlas('stem', '/game/characters/manzanita/stem-classic.png', '/game/characters/manzanita/stem-classic.json');
+        this.load.atlas('mouth', '/game/characters/manzanita/mouth-classic.png', '/game/characters/manzanita/mouth-classic.json');
+        this.load.atlas('shoulder', '/game/characters/manzanita/shoulder-leafguard.png', '/game/characters/manzanita/shoulder-leafguard.json');
+        this.load.atlas('arm_lead', '/game/characters/manzanita/arm_lead-whitegloves.png', '/game/characters/manzanita/arm_lead-whitegloves.json');
+        this.load.atlas('arm_rear', '/game/characters/manzanita/arm_rear-whitegloves.png', '/game/characters/manzanita/arm_rear-whitegloves.json');
+        this.load.atlas('weapon', '/game/characters/manzanita/weapon-wooden-spear.png', '/game/characters/manzanita/weapon-wooden-spear.json');
+
         this.load.image('sceneBg', '/game/backgrounds/bg-mzt-scene-village.png');
         this.load.image('teepee', '/game/items/mzt-fg-village-teepee.png');
         this.load.spritesheet('firepit', '/game/items/firepit.png', {
@@ -89,8 +240,8 @@ class MainScene extends Phaser.Scene {
             .setDepth(1);
         this.firepit.body.setImmovable(true);
         this.firepit.body.setAllowGravity(false);
-        this.firepit.body.setSize(315 * 0.3, 464 * 0.3);
-        this.firepit.body.offset.set(100, 280);
+        this.firepit.body.setSize(260, 300);
+        this.firepit.body.offset.set(30, 120);
         this.firepit.play('burning');
 
         // TEEPEE
@@ -100,7 +251,7 @@ class MainScene extends Phaser.Scene {
             .setDepth(10);
         this.teepeeInsidePlat = this.add.rectangle(100, groundY - 165, 60, 180, 0x0000ff, 0);
         this.teepeeTopPlat = this.add.rectangle(170, groundY - 420, 30, 60, 0x000fff, 0)
-        this.teepeeDoorWallPlat = this.add.rectangle(200, groundY - 320, 20, 150, 0x000fff, 0)
+        this.teepeeDoorWallPlat = this.add.rectangle(200, groundY - 360, 28, 70, 0x000fff, 0)
         this.teepeeDoorCeilPlat = this.add.rectangle(235, groundY - 280, 50, 100, 0x000fff, 0)
         this.platforms.add(this.teepeeInsidePlat);
         this.platforms.add(this.teepeeTopPlat);
@@ -108,45 +259,45 @@ class MainScene extends Phaser.Scene {
         this.platforms.add(this.teepeeDoorCeilPlat);
 
         // === CHIEF NPC SETUP ===
-        const chiefStartX = 400;
-        const chiefStartY = groundY - 150;
+        // const chiefStartX = 400;
+        // const chiefStartY = groundY - 150;
 
-        // Create physics sprite directly
-        this.chief = this.physics.add.sprite(chiefStartX, chiefStartY, 'manzanita')
-            .setScale(1.3)
-            .setTint(0xffddba)
-            .setDepth(3);
+        // // Create physics sprite directly
+        // this.chief = this.physics.add.sprite(chiefStartX, chiefStartY, 'manzanita')
+        //     .setScale(1.3)
+        //     .setTint(0xffddba)
+        //     .setDepth(3);
 
-        // Physics
-        this.chief.body.setAllowGravity(true);
-        this.chief.body.setCollideWorldBounds(true);
-        this.chief.body.setDragX(3000);
-        this.chief.body.setSize(40, 55);
-        this.chief.body.setOffset(40, 10);
+        // // Physics
+        // this.chief.body.setAllowGravity(true);
+        // this.chief.body.setCollideWorldBounds(true);
+        // this.chief.body.setDragX(3000);
+        // this.chief.body.setSize(40, 55);
+        // this.chief.body.setOffset(40, 10);
 
-        // Colliders
-        this.physics.add.collider(this.chief, this.platforms);
-        this.physics.add.collider(this.chief, this.firepit);
+        // // Colliders
+        // this.physics.add.collider(this.chief, this.platforms);
+        // this.physics.add.collider(this.chief, this.firepit);
 
-        // Name label — closer and follows perfectly
-        this.chiefName = this.add.text(chiefStartX, chiefStartY - 80, 'Manzanita Chief', {
-            fontSize: '20px',
-            fill: '#ffddaa',
-            stroke: '#331100',
-            strokeThickness: 4,
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(11);
+        // // Name label — closer and follows perfectly
+        // this.chiefName = this.add.text(chiefStartX, chiefStartY - 80, 'Manzanita Chief', {
+        //     fontSize: '20px',
+        //     fill: '#ffddaa',
+        //     stroke: '#331100',
+        //     strokeThickness: 4,
+        //     fontStyle: 'bold'
+        // }).setOrigin(0.5).setDepth(11);
 
-        // Patrol data directly on chief
-        this.chief.patrolLeft = 300;    // Safe left of teepee
-        this.chief.patrolRight = 600;   // ← Stop well before firepit (~700)
-        this.chief.patrolDirection = 1;
-        this.chief.walkSpeed = 180;
-        this.chief.isPatrolling = true;
-        this.chief.nextPatrolSwitch = 0;
+        // // Patrol data directly on chief
+        // this.chief.patrolLeft = 300;    // Safe left of teepee
+        // this.chief.patrolRight = 600;   // ← Stop well before firepit (~700)
+        // this.chief.patrolDirection = 1;
+        // this.chief.walkSpeed = 180;
+        // this.chief.isPatrolling = true;
+        // this.chief.nextPatrolSwitch = 0;
 
         // Start idle
-        this.chief.anims.play('idle', true);
+        // this.chief.anims.play('idle', true);
 
         // Camera
         this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -173,6 +324,16 @@ class MainScene extends Phaser.Scene {
             this.createPlayer(this);
         }
 
+        // Create attack hitbox (once, shared for the local player)
+        this.attackHitbox = this.add.rectangle(0, 0, 90, 20, 0xff0000, 0.4)  // visible red for debugging
+        .setDepth(5)
+        .setOrigin(0.5, 0.5);
+
+        this.physics.add.existing(this.attackHitbox);
+        this.attackHitbox.body.setAllowGravity(false);
+        this.attackHitbox.body.setEnable(false);           // disabled by default
+        this.attackHitbox.body.debugShowBody = true;       // keep visible during dev
+
         // Track last flip
         this.lastFlipX = null;
 
@@ -193,50 +354,818 @@ class MainScene extends Phaser.Scene {
         });
         this.firepit.play('burning');
 
-        this.anims.create({
-            key: 'idle',
-            frames: this.anims.generateFrameNames('manzanita', {
-                prefix: 'mzt_idle',
-                start: 0,
-                end: 10,
-                zeroPad: 4
-            }),
-            frameRate: 15,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'walk',
-            frames: this.anims.generateFrameNames('manzanita', {
-                prefix: 'mzt_walk',
-                start: 0,
-                end: 8,
-                zeroPad: 4
-            }),
-            frameRate: 20,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'attack',
-            frames: this.anims.generateFrameNames('manzanita', {
-                prefix: 'mzt_attack',
-                start: 0,
-                end: 2,
-                zeroPad: 4
-            }),
-            frameRate: 30,
-            repeat: 0
-        });
-        this.anims.create({
-            key: 'jump',
-            frames: this.anims.generateFrameNames('manzanita', {
-                prefix: 'mzt_jump',
-                start: 0,
-                end: 4,
-                zeroPad: 4
-            }),
-            frameRate: 20,
-            repeat: -1
-        });
+
+// Stem idle
+this.anims.create({
+    key: 'stem_idle',
+    // frames: this.anims.generateFrameNames('stem', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'stem', frame: 'mzt_idle0000' },
+        { key: 'stem', frame: 'mzt_idle0001' },
+        { key: 'stem', frame: 'mzt_idle0002' },
+        { key: 'stem', frame: 'mzt_idle0003' },
+        { key: 'stem', frame: 'mzt_idle0004' },
+        { key: 'stem', frame: 'mzt_idle0005' },
+        { key: 'stem', frame: 'mzt_idle0006' },
+        { key: 'stem', frame: 'mzt_idle0007' },
+        { key: 'stem', frame: 'mzt_idle0008' },
+        { key: 'stem', frame: 'mzt_idle0009' },
+        { key: 'stem', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Stem walk
+this.anims.create({
+    key: 'stem_walk',
+    // frames: this.anims.generateFrameNames('stem', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'stem', frame: 'mzt_walk0000' },
+        { key: 'stem', frame: 'mzt_walk0001' },
+        { key: 'stem', frame: 'mzt_walk0002' },
+        { key: 'stem', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Stem jump
+this.anims.create({
+    key: 'stem_jump',
+    // frames: this.anims.generateFrameNames('stem', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'stem', frame: 'mzt_jump0000' },
+        { key: 'stem', frame: 'mzt_jump0001' },
+        { key: 'stem', frame: 'mzt_jump0002' },
+        { key: 'stem', frame: 'mzt_jump0003' },
+        { key: 'stem', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Stem attack
+this.anims.create({
+    key: 'stem_attack',
+    // frames: this.anims.generateFrameNames('stem', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'stem', frame: 'mzt_attack0000' },
+        { key: 'stem', frame: 'mzt_attack0001' },
+        { key: 'stem', frame: 'mzt_attack0002' },
+        { key: 'stem', frame: 'mzt_attack0003' },
+        { key: 'stem', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,       // same as others — attack punchiness comes from eyes at 24
+    repeat: 0
+});
+
+// Mouth idle
+this.anims.create({
+    key: 'mouth_idle',
+    // frames: this.anims.generateFrameNames('mouth', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'mouth', frame: 'mzt_idle0000' },
+        { key: 'mouth', frame: 'mzt_idle0001' },
+        { key: 'mouth', frame: 'mzt_idle0002' },
+        { key: 'mouth', frame: 'mzt_idle0003' },
+        { key: 'mouth', frame: 'mzt_idle0004' },
+        { key: 'mouth', frame: 'mzt_idle0005' },
+        { key: 'mouth', frame: 'mzt_idle0006' },
+        { key: 'mouth', frame: 'mzt_idle0007' },
+        { key: 'mouth', frame: 'mzt_idle0008' },
+        { key: 'mouth', frame: 'mzt_idle0009' },
+        { key: 'mouth', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Mouth walk
+this.anims.create({
+    key: 'mouth_walk',
+    // frames: this.anims.generateFrameNames('mouth', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'mouth', frame: 'mzt_walk0000' },
+        { key: 'mouth', frame: 'mzt_walk0001' },
+        { key: 'mouth', frame: 'mzt_walk0002' },
+        { key: 'mouth', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Mouth jump
+this.anims.create({
+    key: 'mouth_jump',
+    // frames: this.anims.generateFrameNames('mouth', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'mouth', frame: 'mzt_jump0000' },
+        { key: 'mouth', frame: 'mzt_jump0001' },
+        { key: 'mouth', frame: 'mzt_jump0002' },
+        { key: 'mouth', frame: 'mzt_jump0003' },
+        { key: 'mouth', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Mouth attack
+this.anims.create({
+    key: 'mouth_attack',
+    // frames: this.anims.generateFrameNames('mouth', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'mouth', frame: 'mzt_attack0000' },
+        { key: 'mouth', frame: 'mzt_attack0001' },
+        { key: 'mouth', frame: 'mzt_attack0002' },
+        { key: 'mouth', frame: 'mzt_attack0003' },
+        { key: 'mouth', frame: 'mzt_attack0004' },
+    ],
+    frameRate: 16,
+    repeat: 0
+});
+
+// Eyes animations — same frame count & naming pattern as body/legs
+this.anims.create({
+    key: 'eyes_idle',
+    // frames: this.anims.generateFrameNames('eyes', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'eyes', frame: 'mzt_idle0000' },
+        { key: 'eyes', frame: 'mzt_idle0001' },
+        { key: 'eyes', frame: 'mzt_idle0002' },
+        { key: 'eyes', frame: 'mzt_idle0003' },
+        { key: 'eyes', frame: 'mzt_idle0004' },
+        { key: 'eyes', frame: 'mzt_idle0005' },
+        { key: 'eyes', frame: 'mzt_idle0006' },
+        { key: 'eyes', frame: 'mzt_idle0007' },
+        { key: 'eyes', frame: 'mzt_idle0008' },
+        { key: 'eyes', frame: 'mzt_idle0009' },
+        { key: 'eyes', frame: 'mzt_idle0010' },
+    ],
+    frameRate: 16,          // slightly slower than body/legs for natural blink feel?
+    repeat: -1
+});
+
+this.anims.create({
+    key: 'eyes_walk',
+    // frames: this.anims.generateFrameNames('eyes', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'eyes', frame: 'mzt_walk0000' },
+        { key: 'eyes', frame: 'mzt_walk0001' },
+        { key: 'eyes', frame: 'mzt_walk0002' },
+        { key: 'eyes', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+this.anims.create({
+    key: 'eyes_jump',
+    // frames: this.anims.generateFrameNames('eyes', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'eyes', frame: 'mzt_jump0000' },
+        { key: 'eyes', frame: 'mzt_jump0001' },
+        { key: 'eyes', frame: 'mzt_jump0002' },
+        { key: 'eyes', frame: 'mzt_jump0003' },
+        { key: 'eyes', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+this.anims.create({
+    key: 'eyes_attack',
+    // frames: this.anims.generateFrameNames('eyes', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'eyes', frame: 'mzt_attack0000' },
+        { key: 'eyes', frame: 'mzt_attack0001' },
+        { key: 'eyes', frame: 'mzt_attack0002' },
+        { key: 'eyes', frame: 'mzt_attack0003' },
+        { key: 'eyes', frame: 'mzt_attack0004' },
+    ],
+    frameRate: 24,          // faster for attack intensity
+    repeat: 0               // usually play once
+});
+
+// Arm-lead idle
+this.anims.create({
+    key: 'arm_lead_idle',
+    // frames: this.anims.generateFrameNames('arm_lead', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_lead', frame: 'mzt_idle0000' },
+        { key: 'arm_lead', frame: 'mzt_idle0001' },
+        { key: 'arm_lead', frame: 'mzt_idle0002' },
+        { key: 'arm_lead', frame: 'mzt_idle0003' },
+        { key: 'arm_lead', frame: 'mzt_idle0004' },
+        { key: 'arm_lead', frame: 'mzt_idle0005' },
+        { key: 'arm_lead', frame: 'mzt_idle0006' },
+        { key: 'arm_lead', frame: 'mzt_idle0007' },
+        { key: 'arm_lead', frame: 'mzt_idle0008' },
+        { key: 'arm_lead', frame: 'mzt_idle0009' },
+        { key: 'arm_lead', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Arm-lead walk
+this.anims.create({
+    key: 'arm_lead_walk',
+    // frames: this.anims.generateFrameNames('arm_lead', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_lead', frame: 'mzt_walk0000' },
+        { key: 'arm_lead', frame: 'mzt_walk0001' },
+        { key: 'arm_lead', frame: 'mzt_walk0002' },
+        { key: 'arm_lead', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Arm-lead jump
+this.anims.create({
+    key: 'arm_lead_jump',
+    // frames: this.anims.generateFrameNames('arm_lead', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_lead', frame: 'mzt_jump0000' },
+        { key: 'arm_lead', frame: 'mzt_jump0001' },
+        { key: 'arm_lead', frame: 'mzt_jump0002' },
+        { key: 'arm_lead', frame: 'mzt_jump0003' },
+        { key: 'arm_lead', frame: 'mzt_jump0004' },
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Arm-lead attack
+this.anims.create({
+    key: 'arm_lead_attack',
+    // frames: this.anims.generateFrameNames('arm_lead', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_lead', frame: 'mzt_attack0000' },
+        { key: 'arm_lead', frame: 'mzt_attack0001' },
+        { key: 'arm_lead', frame: 'mzt_attack0002' },
+        { key: 'arm_lead', frame: 'mzt_attack0003' },
+        { key: 'arm_lead', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,
+    repeat: 0
+});
+
+// Arm-rear idle
+this.anims.create({
+    key: 'arm_rear_idle',
+    // frames: this.anims.generateFrameNames('arm_rear', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_rear', frame: 'mzt_idle0000' },
+        { key: 'arm_rear', frame: 'mzt_idle0001' },
+        { key: 'arm_rear', frame: 'mzt_idle0002' },
+        { key: 'arm_rear', frame: 'mzt_idle0003' },
+        { key: 'arm_rear', frame: 'mzt_idle0004' },
+        { key: 'arm_rear', frame: 'mzt_idle0005' },
+        { key: 'arm_rear', frame: 'mzt_idle0006' },
+        { key: 'arm_rear', frame: 'mzt_idle0007' },
+        { key: 'arm_rear', frame: 'mzt_idle0008' },
+        { key: 'arm_rear', frame: 'mzt_idle0009' },
+        { key: 'arm_rear', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Arm-rear walk
+this.anims.create({
+    key: 'arm_rear_walk',
+    // frames: this.anims.generateFrameNames('arm_rear', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_rear', frame: 'mzt_walk0000' },
+        { key: 'arm_rear', frame: 'mzt_walk0001' },
+        { key: 'arm_rear', frame: 'mzt_walk0002' },
+        { key: 'arm_rear', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Arm-rear jump
+this.anims.create({
+    key: 'arm_rear_jump',
+    // frames: this.anims.generateFrameNames('arm_rear', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_rear', frame: 'mzt_jump0000' },
+        { key: 'arm_rear', frame: 'mzt_jump0001' },
+        { key: 'arm_rear', frame: 'mzt_jump0002' },
+        { key: 'arm_rear', frame: 'mzt_jump0003' },
+        { key: 'arm_rear', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Spear idle
+this.anims.create({
+    key: 'weapon_idle',
+    // frames: this.anims.generateFrameNames('weapon', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'weapon', frame: 'mzt_idle0000' },
+        { key: 'weapon', frame: 'mzt_idle0001' },
+        { key: 'weapon', frame: 'mzt_idle0002' },
+        { key: 'weapon', frame: 'mzt_idle0003' },
+        { key: 'weapon', frame: 'mzt_idle0004' },
+        { key: 'weapon', frame: 'mzt_idle0005' },
+        { key: 'weapon', frame: 'mzt_idle0006' },
+        { key: 'weapon', frame: 'mzt_idle0007' },
+        { key: 'weapon', frame: 'mzt_idle0008' },
+        { key: 'weapon', frame: 'mzt_idle0009' },
+        { key: 'weapon', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Spear walk
+this.anims.create({
+    key: 'weapon_walk',
+    // frames: this.anims.generateFrameNames('weapon', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'weapon', frame: 'mzt_walk0000' },
+        { key: 'weapon', frame: 'mzt_walk0001' },
+        { key: 'weapon', frame: 'mzt_walk0002' },
+        { key: 'weapon', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Spear jump
+this.anims.create({
+    key: 'weapon_jump',
+    // frames: this.anims.generateFrameNames('weapon', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'weapon', frame: 'mzt_jump0000' },
+        { key: 'weapon', frame: 'mzt_jump0001' },
+        { key: 'weapon', frame: 'mzt_jump0002' },
+        { key: 'weapon', frame: 'mzt_jump0003' },
+        { key: 'weapon', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Spear attack (faster for thrust impact — matches eyes_attack)
+this.anims.create({
+    key: 'weapon_attack',
+    // frames: this.anims.generateFrameNames('weapon', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'weapon', frame: 'mzt_attack0000' },
+        { key: 'weapon', frame: 'mzt_attack0001' },
+        { key: 'weapon', frame: 'mzt_attack0002' },
+        { key: 'weapon', frame: 'mzt_attack0003' },
+        { key: 'weapon', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 24,
+    repeat: 0
+});
+
+// Arm-rear attack
+this.anims.create({
+    key: 'arm_rear_attack',
+    // frames: this.anims.generateFrameNames('arm_rear', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'arm_rear', frame: 'mzt_attack0000' },
+        { key: 'arm_rear', frame: 'mzt_attack0001' },
+        { key: 'arm_rear', frame: 'mzt_attack0002' },
+        { key: 'arm_rear', frame: 'mzt_attack0003' },
+        { key: 'arm_rear', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,
+    repeat: 0
+});
+
+
+// Legs idle
+this.anims.create({
+    key: 'legs_idle',
+    // frames: this.anims.generateFrameNames('legs', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'legs', frame: 'mzt_idle0000' },
+        { key: 'legs', frame: 'mzt_idle0001' },
+        { key: 'legs', frame: 'mzt_idle0002' },
+        { key: 'legs', frame: 'mzt_idle0003' },
+        { key: 'legs', frame: 'mzt_idle0004' },
+        { key: 'legs', frame: 'mzt_idle0005' },
+        { key: 'legs', frame: 'mzt_idle0006' },
+        { key: 'legs', frame: 'mzt_idle0007' },
+        { key: 'legs', frame: 'mzt_idle0008' },
+        { key: 'legs', frame: 'mzt_idle0009' },
+        { key: 'legs', frame: 'mzt_idle0010' },
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Legs walk
+this.anims.create({
+    key: 'legs_walk',
+    // frames: this.anims.generateFrameNames('legs', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'legs', frame: 'mzt_walk0000' },
+        { key: 'legs', frame: 'mzt_walk0001' },
+        { key: 'legs', frame: 'mzt_walk0002' },
+        { key: 'legs', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Legs jump
+this.anims.create({
+    key: 'legs_jump',
+    // frames: this.anims.generateFrameNames('legs', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'legs', frame: 'mzt_jump0000' },
+        { key: 'legs', frame: 'mzt_jump0001' },
+        { key: 'legs', frame: 'mzt_jump0002' },
+        { key: 'legs', frame: 'mzt_jump0003' },
+        { key: 'legs', frame: 'mzt_jump0004' },
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+
+// Legs attack
+this.anims.create({
+    key: 'legs_attack',
+    // frames: this.anims.generateFrameNames('legs', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'legs', frame: 'mzt_attack0000' },
+        { key: 'legs', frame: 'mzt_attack0001' },
+        { key: 'legs', frame: 'mzt_attack0002' },
+        { key: 'legs', frame: 'mzt_attack0003' },
+        { key: 'legs', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,
+    repeat: 0
+});
+
+// Body idle
+this.anims.create({
+    key: 'body_idle',
+    // frames: this.anims.generateFrameNames('body', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,  // Based on JSON
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'body', frame: 'mzt_idle0000' },
+        { key: 'body', frame: 'mzt_idle0001' },
+        { key: 'body', frame: 'mzt_idle0002' },
+        { key: 'body', frame: 'mzt_idle0003' },
+        { key: 'body', frame: 'mzt_idle0004' },
+        { key: 'body', frame: 'mzt_idle0005' },
+        { key: 'body', frame: 'mzt_idle0006' },
+        { key: 'body', frame: 'mzt_idle0007' },
+        { key: 'body', frame: 'mzt_idle0008' },
+        { key: 'body', frame: 'mzt_idle0009' },
+        { key: 'body', frame: 'mzt_idle0010' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Body attack
+this.anims.create({
+    key: 'body_attack',
+    // frames: this.anims.generateFrameNames('body', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,     // matches eyes
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'body', frame: 'mzt_attack0000' },
+        { key: 'body', frame: 'mzt_attack0001' },
+        { key: 'body', frame: 'mzt_attack0002' },
+        { key: 'body', frame: 'mzt_attack0003' },
+        { key: 'body', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,      // your preferred FPS
+    repeat: 0           // plays once
+});
+
+
+// Body jump
+this.anims.create({
+    key: 'body_jump',
+    // frames: this.anims.generateFrameNames('body', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,     // matches eyes
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'body', frame: 'mzt_jump0000' },
+        { key: 'body', frame: 'mzt_jump0001' },
+        { key: 'body', frame: 'mzt_jump0002' },
+        { key: 'body', frame: 'mzt_jump0003' },
+        { key: 'body', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Body walk
+this.anims.create({
+    key: 'body_walk',
+    // frames: this.anims.generateFrameNames('body', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,     // matches eyes JSON
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'body', frame: 'mzt_walk0000' },
+        { key: 'body', frame: 'mzt_walk0001' },
+        { key: 'body', frame: 'mzt_walk0002' },
+        { key: 'body', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Shoulder idle
+this.anims.create({
+    key: 'shoulder_idle',
+    // frames: this.anims.generateFrameNames('shoulder', {
+    //     prefix: 'mzt_idle',
+    //     start: 0,
+    //     end: 10,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'shoulder', frame: 'mzt_idle0000' },
+        { key: 'shoulder', frame: 'mzt_idle0001' },
+        { key: 'shoulder', frame: 'mzt_idle0002' },
+        { key: 'shoulder', frame: 'mzt_idle0003' },
+        { key: 'shoulder', frame: 'mzt_idle0004' },
+        { key: 'shoulder', frame: 'mzt_idle0005' },
+        { key: 'shoulder', frame: 'mzt_idle0006' },
+        { key: 'shoulder', frame: 'mzt_idle0007' },
+        { key: 'shoulder', frame: 'mzt_idle0008' },
+        { key: 'shoulder', frame: 'mzt_idle0009' },
+        { key: 'shoulder', frame: 'mzt_idle0010' },
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Shoulder walk
+this.anims.create({
+    key: 'shoulder_walk',
+    // frames: this.anims.generateFrameNames('shoulder', {
+    //     prefix: 'mzt_walk',
+    //     start: 0,
+    //     end: 3,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'shoulder', frame: 'mzt_walk0000' },
+        { key: 'shoulder', frame: 'mzt_walk0001' },
+        { key: 'shoulder', frame: 'mzt_walk0002' },
+        { key: 'shoulder', frame: 'mzt_walk0003' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Shoulder jump
+this.anims.create({
+    key: 'shoulder_jump',
+    // frames: this.anims.generateFrameNames('shoulder', {
+    //     prefix: 'mzt_jump',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'shoulder', frame: 'mzt_jump0000' },
+        { key: 'shoulder', frame: 'mzt_jump0001' },
+        { key: 'shoulder', frame: 'mzt_jump0002' },
+        { key: 'shoulder', frame: 'mzt_jump0003' },
+        { key: 'shoulder', frame: 'mzt_jump0004' }
+    ],
+    frameRate: 16,
+    repeat: -1
+});
+
+// Shoulder attack
+this.anims.create({
+    key: 'shoulder_attack',
+    // frames: this.anims.generateFrameNames('shoulder', {
+    //     prefix: 'mzt_attack',
+    //     start: 0,
+    //     end: 4,
+    //     zeroPad: 4
+    // }),
+    frames: [
+        { key: 'shoulder', frame: 'mzt_attack0000' },
+        { key: 'shoulder', frame: 'mzt_attack0001' },
+        { key: 'shoulder', frame: 'mzt_attack0002' },
+        { key: 'shoulder', frame: 'mzt_attack0003' },
+        { key: 'shoulder', frame: 'mzt_attack0004' }
+    ],
+    frameRate: 16,
+    repeat: 0
+});
+
+
+
+        // this.anims.create({
+        //     key: 'idle',
+        //     frames: this.anims.generateFrameNames('manzanita', {
+        //         prefix: 'mzt_idle',
+        //         start: 0,
+        //         end: 10,
+        //         zeroPad: 4
+        //     }),
+        //     frameRate: 15,
+        //     repeat: -1
+        // });
+        // this.anims.create({
+        //     key: 'walk',
+        //     frames: this.anims.generateFrameNames('manzanita', {
+        //         prefix: 'mzt_walk',
+        //         start: 0,
+        //         end: 8,
+        //         zeroPad: 4
+        //     }),
+        //     frameRate: 20,
+        //     repeat: -1
+        // });
+        // this.anims.create({
+        //     key: 'attack',
+        //     frames: this.anims.generateFrameNames('manzanita', {
+        //         prefix: 'mzt_attack',
+        //         start: 0,
+        //         end: 2,
+        //         zeroPad: 4
+        //     }),
+        //     frameRate: 30,
+        //     repeat: 0
+        // });
+        // this.anims.create({
+        //     key: 'jump',
+        //     frames: this.anims.generateFrameNames('manzanita', {
+        //         prefix: 'mzt_jump',
+        //         start: 0,
+        //         end: 4,
+        //         zeroPad: 4
+        //     }),
+        //     frameRate: 20,
+        //     repeat: -1
+        // });
 
         // Create player
         if (this.refs.isConnected.current && this.refs.myId.current && !this.refs.players.current[this.refs.myId.current]) {
@@ -247,7 +1176,7 @@ class MainScene extends Phaser.Scene {
         this.enemyCount = 0;
         this.enemyMaxCount = 0;
         this.time.addEvent({
-            delay: 500,
+            delay: 2500,
             callback: () => {
                 if (this.enemyCount >= this.enemyMaxCount) {
                     console.log('Max enemies reached, skipping spawn.');
@@ -594,7 +1523,7 @@ class MainScene extends Phaser.Scene {
 
     triggerJumpIfPossible() {
         if (this.player && this.jumpCount < this.maxJumps && !this.isAttacking) {
-            this.player.setVelocityY(this.jumpVelocity);
+            this.player.body.setVelocityY(this.jumpVelocity);
             this.jumpCount++;
 
             if (this.refs.socket.current) {
@@ -606,10 +1535,7 @@ class MainScene extends Phaser.Scene {
                 });
             }
 
-            if (this.anims.exists('jump')) {
-                this.player.anims.play('jump', true);
-                this.lastAnimation = 'jump';
-            }
+            this.player.playAll('jump');
         }
     }
 
@@ -640,13 +1566,16 @@ class MainScene extends Phaser.Scene {
             const hitboxOffsetX = this.player.flipX ? -50 : 50;
             const hitboxOffsetY = 5;
             this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
+            
 
-            this.player.once('animationcomplete', () => {
+            this.player.parts.body.once('animationcomplete', () => {
                 this.isAttacking = false;
                 this.animationLock = false;
+
                 if (this.attackHitbox?.body) {
                     this.attackHitbox.body.setEnable(false);
                 }
+
                 const isGrounded = this.player.body.blocked.down;
                 const isAirborne = !isGrounded;
                 const isMoving = this.cursors.left.isDown ||
@@ -655,10 +1584,24 @@ class MainScene extends Phaser.Scene {
                                 this.cursors.right.isDown ||
                                 this.WASD?.D.isDown ||
                                 (this.isMobile && this.touchRight);
+
                 if (isGrounded) {
-                    this.player.setVelocityY(0);
+                    this.player.body.setVelocityY(0);
                 }
-                this.updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+
+                const nextAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+                this.player.playAll(nextAnim, true);  // ← forces startFrame: 0 on every part
+
+                // Update last known state so next update() knows things changed
+                this.lastState = { isMoving, isAirborne };
+                this.lastAnimation = this.player.parts.body.anims.currentAnim?.key || 'idle';
+
+                console.log('Post-attack reset → current body anim:', {
+                    key: this.lastAnimation,
+                    isPlaying: this.player.parts.body.anims.isPlaying,
+                    currentFrame: this.player.parts.body.anims.currentFrame?.index
+                });
+                
                 if (this.refs.socket.current) {
                     this.refs.socket.current.emit('playerMovement', {
                         id: this.refs.myId.current,
@@ -668,6 +1611,7 @@ class MainScene extends Phaser.Scene {
                         isAirborne: isAirborne
                     });
                 }
+                console.log('Attack complete → forced animation:', this.lastAnimation);
             });
         }
     }
@@ -696,23 +1640,25 @@ class MainScene extends Phaser.Scene {
         if (this.refs.myId.current != null) {
             if (!this.isAttacking) {
                 if (isLeftPressed) {
-                    this.player.setVelocityX(-speed);
-                    if (!this.player.flipX) {
-                        this.player.flipX = true;
-                        this.updateBodyOffset(this.player);
-                    }
+                    this.player.body.setVelocityX(-speed);
+                    this.player.setFlipX(true);
                     this.facingDirection = 'left';
                     moving = true;
+                    // if (!this.player.flipX) {
+                    //     this.player.flipX = true;
+                    //     this.updateBodyOffset(this.player);
+                    // }
                 } else if (isRightPressed) {
-                    this.player.setVelocityX(speed);
-                    if (this.player.flipX) {
-                        this.player.flipX = false;
-                        this.updateBodyOffset(this.player);
-                    }
+                    this.player.body.setVelocityX(speed);
+                    this.player.setFlipX(false);
                     this.facingDirection = 'right';
                     moving = true;
+                    // if (this.player.flipX) {
+                    //     this.player.flipX = false;
+                    //     this.updateBodyOffset(this.player);
+                    // }
                 } else {
-                    this.player.setVelocityX(0);
+                    // this.player.body.setVelocityX(0);
                     // moving = false;
                 }
 
@@ -731,7 +1677,7 @@ class MainScene extends Phaser.Scene {
                         Phaser.Input.Keyboard.JustDown(this.jumpKeyUpArrow) ||
                         (this.isMobile && this.touchJump)
                     ) {
-                        this.player.setVelocityY(this.jumpVelocity);
+                        this.player.body.setVelocityY(this.jumpVelocity);
                         this.jumpCount++;
                         if (this.refs.socket.current) {
                             this.refs.socket.current.emit('playerJump', {
@@ -741,14 +1687,15 @@ class MainScene extends Phaser.Scene {
                                 velocityY: this.jumpVelocity,
                             });
                         }
-                        if (this.anims.exists('jump')) {
-                            this.player.anims.play('jump', true);
-                            this.lastAnimation = 'jump';
-                            this.animationLock = true;
-                            this.time.delayedCall(100, () => { this.animationLock = false; });
-                        } else {
-                            console.error('Jump animation not available');
-                        }
+                        // if (this.anims.exists('jump')) {
+                        //     this.player.anims.play('jump', true);
+                        //     this.lastAnimation = 'jump';
+                        //     this.animationLock = true;
+                        //     this.time.delayedCall(100, () => { this.animationLock = false; });
+                        // } else {
+                        //     console.error('Jump animation not available');
+                        // }
+                        this.player.playAll('jump');
                     }
                 }
             }
@@ -785,20 +1732,28 @@ class MainScene extends Phaser.Scene {
 
             if (!this.isAttacking && (Phaser.Input.Keyboard.JustDown(this.attackKey) ||
                                       Phaser.Input.Keyboard.JustDown(this.WASD.attackKey))) {
+                if (!this.player) {
+                    console.warn('Cannot attack: player not yet created');
+                    return;
+                }
+
                 this.isAttacking = true;
                 // this.player.body.setDragX(500);
                 this.player.removeAllListeners('animationcomplete');
                 this.player.baseX = this.player.x;
 
-                if (this.anims.exists('attack')) {
-                    this.player.anims.play('attack', true);
-                    this.lastAnimation = 'attack';
-                    this.animationLock = true;
-                    this.time.delayedCall(100, () => { this.animationLock = false; });
-                } else {
-                    console.error('Attack animation not available');
-                    this.isAttacking = false;
-                }
+                this.player.playAll('attack');
+                console.log('Attack started, current anim:', this.player.parts.body.anims.currentAnim?.key);
+                // if (this.anims.exists('attack')) {
+                //     this.player.anims.play('attack', true);
+                //     this.lastAnimation = 'attack';
+                //     this.animationLock = true;
+                //     this.time.delayedCall(100, () => { this.animationLock = false; });
+                // } else {
+                //     console.error('Attack animation not available');
+                //     this.isAttacking = false;
+                // }
+                const isAirborne = !this.player.body.blocked.down;
                 if (this.refs.socket.current) {
                     this.refs.socket.current.emit('playerAttack', {
                         id: this.refs.myId.current,
@@ -812,7 +1767,7 @@ class MainScene extends Phaser.Scene {
                 const hitboxOffsetY = 5;
                 this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
 
-                this.player.once('animationcomplete', () => {
+                this.player.parts.body.once('animationcomplete', () => {
                     this.isAttacking = false;
                     this.animationLock = false;
                     if (this.attackHitbox?.body) {
@@ -821,17 +1776,26 @@ class MainScene extends Phaser.Scene {
                     const isGrounded = this.player.body.blocked.down;
                     const isAirborne = !isGrounded;
                     const isMoving = isLeftPressed || isRightPressed;
+
+                    // NEW: Force visual reset to first frame of next anim
+                    let nextAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+                    this.player.playAll(nextAnim, true);  // ← forces startFrame: 0 on every part
+
+                    // this.updatePlayerAnimation(this.player, isAirborne, isMoving, this);
                     if (isGrounded) {
-                        this.player.setVelocityY(0);
+                        this.player.body.setVelocityY(0);
                     }
-                    if (
-                        this.lastState.isMoving !== isMoving ||
-                        this.lastState.isAirborne !== isAirborne ||
-                        this.lastAnimation !== this.player.anims?.currentAnim?.key
-                    ) {
-                        this.updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                    }
+                    // Update last known state so next update() knows things changed
                     this.lastState = { isMoving, isAirborne };
+                    this.lastAnimation = this.player.parts.body.anims.currentAnim?.key || 'idle';
+                    // if (
+                    //     this.lastState.isMoving !== isMoving ||
+                    //     this.lastState.isAirborne !== isAirborne ||
+                    //     this.lastAnimation !== this.player.anims?.currentAnim?.key
+                    // ) {
+                    //     this.updatePlayerAnimation(this.player, isAirborne, isMoving, this);
+                    // }
+                    // this.lastState = { isMoving, isAirborne };
 
                     if (this.refs.socket.current) {
                         this.refs.socket.current.emit('playerMovement', {
@@ -842,6 +1806,7 @@ class MainScene extends Phaser.Scene {
                             isAirborne: isAirborne
                         });
                     }
+                    console.log('Attack complete → forced animation:', this.lastAnimation);
                 });
             }
         }
@@ -851,11 +1816,12 @@ class MainScene extends Phaser.Scene {
             console.log('Keyboard Disabled:', this.refs.gameRef.current.input.keyboard.enabled);
             // CRITICAL: Stop player movement immediately
             if (this.player) {
-                this.player.setVelocityX(0);
+                this.player.body.setVelocityX(0);
                 // Force idle animation to avoid walking-in-place visuals
-                if (this.anims.exists('idle')) {
-                    this.player.anims.play('idle', true);
-                }
+                // if (this.anims.exists('idle')) {
+                //     this.player.anims.play('idle', true);
+                // }
+                this.player.playAll('idle');
             }
             this.resetActionKeys();
             this.refs.chatInputRef.current.focus();
@@ -869,55 +1835,55 @@ class MainScene extends Phaser.Scene {
         this.refs.enemies.current.forEach(enemy => enemy.update());
 
         // === CHIEF PATROL AI — NATURAL, WISE, UNSTUCKABLE ===
-        if (this.chief && this.chief.isPatrolling) {
-            const chief = this.chief;
-            const now = this.time.now;
+        // if (this.chief && this.chief.isPatrolling) {
+        //     const chief = this.chief;
+        //     const now = this.time.now;
 
-            // State machine approach: are we currently walking toward a target?
-            if (!chief.currentTarget) {
-                // Pick a new random destination within safe bounds
-                const minX = 320;
-                const maxX = 580; // Safe before firepit
-                chief.currentTarget = Phaser.Math.Between(minX, maxX);
+        //     // State machine approach: are we currently walking toward a target?
+        //     if (!chief.currentTarget) {
+        //         // Pick a new random destination within safe bounds
+        //         const minX = 320;
+        //         const maxX = 580; // Safe before firepit
+        //         chief.currentTarget = Phaser.Math.Between(minX, maxX);
 
-                // Random walk speed for this leg
-                chief.currentSpeed = Phaser.Math.Between(120, 220);
+        //         // Random walk speed for this leg
+        //         chief.currentSpeed = Phaser.Math.Between(120, 220);
 
-                // Random pause at end
-                chief.pauseTime = Phaser.Math.Between(1000, 4000);
-            }
+        //         // Random pause at end
+        //         chief.pauseTime = Phaser.Math.Between(1000, 4000);
+        //     }
 
-            // Determine direction to target
-            if (chief.x < chief.currentTarget - 10) {
-                chief.setVelocityX(chief.currentSpeed);
-                chief.flipX = false;
-                this.updateBodyOffset(chief);
-                chief.anims.play('walk', true);
-            } else if (chief.x > chief.currentTarget + 10) {
-                chief.setVelocityX(-chief.currentSpeed);
-                chief.flipX = true;
-                this.updateBodyOffset(chief);
-                chief.anims.play('walk', true);
-            } else {
-                // Close enough to target → stop and idle
-                chief.setVelocityX(0);
-                chief.anims.play('idle', true);
+        //     // Determine direction to target
+        //     if (chief.x < chief.currentTarget - 10) {
+        //         chief.setVelocityX(chief.currentSpeed);
+        //         chief.flipX = false;
+        //         this.updateBodyOffset(chief);
+        //         chief.anims.play('walk', true);
+        //     } else if (chief.x > chief.currentTarget + 10) {
+        //         chief.setVelocityX(-chief.currentSpeed);
+        //         chief.flipX = true;
+        //         this.updateBodyOffset(chief);
+        //         chief.anims.play('walk', true);
+        //     } else {
+        //         // Close enough to target → stop and idle
+        //         chief.setVelocityX(0);
+        //         chief.anims.play('idle', true);
 
-                // Wait for pause to end before picking new target
-                if (!chief.pauseEndTime) {
-                    chief.pauseEndTime = now + chief.pauseTime;
-                }
+        //         // Wait for pause to end before picking new target
+        //         if (!chief.pauseEndTime) {
+        //             chief.pauseEndTime = now + chief.pauseTime;
+        //         }
 
-                if (now >= chief.pauseEndTime) {
-                    // Done pausing — pick new target
-                    chief.currentTarget = null;
-                    chief.pauseEndTime = null;
-                }
-            }
+        //         if (now >= chief.pauseEndTime) {
+        //             // Done pausing — pick new target
+        //             chief.currentTarget = null;
+        //             chief.pauseEndTime = null;
+        //         }
+        //     }
 
-            // Name follows
-            this.chiefName.setPosition(chief.x, chief.y - 80);
-        }
+        //     // Name follows
+        //     this.chiefName.setPosition(chief.x, chief.y - 80);
+        // }
 
         Object.keys(this.refs.players.current).forEach(id => {
             const p = this.refs.players.current[id];
@@ -935,29 +1901,50 @@ class MainScene extends Phaser.Scene {
     }
 
     updatePlayerAnimation(player, isAirborne, isMoving, scene) {
+        
         if (scene.animationLock) return;
-        const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
-        let targetAnim = null;
 
-        if (isAirborne) {
-            targetAnim = 'jump';
+        let targetAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
+
+        // Only force restart if we were previously in a one-shot animation (like attack)
+        const prevAnim = player.parts.body.anims.currentAnim?.key;
+        const wasAttack = prevAnim && prevAnim.includes('_attack');        
+        
+        if (wasAttack) {
+            // Small delay to let Phaser process the complete event fully
+            scene.time.delayedCall(16, () => {  // ~1 frame delay
+                player.playAll(targetAnim, true);
+                console.log(`Delayed post-attack play: ${targetAnim} (forced: true)`);
+            });
         } else {
-            targetAnim = isMoving ? 'walk' : 'idle';
+            player.playAll(targetAnim, false);
         }
+    
+        console.log(`Updated animation to: ${targetAnim} (forced: ${wasAttack})`);
+        
+        // const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
+        // let targetAnim = null;
 
-        if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-            player.anims.play(targetAnim, true);
-            scene.lastAnimation = targetAnim;
-            scene.animationLock = true;
-            scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-            if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-                player.anims.play('idle', true);
-                scene.lastAnimation = 'idle';
-                scene.animationLock = true;
-                scene.time.delayedCall(100, () => { scene.animationLock = false; });
-            }
-        }
+        // if (isAirborne) {
+        //     targetAnim = 'jump';
+        // } else {
+        //     targetAnim = isMoving ? 'walk' : 'idle';
+        // }
+
+        // State locking? Swapping?
+        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
+        //     player.anims.play(targetAnim, true);
+        //     scene.lastAnimation = targetAnim;
+        //     scene.animationLock = true;
+        //     scene.time.delayedCall(100, () => { scene.animationLock = false; });
+        // } else if (targetAnim && !scene.anims.exists(targetAnim)) {
+        //     if (scene.anims.exists('idle') && currentAnim !== 'idle') {
+        //         player.anims.play('idle', true);
+        //         scene.lastAnimation = 'idle';
+        //         scene.animationLock = true;
+        //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
+        //     }
+        // }
     }
 
     createRemotePlayer(scene, x, y) {
@@ -1002,13 +1989,19 @@ class MainScene extends Phaser.Scene {
             const worldHeight = scene.physics.world.bounds.height;
             const groundY = worldHeight - 80;  // same as in create()
             const spawnY = groundY - 800;       // safe above ground
-            const spawnX = Phaser.Math.Between(300, worldWidth);
+            const spawnX = Phaser.Math.Between(300, 600);
 
-            scene.player = this.createRemotePlayer(scene, spawnX, spawnY);
+            scene.player = new ModularPlayer(scene, spawnX, spawnY);
+            // scene.player = this.createRemotePlayer(scene, spawnX, spawnY);
             scene.player.setDepth(3);
             scene.player.body.setAllowGravity(true);
-            scene.player.body.setDragX(3000);
+            // scene.player.body.setDragX(3000);
+            scene.physics.add.collider(scene.player, scene.platforms);
             this.refs.players.current[this.refs.myId.current] = scene.player;
+
+            // Start idle animation — now safe because all animations were created earlier in scene.create()
+            scene.player.playAll('jump', true);  // ← Change to 'jump', force true for clean start
+
 
             // Start camera follow
             scene.cameras.main.startFollow(scene.player, false, 0.1, 0.1);
@@ -1026,43 +2019,43 @@ class MainScene extends Phaser.Scene {
                 this.createTouchControls();
             }
 
-            scene.attackOffsets = {};
-            const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
-            manzanitaFrames.forEach(frameName => {
-                const frameData = scene.textures.get('manzanita').frames[frameName].customData;
-                if (frameData && frameData.attackOffset !== undefined) {
-                    scene.attackOffsets[frameName] = frameData.attackOffset;
-                }
-            });
+            // scene.attackOffsets = {};
+            // const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
+            // manzanitaFrames.forEach(frameName => {
+            //     const frameData = scene.textures.get('manzanita').frames[frameName].customData;
+            //     if (frameData && frameData.attackOffset !== undefined) {
+            //         scene.attackOffsets[frameName] = frameData.attackOffset;
+            //     }
+            // });
 
-            scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
-            scene.physics.add.existing(scene.attackHitbox);
-            scene.attackHitbox.body.setAllowGravity(false);
-            scene.attackHitbox.body.setEnable(false);
-            scene.attackHitbox.body.debugShowBody = false;
+            // scene.attackHitbox = scene.add.rectangle(-100, -100, 90, 20, 0x882222, 0);
+            // scene.physics.add.existing(scene.attackHitbox);
+            // scene.attackHitbox.body.setAllowGravity(false);
+            // scene.attackHitbox.body.setEnable(false);
+            // scene.attackHitbox.body.debugShowBody = false;
 
-            scene.player.on('animationupdate', (animation, frame) => {
-                if (animation.key === 'attack') {
-                    const offset = scene.attackOffsets[frame.textureFrame] || 0;
-                    const dir = scene.player.flipX ? -1 : 1;
-                    // scene.player.x = scene.player.baseX + offset * dir;
-                    // scene.player.x = scene.player.baseX;
-                    const hitboxOffsetX = 30;
-                    scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
-                    scene.attackHitbox.y = scene.player.y + 15;
-                    if (frame.index >= 1 && frame.index <= 2) {
-                        scene.attackHitbox.body.setEnable(true);
-                    } else {
-                        scene.attackHitbox.body.setEnable(false);
-                    }
-                }
-            });
+            // scene.player.on('animationupdate', (animation, frame) => {
+            //     if (animation.key === 'attack') {
+            //         const offset = scene.attackOffsets[frame.textureFrame] || 0;
+            //         const dir = scene.player.flipX ? -1 : 1;
+            //         // scene.player.x = scene.player.baseX + offset * dir;
+            //         // scene.player.x = scene.player.baseX;
+            //         const hitboxOffsetX = 30;
+            //         scene.attackHitbox.x = scene.player.x + (offset + hitboxOffsetX) * dir;
+            //         scene.attackHitbox.y = scene.player.y + 15;
+            //         if (frame.index >= 1 && frame.index <= 2) {
+            //             scene.attackHitbox.body.setEnable(true);
+            //         } else {
+            //             scene.attackHitbox.body.setEnable(false);
+            //         }
+            //     }
+            // });
 
-            scene.player.on('animationcomplete', (animation) => {
-                if (animation.key === 'attack' && scene.attackHitbox?.body) {
-                    scene.attackHitbox.body.setEnable(false);
-                }
-            });
+            // scene.player.on('animationcomplete', (animation) => {
+            //     if (animation.key === 'attack' && scene.attackHitbox?.body) {
+            //         scene.attackHitbox.body.setEnable(false);
+            //     }
+            // });
 
             scene.animationLock = false;
 
@@ -1436,7 +2429,7 @@ const MZTGame = () => {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 1200 },
-                    debug: false,
+                    debug: true,
                     // tileBias: 32,
                 },
             },
@@ -1670,10 +2663,11 @@ const MZTGame = () => {
                                 // Stop player if they're moving (in case keys are held or touch joystick active)
                                 const scene = sceneRef.current;
                                 if (scene && scene.player) {
-                                    scene.player.setVelocityX(0);
-                                    if (scene.anims.exists('idle')) {
-                                        scene.player.anims.play('idle', true);
-                                    }
+                                    scene.player.body.setVelocityX(0);
+                                    // if (scene.anims.exists('idle')) {
+                                    //     scene.player.anims.play('idle', true);
+                                    // }
+                                    scene.player.playAll('idle');
                                 }
                                 scene.resetActionKeys();
                                 // Reset mobile joystick state
