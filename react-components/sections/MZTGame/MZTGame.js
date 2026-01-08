@@ -11,13 +11,64 @@ class ModularPlayer extends Phaser.GameObjects.Container {
         scene.physics.add.existing(this);
         this.body.setAllowGravity(true);
         this.body.setCollideWorldBounds(true);
-        this.body.setDragX(4000);
-        // this.body.setSize(40, 55);
-        // this.body.setOffset(40, 10);  // Tune later
-        this.body.debugShowBody = true;
+        this.body.setDragX(2500);
+        this.body.debugShowBody = false;
 
         this.parts = {};
         this.createParts();
+        
+        this.body.setSize(50, 55);               // width, height — tune later
+        this.body.setOffset(5, 10);            // shift so center ≈ character center
+
+        // Optional: make body visible longer during debug
+        this.body.debugShowBody = false;
+        this.body.debugShowVelocity = true;
+
+        this.soulfireActive = false;           // toggle this when boost starts/ends
+        this.soulEmitter = null;               // we'll create it in create()
+    }
+
+    createSoulfire() {
+        if (this.soulEmitter) return;  // already created
+
+        this.soulEmitter = this.scene.add.particles(0, 0, '__WHITE', {
+            scale: { start: 0.4, end: 0.0 },      // smaller for player
+            alpha: { start: 0.9, end: 0.0 },
+            speed: { min: 80, max: 160 },
+            accelerationY: -180,
+            angle: { min: 120, max: 160 },
+            lifespan: 1200,
+            blendMode: 'ADD',
+            frequency: 50,                        // lower intensity
+            quantity: 1,
+            tint: [0xff1100, 0xff4400, 0xff8800, 0xffff44, 0xffffff],
+            emitZone: {
+                type: 'random',
+                source: new Phaser.Geom.Rectangle(-25, -60, 50, 80),  // around stem
+                width: 4,
+                height: 4
+            }
+        })
+        .setDepth(5)  // above player parts
+        .setVisible(false);
+
+        // Attach to THIS container (not scene.add!)
+        this.add(this.soulEmitter);
+    }
+
+    setSoulfireBoost(active) {
+        if (!this.soulEmitter) {
+            this.createSoulfire();  // lazy create on first use
+        }
+        
+        this.soulfireActive = active;
+        if (active) {
+            this.soulEmitter.setVisible(true);
+            this.soulEmitter.start();
+        } else {
+            this.soulEmitter.setVisible(false);
+            this.soulEmitter.stop();
+        }
     }
 
     createParts() {
@@ -52,7 +103,7 @@ class ModularPlayer extends Phaser.GameObjects.Container {
         this.add(eyes);
         this.parts.eyes = eyes;
 
-        // Spear (held in front arm/hand — top layer for weapon)
+        // Weapon (held in front arm/hand — top layer for weapon)
         const weapon = this.scene.add.sprite(0, 0, 'weapon').setOrigin(0.25, 0.25);  // ← important: pivot near grip (left side of spear)
         weapon.setFrame('mzt_idle0000');  // ← Add this for each part
         this.add(weapon);
@@ -94,7 +145,7 @@ class ModularPlayer extends Phaser.GameObjects.Container {
     }
 
     playAll(animKey, forceRestart = false) {
-        console.log('Playing:', animKey, { forceRestart });
+        // console.log('Playing:', animKey, { forceRestart });
 
         const tryPlay = (part, animName) => {
             if (!part?.anims) return;
@@ -141,6 +192,23 @@ class ModularPlayer extends Phaser.GameObjects.Container {
         if (this.parts.arm_lead) this.parts.arm_lead.flipX = flip;
         if (this.parts.weapon) this.parts.weapon.flipX = flip;
         // this.scene.updateBodyOffset(this);  // Call your existing method - dated remove soon
+        if (this.parts.weapon) {
+            // positive = move right, negative = move left
+            const flipPositionOffset = -10;   // ← tune this pixel value (try -8 to -20)
+            this.parts.weapon.x = flip ? flipPositionOffset : 0;
+        }
+        if (this.soulEmitter) {
+            this.soulEmitter.flipX = flip;
+        }
+    }
+
+    // Cleanup (good practice)
+    destroy(fromScene) {
+        if (this.soulEmitter) {
+            this.soulEmitter.stop();
+            this.soulEmitter.destroy();
+        }
+        super.destroy(fromScene);
     }
 }
 
@@ -221,7 +289,8 @@ class MainScene extends Phaser.Scene {
         // Background — fit perfectly, no stretch
         this.add.image(worldWidth / 2, worldHeight / 2, 'sceneBg')
             .setDisplaySize(worldWidth, worldHeight)
-            .setDepth(-10);
+            .setDepth(-10)
+            .setPipeline('Light2D');   
 
         // Ground
         const groundY = worldHeight - 280;
@@ -237,18 +306,148 @@ class MainScene extends Phaser.Scene {
         // FIREPIT
         this.firepit = this.physics.add.sprite(700 * scaleX, groundY - 160, 'firepit')
             .setScale(0.42)
-            .setDepth(1);
+            .setDepth(1)
+            
         this.firepit.body.setImmovable(true);
         this.firepit.body.setAllowGravity(false);
         this.firepit.body.setSize(260, 300);
         this.firepit.body.offset.set(30, 120);
         this.firepit.play('burning');
 
+        // ── Ambient modes ── (now much brighter overall)
+        const ambientModes = {
+            // 6am - 9am
+            morning: {
+              color: 0xe0f0ff,
+              name: 'Fresh Morning',
+              fireIntensityBoost: 1.5
+            },
+            // 9am - 6pm
+            afternoon: {
+                color: 0xfff0d8,
+                name: 'Golden Afternoon',
+                fireIntensityBoost: 1
+              },
+            // 6pm-9pm
+            cozy: {
+                color: 0xd89c80,          // softened from 0xaabbb0 — cozy + visible
+                name: 'Cozy Campfire',
+                fireIntensityBoost: 1.4
+              },
+            
+            // 9pm - 6am
+            night: {
+              color: 0x5a6f8f,          // deeper but not crushing darkness
+              name: 'Deep Forest Night',
+              fireIntensityBoost: 2
+            }
+        };
+        
+        // ── Time-based ambient mode selection ──
+        // Runs once on scene create — no need to update every frame
+        const now = new Date();
+        const hours = now.getHours();   // 0–23 local time
+        const minutes = now.getMinutes();
+        const currentTimeInMinutes = hours * 60 + minutes;
+
+        // Helper to check if time is between start and end (handles midnight wrap)
+        const isBetween = (startHour, startMin, endHour, endMin) => {
+        const start = startHour * 60 + startMin;
+        const end = endHour * 60 + endMin;
+        if (end > start) {
+            return currentTimeInMinutes >= start && currentTimeInMinutes < end;
+        } else {
+            // Overnight range
+            return currentTimeInMinutes >= start || currentTimeInMinutes < end;
+        }
+        };
+
+        let selectedMode = 'cozy'; // fallback
+
+        if (isBetween(6, 0, 9, 0)) {
+            selectedMode = 'morning';       // morning cozy
+        } else if (isBetween(9, 0, 18, 0)) {
+            selectedMode = 'afternoon';
+        } else if (isBetween(18, 0, 20, 0)) {
+            selectedMode = 'cozy';          // evening cozy
+        } else {
+            selectedMode = 'night';
+        }
+
+        console.log(`Local time: ${hours}:${minutes.toString().padStart(2,'0')} → Ambient mode: ${selectedMode}`);
+
+                this.lights.enable();
+                this.lights.setAmbientColor(ambientModes[selectedMode].color);   // ← dark teal-gray – mystical night forest feel
+                
+                console.log(`Ambient mode: ${selectedMode} (${ambientModes[selectedMode].name})`);
+
+        // ── Campfire light ── tuned per mode
+        let fireColor = 0xffaa55;//0xffd9b3;           // base soft peach-orange
+        let fireIntensity = 1.15 * (ambientModes[selectedMode].fireIntensityBoost || 1.0);
+        let fireRadius = selectedMode === 'night' ? 420 : 200;  // bigger glow at night
+
+        this.fireLight = this.lights.addLight(
+        this.firepit.x,
+        this.firepit.y - 20,
+        fireRadius,
+        fireColor,
+        fireIntensity
+        );
+
+        // Breathing + flicker (keep gentle – we don't want it to fight the brighter ambient)
+        this.tweens.add({
+        targets: this.fireLight,
+        radius: { from: fireRadius - 30, to: fireRadius + 50 },
+        intensity: { from: fireIntensity - 0.25, to: fireIntensity + 0.35 },
+        duration: 3200,           // slower breathing
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+        });
+
+        // Flicker — slightly more variation so the glow dances visibly
+        this.time.addEvent({
+        delay: 120,
+        callback: () => {
+            if (this.fireLight) {
+            this.fireLight.intensity = fireIntensity + Phaser.Math.FloatBetween(-0.25, 0.25);
+            this.fireLight.x = this.firepit.x + Phaser.Math.Between(-8,8);
+            this.fireLight.y = this.firepit.y + 50 + Phaser.Math.Between(-10,10);
+            }
+        },
+        loop: true
+        });
+
+        // FIRE EMITTER
+        this.fireEmitter = this.add.particles(0, 0, '__WHITE', {  // ← '__WHITE' = perfect glowing dots!
+            scale: { start: 0.8, end: 0.0 },                    // bigger sparks
+            alpha: { start: 1.0, end: 0.0 },
+            speed: { min: 60, max: 120 },
+            accelerationY: -200,                                // strong upward float
+            angle: { min: -160, max: 90 },                       // wider spray
+            lifespan: 1400,                                     // longer trails
+            blendMode: 'ADD',                                   // 🔥 GLOW
+            frequency: 80,                                      // 20 particles/sec (balanced)
+            quantity: 1,
+            // 🔥 REAL FIRE COLORS: red/orange core → yellow tips
+            tint: [0xff1100, 0xff4400, 0xff8800, 0xffff44, 0xffffff],
+            gravityY: 0,                                        // let acceleration handle lift
+            emitZone: { 
+                type: 'random', 
+                source: new Phaser.Geom.Rectangle(-50, -20, 100, 100),  // bigger fire core
+                width: 6,
+                height: 6
+            }
+        }).setDepth(12);
+        
+        this.fireEmitter.startFollow(this.firepit);
+
         // TEEPEE
         this.teepee = this.add.image(175, groundY - 27, 'teepee')
             .setOrigin(0.5, 1)
             .setScale(1)
-            .setDepth(10);
+            .setDepth(10)
+            .setPipeline('Light2D');   
         this.teepeeInsidePlat = this.add.rectangle(100, groundY - 165, 60, 180, 0x0000ff, 0);
         this.teepeeTopPlat = this.add.rectangle(170, groundY - 420, 30, 60, 0x000fff, 0)
         this.teepeeDoorWallPlat = this.add.rectangle(200, groundY - 360, 28, 70, 0x000fff, 0)
@@ -325,14 +524,14 @@ class MainScene extends Phaser.Scene {
         }
 
         // Create attack hitbox (once, shared for the local player)
-        this.attackHitbox = this.add.rectangle(0, 0, 90, 20, 0xff0000, 0.4)  // visible red for debugging
+        this.attackHitbox = this.add.rectangle(0, 0, 90, 20, 0xff0000, 0)  // visible red for debugging
         .setDepth(5)
-        .setOrigin(0.5, 0.5);
+        .setOrigin(0.25, 0.25);
 
         this.physics.add.existing(this.attackHitbox);
         this.attackHitbox.body.setAllowGravity(false);
         this.attackHitbox.body.setEnable(false);           // disabled by default
-        this.attackHitbox.body.debugShowBody = true;       // keep visible during dev
+        this.attackHitbox.body.debugShowBody = false;       // keep visible during dev
 
         // Track last flip
         this.lastFlipX = null;
@@ -603,7 +802,7 @@ this.anims.create({
         { key: 'eyes', frame: 'mzt_attack0003' },
         { key: 'eyes', frame: 'mzt_attack0004' },
     ],
-    frameRate: 24,          // faster for attack intensity
+    frameRate: 16,          // faster for attack intensity
     repeat: 0               // usually play once
 });
 
@@ -783,6 +982,7 @@ this.anims.create({
     repeat: -1
 });
 
+
 // Spear walk
 this.anims.create({
     key: 'weapon_walk',
@@ -838,7 +1038,7 @@ this.anims.create({
         { key: 'weapon', frame: 'mzt_attack0003' },
         { key: 'weapon', frame: 'mzt_attack0004' }
     ],
-    frameRate: 24,
+    frameRate: 16,
     repeat: 0
 });
 
@@ -1179,7 +1379,7 @@ this.anims.create({
             delay: 2500,
             callback: () => {
                 if (this.enemyCount >= this.enemyMaxCount) {
-                    console.log('Max enemies reached, skipping spawn.');
+                    // console.log('Max enemies reached, skipping spawn.');
                     return;
                 }
                 const spawnX = Phaser.Math.Between(100, 1180);
@@ -1224,6 +1424,7 @@ this.anims.create({
             D: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
             attackKey: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J)
         };
+        
 
         this.isAttacking = false;
         this.jumpVelocity = -500;
@@ -1281,6 +1482,20 @@ this.anims.create({
                 });
             });
         };
+    }
+
+    // NEW: Method to toggle soulfire boost
+    setSoulfireBoost(active) {
+        this.soulfireActive = active;
+        if (this.soulEmitter) {
+            if (active) {
+                this.soulEmitter.setVisible(true);
+                this.soulEmitter.start();           // start emitting
+            } else {
+                this.soulEmitter.setVisible(false);
+                this.soulEmitter.stop();            // stop emitting
+            }
+        }
     }
 
     createTouchControls() {
@@ -1540,80 +1755,66 @@ this.anims.create({
     }
 
     onAttackTouch() {
-        if (!this.isAttacking && this.player) {
-            this.isAttacking = true;
-            // this.player.body.setDragX(500);
-            this.player.removeAllListeners('animationcomplete');
-            this.player.baseX = this.player.x;
-
-            if (this.anims.exists('attack')) {
-                this.player.anims.play('attack', true);
-                this.lastAnimation = 'attack';
-                this.animationLock = true;
-                this.time.delayedCall(100, () => { this.animationLock = false; });
-            }
-
-            const isAirborne = !this.player.body.blocked.down;
-            if (this.refs.socket.current) {
-                this.refs.socket.current.emit('playerAttack', {
-                    id: this.refs.myId.current,
-                    position: { x: this.player.x, y: this.player.y },
-                    direction: this.facingDirection,
-                    isAirborne
-                });
-            }
-
-            const hitboxOffsetX = this.player.flipX ? -50 : 50;
-            const hitboxOffsetY = 5;
-            this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
+        if (this.isAttacking || !this.player) return;
+    
+        this.isAttacking = true;
+        this.player.playAll('attack');
+    
+        // Disable hitbox by default
+        this.attackHitbox.body.setEnable(false);
+    
+        const onWeaponFrame = (animation, frame) => {
+            if (animation.key !== 'weapon_attack') return;
+    
+            let spearTipX = 60;
+            let spearTipY = 42;
+    
+            if (this.player.flipX) spearTipX = -spearTipX + 15;
+    
+            this.attackHitbox.setPosition(this.player.x + spearTipX, this.player.y + spearTipY);
+    
+            this.attackHitbox.body.setEnable(frame.index === 2);
             
-
-            this.player.parts.body.once('animationcomplete', () => {
-                this.isAttacking = false;
-                this.animationLock = false;
-
-                if (this.attackHitbox?.body) {
-                    this.attackHitbox.body.setEnable(false);
+            // ← NEW: per-frame visual correction for spear when facing left
+            if (this.player.flipX && this.player.parts.weapon) {
+                // Make wind-up smaller and thrust bigger by pushing weapon forward during early frames
+                let frameCorrectionX;
+                if (frame.index === 0 ) {
+                    frameCorrectionX = 0;  
+                } else if (frame.index === 1) {
+                    frameCorrectionX = 0;  
+                } else if (frame.index === 2) {
+                    frameCorrectionX = -42; //extension
+                } else if (frame.index === 3 || frame.index === 4) {
+                    frameCorrectionX = -28; //pull back
+                }else{
+                    frameCorrectionX = -8;
                 }
+                this.player.parts.weapon.x = frameCorrectionX;
+            }
+        };
 
-                const isGrounded = this.player.body.blocked.down;
-                const isAirborne = !isGrounded;
-                const isMoving = this.cursors.left.isDown ||
-                                this.WASD?.A.isDown ||
-                                (this.isMobile && this.touchLeft) ||
-                                this.cursors.right.isDown ||
-                                this.WASD?.D.isDown ||
-                                (this.isMobile && this.touchRight);
-
-                if (isGrounded) {
-                    this.player.body.setVelocityY(0);
-                }
-
-                const nextAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
-                this.player.playAll(nextAnim, true);  // ← forces startFrame: 0 on every part
-
-                // Update last known state so next update() knows things changed
-                this.lastState = { isMoving, isAirborne };
-                this.lastAnimation = this.player.parts.body.anims.currentAnim?.key || 'idle';
-
-                console.log('Post-attack reset → current body anim:', {
-                    key: this.lastAnimation,
-                    isPlaying: this.player.parts.body.anims.isPlaying,
-                    currentFrame: this.player.parts.body.anims.currentFrame?.index
-                });
-                
-                if (this.refs.socket.current) {
-                    this.refs.socket.current.emit('playerMovement', {
-                        id: this.refs.myId.current,
-                        position: { x: this.player.x, y: this.player.y },
-                        direction: this.facingDirection,
-                        isMoving: isMoving,
-                        isAirborne: isAirborne
-                    });
-                }
-                console.log('Attack complete → forced animation:', this.lastAnimation);
-            });
-        }
+    
+        // Listen to weapon animation updates
+        this.player.parts.weapon.on('animationupdate', onWeaponFrame);
+    
+        // When attack animation completes
+        this.player.parts.weapon.once('animationcomplete-weapon_attack', () => {
+            this.isAttacking = false;
+            this.attackHitbox.body.setEnable(false);
+    
+            // Clean up listener
+            this.player.parts.weapon.off('animationupdate', onWeaponFrame);
+    
+            // Return to correct animation
+            const isGrounded = this.player.body.blocked.down;
+            const isMoving = this.cursors.left.isDown || this.cursors.right.isDown ||
+                            this.WASD.A.isDown || this.WASD.D.isDown ||
+                            (this.isMobile && (this.touchLeft || this.touchRight));
+    
+            const nextAnim = !isGrounded ? 'jump' : (isMoving ? 'walk' : 'idle');
+            this.player.playAll(nextAnim, true);
+        });
     }
 
     update() {
@@ -1644,31 +1845,15 @@ this.anims.create({
                     this.player.setFlipX(true);
                     this.facingDirection = 'left';
                     moving = true;
-                    // if (!this.player.flipX) {
-                    //     this.player.flipX = true;
-                    //     this.updateBodyOffset(this.player);
-                    // }
                 } else if (isRightPressed) {
                     this.player.body.setVelocityX(speed);
                     this.player.setFlipX(false);
                     this.facingDirection = 'right';
                     moving = true;
-                    // if (this.player.flipX) {
-                    //     this.player.flipX = false;
-                    //     this.updateBodyOffset(this.player);
-                    // }
                 } else {
                     // this.player.body.setVelocityX(0);
                     // moving = false;
                 }
-
-                // this.updateBodyOffset(this.player);
-                // if (this.player.flipX) {
-                //     this.player.body.setOffset(45, 10);
-                // }
-                // else {
-                //     this.player.body.setOffset(40, 10);
-                // }
 
                 if (!this.isAttacking && this.jumpCount < this.maxJumps) {
                     if (
@@ -1687,14 +1872,6 @@ this.anims.create({
                                 velocityY: this.jumpVelocity,
                             });
                         }
-                        // if (this.anims.exists('jump')) {
-                        //     this.player.anims.play('jump', true);
-                        //     this.lastAnimation = 'jump';
-                        //     this.animationLock = true;
-                        //     this.time.delayedCall(100, () => { this.animationLock = false; });
-                        // } else {
-                        //     console.error('Jump animation not available');
-                        // }
                         this.player.playAll('jump');
                     }
                 }
@@ -1737,23 +1914,67 @@ this.anims.create({
                     return;
                 }
 
+                const isAirborne = !this.player.body.blocked.down;
+
                 this.isAttacking = true;
-                // this.player.body.setDragX(500);
+                this.player.playAll('attack');
+                
+                this.attackHitbox.body.setEnable(false)
+
+                if(isAirborne){
+                    this.player.body.setDragX(800);   // ← disable horizontal drag during attack
+                }
+
+                const onWeaponFrame = (animation, frame) => {
+                    if (animation.key !== 'weapon_attack') return;
+            
+                    let spearTipX = 60;
+                    let spearTipY = 42;
+            
+                    if (this.player.flipX) spearTipX = -spearTipX + 15;
+            
+                    this.attackHitbox.setPosition(this.player.x + spearTipX, this.player.y + spearTipY);
+            
+                    this.attackHitbox.body.setEnable(frame.index === 2);
+                    
+                    // ← NEW: per-frame visual correction for spear when facing left
+                    if (this.player.flipX && this.player.parts.weapon) {
+                        // Make wind-up smaller and thrust bigger by pushing weapon forward during early frames
+                        let frameCorrectionX;
+                        if (frame.index === 0 ) {
+                            frameCorrectionX = 0;  
+                        } else if (frame.index === 1) {
+                            frameCorrectionX = 0;  
+                        } else if (frame.index === 2) {
+                            frameCorrectionX = -42; //extension
+                        } else if (frame.index === 3 || frame.index === 4) {
+                            frameCorrectionX = -28; //pull back
+                        }else{
+                            frameCorrectionX = -8;
+                        }
+                        this.player.parts.weapon.x = frameCorrectionX;
+                    }
+                };
+
+                this.player.parts.weapon.on('animationupdate', onWeaponFrame);
+
+                this.player.parts.weapon.once('animationcomplete-weapon_attack', () => {
+                    this.isAttacking = false;
+                    this.attackHitbox.body.setEnable(false);
+                    this.player.parts.weapon.off('animationupdate', onWeaponFrame);
+            
+                    const isGrounded = this.player.body.blocked.down;
+                    const isMoving = isLeftPressed || isRightPressed;
+                    const nextAnim = !isGrounded ? 'jump' : (isMoving ? 'walk' : 'idle');
+                    this.player.playAll(nextAnim, true);
+                });
+                
                 this.player.removeAllListeners('animationcomplete');
                 this.player.baseX = this.player.x;
 
-                this.player.playAll('attack');
                 console.log('Attack started, current anim:', this.player.parts.body.anims.currentAnim?.key);
-                // if (this.anims.exists('attack')) {
-                //     this.player.anims.play('attack', true);
-                //     this.lastAnimation = 'attack';
-                //     this.animationLock = true;
-                //     this.time.delayedCall(100, () => { this.animationLock = false; });
-                // } else {
-                //     console.error('Attack animation not available');
-                //     this.isAttacking = false;
-                // }
-                const isAirborne = !this.player.body.blocked.down;
+                
+                
                 if (this.refs.socket.current) {
                     this.refs.socket.current.emit('playerAttack', {
                         id: this.refs.myId.current,
@@ -1763,9 +1984,9 @@ this.anims.create({
                     });
                 }
 
-                const hitboxOffsetX = this.player.flipX ? -50 : 50;
-                const hitboxOffsetY = 5;
-                this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
+                // const hitboxOffsetX = this.player.flipX ? -50 : 50;
+                // const hitboxOffsetY = 5;
+                // this.attackHitbox.setPosition(this.player.x + hitboxOffsetX, this.player.y + hitboxOffsetY);
 
                 this.player.parts.body.once('animationcomplete', () => {
                     this.isAttacking = false;
@@ -1776,6 +1997,10 @@ this.anims.create({
                     const isGrounded = this.player.body.blocked.down;
                     const isAirborne = !isGrounded;
                     const isMoving = isLeftPressed || isRightPressed;
+
+
+                    // Restore normal drag after attack ends
+                    this.player.body.setDragX(2500);
 
                     // NEW: Force visual reset to first frame of next anim
                     let nextAnim = isAirborne ? 'jump' : (isMoving ? 'walk' : 'idle');
@@ -1788,14 +2013,6 @@ this.anims.create({
                     // Update last known state so next update() knows things changed
                     this.lastState = { isMoving, isAirborne };
                     this.lastAnimation = this.player.parts.body.anims.currentAnim?.key || 'idle';
-                    // if (
-                    //     this.lastState.isMoving !== isMoving ||
-                    //     this.lastState.isAirborne !== isAirborne ||
-                    //     this.lastAnimation !== this.player.anims?.currentAnim?.key
-                    // ) {
-                    //     this.updatePlayerAnimation(this.player, isAirborne, isMoving, this);
-                    // }
-                    // this.lastState = { isMoving, isAirborne };
 
                     if (this.refs.socket.current) {
                         this.refs.socket.current.emit('playerMovement', {
@@ -1817,10 +2034,6 @@ this.anims.create({
             // CRITICAL: Stop player movement immediately
             if (this.player) {
                 this.player.body.setVelocityX(0);
-                // Force idle animation to avoid walking-in-place visuals
-                // if (this.anims.exists('idle')) {
-                //     this.player.anims.play('idle', true);
-                // }
                 this.player.playAll('idle');
             }
             this.resetActionKeys();
@@ -1920,31 +2133,7 @@ this.anims.create({
             player.playAll(targetAnim, false);
         }
     
-        console.log(`Updated animation to: ${targetAnim} (forced: ${wasAttack})`);
-        
-        // const currentAnim = player.anims.currentAnim ? player.anims.currentAnim.key : null;
-        // let targetAnim = null;
-
-        // if (isAirborne) {
-        //     targetAnim = 'jump';
-        // } else {
-        //     targetAnim = isMoving ? 'walk' : 'idle';
-        // }
-
-        // State locking? Swapping?
-        // if (targetAnim && scene.anims.exists(targetAnim) && currentAnim !== targetAnim) {
-        //     player.anims.play(targetAnim, true);
-        //     scene.lastAnimation = targetAnim;
-        //     scene.animationLock = true;
-        //     scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        // } else if (targetAnim && !scene.anims.exists(targetAnim)) {
-        //     if (scene.anims.exists('idle') && currentAnim !== 'idle') {
-        //         player.anims.play('idle', true);
-        //         scene.lastAnimation = 'idle';
-        //         scene.animationLock = true;
-        //         scene.time.delayedCall(100, () => { scene.animationLock = false; });
-        //     }
-        // }
+        // console.log(`Updated animation to: ${targetAnim} (forced: ${wasAttack})`);
     }
 
     createRemotePlayer(scene, x, y) {
@@ -2018,6 +2207,16 @@ this.anims.create({
             if (this.isMobile) {
                 this.createTouchControls();
             }
+
+            // Apply Light2D pipeline to the player container and all its parts
+// Apply Light2D pipeline to EVERY child sprite (this is what actually works)
+Object.values(scene.player.parts).forEach(part => {
+    if (part && typeof part.setPipeline === 'function') {
+        part.setPipeline('Light2D');
+    }
+});
+
+            // scene.player.setSoulfireBoost(true);  // ← TEST: turn on immediately
 
             // scene.attackOffsets = {};
             // const manzanitaFrames = scene.textures.get('manzanita').getFrameNames();
@@ -2362,9 +2561,9 @@ const MZTGame = () => {
             }
             
             // Create Chat Message text
-            const fontSize = scene.isMobile ? '12px' : '16px';
+            const fontSize = scene.isMobile ? '14px' : '16px';
 
-            const chatText = scene.add.text(player.x, player.y - 50, data.message, {
+            const chatText = scene.add.text(player.x, player.y, data.message, {
                 fontSize: fontSize,
                 fill: '#ffff00',
                 padding: { x: 12, y: 8 },
@@ -2372,28 +2571,37 @@ const MZTGame = () => {
                 wordWrap: { width: 200, useAdvancedWrap: true },
                 stroke: '#000000',
                 strokeThickness: 6,
-                roundPixels: true
+                roundPixels: true,
+                // backgroundColor: 'rgba(0,0,0,0.6)',   // optional but recommended
+                shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 4, fill: true }
             })
-            .setOrigin(0.5)
             .setDepth(10);
+
+            // 2. Force Phaser to recalculate accurate bounds
+            chatText.setText(data.message);               // re-set triggers full layout
+            chatText.setOrigin(0.5, 1);
+
+            // 3. Position it correctly (bottom of bubble is 80px above player center)
+            const bubbleOffsetY = 0;
+            const bubbleOffsetX = 32;
+            chatText.setPosition(player.x + bubbleOffsetX, player.y - bubbleOffsetY);
+            
+            chatText.setScale(0.1);
+            scene.tweens.add({
+                targets: chatText,
+                scale: 1,
+                duration: 300,
+                ease: 'Back.out'
+            });
             
             // Text Follow player
             const textUpdate = scene.time.addEvent({
                 delay: 16,
                 callback: () => {
-                    chatText.setPosition(player.x, player.y - 50);
+                    chatText.setPosition(player.x + bubbleOffsetX, player.y - bubbleOffsetY);
                 },
                 loop: true,
             });
-
-            // Auto-remove after 6 seconds
-            // scene.time.addEvent({
-            //     delay: 6000,
-            //     callback: () => {
-            //         chatText.destroy();
-            //         textUpdate.remove(false);
-            //     },
-            // });
 
             // Auto-remove after 6 seconds
             const removalTimer = scene.time.delayedCall(6000, () => {
@@ -2429,7 +2637,7 @@ const MZTGame = () => {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 1200 },
-                    debug: true,
+                    debug: false,
                     // tileBias: 32,
                 },
             },
@@ -2681,7 +2889,8 @@ const MZTGame = () => {
                             setIsChatFocused(false);
                             if (gameRef.current) gameRef.current.input.keyboard.enabled = true;
                         }}
-                        placeholder={isChatFocused ? 'Type message… (Enter to send)' : 'Press Enter to chat & send'}
+                        placeholder={isChatFocused ? 'Type message… (Enter to send)' : 'Enter to Chat'}
+                        maxLength="160"
                         onKeyDown={(e) => handleChatKeyDown(e)}
                         style={{
                             backgroundColor: isChatFocused ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.42)',
